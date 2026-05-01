@@ -26,15 +26,16 @@ class Torrent:
                 404, f'"{torrent_handle.info_hash()}" torrent nem található.'
             )
 
-        priorities = torrent_handle.piece_priorities().copy()
-
         self.info_hash = str(torrent_handle.info_hash())
         self.torrent_handle = torrent_handle
         self.torrent_info = torrent_info
 
         self.piece_size = torrent_info.piece_length()
         self.chunk_piece_count = math.ceil(CHUNK_SIZE / self.piece_size)
+
+        priorities = torrent_handle.piece_priorities().copy()
         self.default_priorities = priorities
+        self.active_priorities = priorities
 
         self.files: Dict[int, File] = {}
         self.active_deadlines: List[int] = []
@@ -60,6 +61,9 @@ class Torrent:
         if file_index not in self.files:
             return None
         return self.files[file_index]
+
+    def update_default_priorities(self, priority: int) -> None:
+        self.default_priorities = [priority] * len(self.default_priorities)
 
     def get_priorities_and_deadlines(self) -> Tuple[List[int], Dict[int, int]]:
         priorities = self.default_priorities.copy()

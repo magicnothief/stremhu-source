@@ -32,8 +32,9 @@ class StreamService:
             try:
                 for torrent in self.torrents.values():
                     priorities, piece_deadlines = torrent.get_priorities_and_deadlines()
-
-                    torrent.torrent_handle.prioritize_pieces(priorities)
+                    if priorities != torrent.active_priorities:
+                        torrent.torrent_handle.prioritize_pieces(priorities)
+                        torrent.active_priorities = priorities
 
                     for piece_index in torrent.active_deadlines:
                         if piece_index not in piece_deadlines:
@@ -91,6 +92,11 @@ class StreamService:
     def remove_torrent(self, info_hash: str):
         if info_hash in self.torrents:
             self.torrents.pop(info_hash)
+
+    def update_torrent_priority(self, info_hash: str, priority: int) -> None:
+        torrent = self.torrents.get(info_hash)
+        if torrent:
+            torrent.update_default_priorities(priority)
 
     def prepare_for_stream(
         self,
