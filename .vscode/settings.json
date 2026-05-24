@@ -16,9 +16,9 @@
     "source.fixAll.ruff": "explicit"
   },
   "ruff.enable": true,
-  "basedpyright.analysis.typeCheckingMode": "strict",
+  "basedpyright.analysis.typeCheckingMode": "standard",
   "basedpyright.analysis.autoImportCompletions": true,
-  "basedpyright.analysis.extraPaths": ["${workspaceFolder}/relay/src"],
+  "basedpyright.analysis.extraPaths": ["${workspaceFolder}/relay"],
   "python.languageServer": "None",
   "python.defaultInterpreterPath": "${workspaceFolder}/.conda/bin/python",
   "python.terminal.activateEnvInCurrentTerminal": true,

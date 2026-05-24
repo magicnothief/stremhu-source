@@ -1,0 +1,40 @@
+from modules.torrent_files.models import TorrentFileModel
+from modules.torrent_files.schemas import TorrentFilesFilter
+from sqlalchemy.orm import Session
+
+
+class TorrentFilesRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, model: TorrentFileModel) -> TorrentFileModel:
+        self.db.add(model)
+        self.db.flush()
+        return model
+
+    def find_one(self, indexer_id: str, torrent_id: str) -> TorrentFileModel | None:
+        return (
+            self.db.query(TorrentFileModel)
+            .filter_by(
+                indexer_id=indexer_id,
+                torrent_id=torrent_id,
+            )
+            .first()
+        )
+
+    def find_all(
+        self, filter: TorrentFilesFilter | None = None
+    ) -> list[TorrentFileModel]:
+        query = self.db.query(TorrentFileModel)
+
+        if filter:
+            if filter.indexer_id:
+                query = query.filter_by(indexer_id=filter.indexer_id)
+            if filter.torrent_id:
+                query = query.filter_by(torrent_id=filter.torrent_id)
+
+        return query.all()
+
+    def delete(self, model: TorrentFileModel) -> None:
+        self.db.delete(model)
+        self.db.flush()

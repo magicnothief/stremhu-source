@@ -32,22 +32,12 @@
       "type": "debugpy",
       "request": "launch",
       "name": "Relay (FastApi)",
-      "module": "uvicorn",
-      "args": [
-        "main:app",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        "4300",
-        "--reload",
-        "--log-config",
-        "../logging.ini"
-      ],
-      "cwd": "${workspaceFolder}/relay/src",
+      "program": "${workspaceFolder}/relay/run.py",
+      "cwd": "${workspaceFolder}/relay",
       "subProcess": true,
       "jinja": true,
       "env": {
-        "PYTHONPATH": "${workspaceFolder}/relay/src"
+        "PYTHONPATH": "${workspaceFolder}/relay"
       }
     }
   ]
