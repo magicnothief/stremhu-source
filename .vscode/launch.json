@@ -2,12 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Server (FastApi)",
+      "program": "${workspaceFolder}/server/run.py",
+      "cwd": "${workspaceFolder}/server",
+      "subProcess": true,
+      "jinja": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/server"
+      }
+    },
+    {
       "type": "node",
       "request": "launch",
-      "name": "Server (Nest.js)",
+      "name": "Legacy Server (Nest.js)",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start:debug", "--", "--inspect-brk"],
-      "cwd": "${workspaceFolder}/server",
+      "cwd": "${workspaceFolder}/legacy-server",
       "autoAttachChildProcesses": true,
       "restart": true,
       "sourceMaps": true,
@@ -26,18 +38,6 @@
         "pattern": "Local:\\s+(https?://\\S+)",
         "uriFormat": "%s",
         "action": "openExternally"
-      }
-    },
-    {
-      "type": "debugpy",
-      "request": "launch",
-      "name": "Relay (FastApi)",
-      "program": "${workspaceFolder}/relay/run.py",
-      "cwd": "${workspaceFolder}/relay",
-      "subProcess": true,
-      "jinja": true,
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/relay"
       }
     }
   ]

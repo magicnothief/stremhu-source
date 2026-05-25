@@ -1,0 +1,180 @@
+"""
+@author Sappi <https://github.com/s4pp1/stremhu-source>
+@website https://stremhu.hu
+"""
+
+from typing import Optional
+from urllib.parse import parse_qs, urljoin, urlparse
+
+import httpx
+from modules.attributes.enums import LanguageEnum, ResolutionEnum
+from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefinition
+from modules.indexers.definitions.enums import AuthenticationErrorEnum
+from modules.indexers.definitions.schemas import (
+    IndexerDefinitionFindTorrentsResult,
+    IndexerDefinitionLoginRequest,
+    IndexerDefinitionTorrent,
+    IndexerDefinitionTorrentWithInfo,
+)
+from selectolax.parser import HTMLParser
+
+
+class NcoreIndexerDefinition(BaseIndexerDefinition):
+    @property
+    def id(self) -> str:
+        return "ncore"
+
+    @property
+    def name(self) -> str:
+        return "nCore"
+
+    @property
+    def requires_full_download(self) -> bool:
+        return False
+
+    @property
+    def url(self) -> str:
+        return "https://ncore.pro"
+
+    @property
+    def login_path(self) -> str:
+        return "/login.php"
+
+    @property
+    def details_path(self) -> str:
+        return "/torrents.php?action=details&id={torrent_id}"
+
+    def detect_authentication_error(
+        self, response: httpx.Response
+    ) -> Optional[AuthenticationErrorEnum]:
+        final_path = str(response.url.path)
+        original_url = str(response.request.url)
+        ended_up_at_login = self.login_path in final_path
+
+        if ended_up_at_login:
+            if self.login_path in original_url:
+                return AuthenticationErrorEnum.CREDENTIAL_ERROR
+            return AuthenticationErrorEnum.SESSION_ERROR
+
+        return None
+
+    async def perform_login(
+        self, credential: IndexerDefinitionLoginRequest
+    ) -> httpx.Response:
+        return await self._post(
+            self.login_path,
+            data={"nev": credential.username, "pass": credential.password},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+    async def fetch_torrents(
+        self, imdb_id: str, page: Optional[int] = None
+    ) -> IndexerDefinitionFindTorrentsResult:
+        current_page = page or 1
+        response = await self._get(
+            "/torrents.php",
+            params={
+                "oldal": str(current_page),
+                "miben": "imdb",
+                "mire": imdb_id,
+                "miszerint": "seeders",
+                "hogyan": "DESC",
+                "jsons": "1",
+            },
+        )
+
+        try:
+            data = response.json()
+        except Exception:
+            tree = HTMLParser(response.text)
+            error_node = tree.css_first(".lista_mini_error")
+            error_text = error_node.text(strip=True) if error_node else None
+            if error_text == "Nincs találat!":
+                return IndexerDefinitionFindTorrentsResult(torrents=[])
+            raise Exception(error_text or "Ismeretlen nCore hiba.")
+
+        torrents: list[IndexerDefinitionTorrentWithInfo] = []
+
+        for torrent in data.get("results", []):
+            category = torrent.get("category", "")
+            torrents.append(
+                IndexerDefinitionTorrentWithInfo(
+                    tracker_id=self.id,
+                    imdb_id=torrent.get("imdb_id"),
+                    torrent_id=str(torrent["torrent_id"]),
+                    seeders=int(torrent.get("seeders", 0)),
+                    resolution=self._resolve_resolution(category),
+                    language=self._resolve_language(category),
+                    download_url=torrent["download_url"],
+                )
+            )
+
+        total = int(data.get("total_results", 0))
+        limit = int(data.get("perpage", 1)) or 1
+        on_page = int(data.get("onpage", current_page))
+        last_page = -(-total // limit)  # math.ceil
+
+        return IndexerDefinitionFindTorrentsResult(
+            torrents=torrents,
+            next_page=current_page + 1 if last_page > on_page else None,
+        )
+
+    async def fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
+        details_url = self.details_path.replace("{torrent_id}", torrent_id)
+        response = await self._get(details_url)
+        tree = HTMLParser(response.text)
+
+        download_node = tree.css_first(
+            f'.download a[href*="torrents.php?action=download&id={torrent_id}"]'
+        )
+        download_path = download_node.attributes.get("href") if download_node else None
+
+        imdb_anchor = tree.css_first('a[href*="imdb.com/title/"]')
+        imdb_anchor_text = imdb_anchor.text(strip=True) if imdb_anchor else None
+        imdb_id = (
+            imdb_anchor_text.rstrip("/").split("/")[-1] if imdb_anchor_text else None
+        )
+
+        if not download_path:
+            raise Exception('A "downloadPath" nem található!')
+
+        return IndexerDefinitionTorrent(
+            tracker_id=self.id,
+            torrent_id=torrent_id,
+            imdb_id=imdb_id,
+            download_url=urljoin(self.url, download_path),
+        )
+
+    async def fetch_hit_and_run_ids(self) -> list[str]:
+        response = await self._get("/hitnrun.php", params={"showall": "false"})
+        tree = HTMLParser(response.text)
+
+        content = tree.css_first("#main_tartalom")
+        if not content:
+            raise Exception("A tartalom nem található.")
+
+        hrefs = [
+            node.attributes.get("href")
+            for node in content.css('a[href*="torrents.php?action=details&id="]')
+        ]
+
+        ids = []
+        for href in hrefs:
+            if not href:
+                continue
+            full_url = urljoin(self.url, href)
+            id_val = parse_qs(urlparse(full_url).query).get("id", [None])[0]
+            if id_val:
+                ids.append(id_val)
+
+        return ids
+
+    def _resolve_resolution(self, category: str) -> ResolutionEnum:
+        if "hd" in category:
+            return ResolutionEnum.R720P
+        return ResolutionEnum.R480P
+
+    def _resolve_language(self, category: str) -> LanguageEnum:
+        if "hun" in category:
+            return LanguageEnum.HU
+        return LanguageEnum.EN
