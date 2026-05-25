@@ -1,5 +1,4 @@
-import uuid
-
+from common.enums import UserRole
 from fastapi import Depends, HTTPException, Request, status
 from modules.auth.service import AuthService
 from modules.users.dependencies import get_users_service
@@ -7,42 +6,67 @@ from modules.users.models import UserModel
 from modules.users.service import UsersService
 
 
-class CurrentUserFetcher:
-    def __init__(self, required: bool = True):
-        self.required = required
+class SessionGuard:
+    def __init__(self, allowed_roles: list[UserRole] | None = None):
+        self.allowed_roles = allowed_roles
 
     def __call__(
         self,
         request: Request,
         users_service: UsersService = Depends(get_users_service),
-    ) -> UserModel | None:
-        user_id_str = request.session.get("user_id")
-        if not user_id_str:
-            if self.required:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Nincs aktív bejelentkezési munkamenet.",
-                )
-            return None
-
-        try:
-            user_id = uuid.UUID(user_id_str)
-        except ValueError:
-            if self.required:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Érvénytelen munkamenet azonosító.",
-                )
-            return None
+    ) -> UserModel:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Nincs aktív bejelentkezési munkamenet.",
+            )
 
         user = users_service.get_by_id(user_id)
         if not user:
-            if self.required:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="A munkamenethez tartozó felhasználó nem található.",
-                )
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="A munkamenethez tartozó felhasználó nem található.",
+            )
+
+        if self.allowed_roles and user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nincs jogosultságod a művelet végrehajtásához.",
+            )
+
+        return user
+
+
+class ApiKeyGuard:
+    def __init__(self, allowed_roles: list[UserRole] | None = None):
+        self.allowed_roles = allowed_roles
+
+    def __call__(
+        self,
+        request: Request,
+        users_service: UsersService = Depends(get_users_service),
+    ) -> UserModel:
+        api_key = request.path_params.get("api_key")
+
+        if not api_key:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Az API kulcs nincs megadva.",
+            )
+
+        user = users_service.get_by_token(api_key)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="A megadott API kulcs érvénytelen.",
+            )
+
+        if self.allowed_roles and user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nincs jogosultságod a művelet végrehajtásához.",
+            )
 
         return user
 

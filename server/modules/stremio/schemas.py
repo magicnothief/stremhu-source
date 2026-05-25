@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from modules.stremio.enums import (
     ContentType,
     ExtraName,
@@ -183,37 +181,32 @@ class StremioCache(BaseModel):
 # ──────────────────────────────────────────────
 
 
-@dataclass
-class ParsedExtra:
+class ParsedExtra(BaseModel):
     search: str | None = None
     genre: str | None = None
     skip: int | None = None
 
 
-@dataclass
-class ParsedStreamSeries:
+class ParsedStreamSeries(BaseModel):
     season: int
     episode: int
 
 
-@dataclass
-class ParsedImdbStreamId:
+class ParsedImdbStreamId(BaseModel):
     type: StreamIdType = StreamIdType.IMDB
-    imdb_id: str = ""
+    imdb_id: str
     series: ParsedStreamSeries | None = None
 
 
-@dataclass
-class ParsedTorrentStreamId:
+class ParsedTorrentStreamId(BaseModel):
     type: StreamIdType = StreamIdType.TORRENT
-    tracker: str = ""
-    torrent_id: str = ""
+    indexer_id: str
+    torrent_id: str
 
 
 ParsedStreamId = ParsedImdbStreamId | ParsedTorrentStreamId
 
 
-@dataclass
-class ParsedCatalogId:
+class ParsedCatalogId(BaseModel):
     tracker_id: str = ""
     torrent_id: str = ""

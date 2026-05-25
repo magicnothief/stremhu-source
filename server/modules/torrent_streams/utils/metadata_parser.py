@@ -9,6 +9,8 @@ from modules.attributes.enums import (
     SourceEnum,
     VideoQualityEnum,
 )
+from modules.attributes.schemas import Attribute, Attributes
+from modules.preferences.enums import PreferenceEnum
 
 
 class ParsedTorrentMetadata(TypedDict):
@@ -120,18 +122,19 @@ class TorrentMetadataParser:
     def __init__(
         self,
         name: str,
-        language_fallback: LanguageEnum,
-        resolution_fallback: ResolutionEnum,
+        fallback_attributes: list[Attribute],
     ):
         self.name = name.lower()
-        self.language_fallback = language_fallback
-        self.resolution_fallback = resolution_fallback
+        self.fallback_attributes = fallback_attributes
 
-    def parse_resolution(self) -> ResolutionEnum:
+    def parse_resolution(self) -> ResolutionEnum | None:
         for res_enum, pattern in RESOLUTION_PATTERNS.items():
             if pattern.search(self.name):
                 return res_enum
-        return self.resolution_fallback
+        for fallback_attribute in self.fallback_attributes:
+            if fallback_attribute.preference == PreferenceEnum.RESOLUTION:
+                return ResolutionEnum(fallback_attribute.id)
+        return None
 
     def parse_video_quality(self) -> List[VideoQualityEnum]:
         matched = []
@@ -158,12 +161,26 @@ class TorrentMetadataParser:
                 return source_enum
         return SourceEnum.UNKNOWN
 
-    def parse(self) -> ParsedTorrentMetadata:
-        return {
-            "language": self.language_fallback,
-            "resolution": self.parse_resolution(),
-            "video_quality": self.parse_video_quality(),
-            "source": self.parse_source(),
-            "audio_quality": self.parse_audio_quality(),
-            "audio_spatial": self.parse_audio_spatial(),
-        }
+    def parse(self) -> list[Attribute]:
+        row_attribute_ids: list[str | None] = [
+            self.parse_resolution(),
+            *self.parse_video_quality(),
+            self.parse_audio_quality(),
+            *(self.parse_audio_spatial() or []),
+            self.parse_source(),
+        ]
+
+        attribute_ids: list[str] = [
+            row_attribute_id
+            for row_attribute_id in row_attribute_ids
+            if row_attribute_id is not None
+        ]
+
+        attributes: list[Attribute] = []
+        for attribute_id in attribute_ids:
+            attribute = Attributes.get(attribute_id)
+            if attribute is None:
+                continue
+            attributes.append(attribute)
+
+        return attributes

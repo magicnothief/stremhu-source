@@ -32,7 +32,7 @@ class PreferenceDefinitionModel(Base):
         cascade="all, delete-orphan",
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
     )

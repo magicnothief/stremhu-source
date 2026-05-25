@@ -1,6 +1,6 @@
 from common.enums import UserRole
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from modules.auth.dependencies import CurrentUserFetcher, get_auth_service
+from modules.auth.dependencies import SessionGuard, get_auth_service
 from modules.auth.schemas import AuthLogin
 from modules.auth.service import AuthService
 from modules.users.dependencies import get_users_service
@@ -20,21 +20,19 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def register(
     payload: AuthLogin,
     users_service: UsersService = Depends(get_users_service),
-) -> User:
-    # A regisztráció (bootstrap) csak akkor érhető el, ha a rendszerben még nincs egyetlen felhasználó sem.
+) -> UserModel:
     if users_service.count() > 0:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="A regisztráció le van tiltva, mert már létezik felhasználó a rendszerben.",
         )
 
-    admin_payload = CreateUser(
+    user_model = CreateUser(
         username=payload.username,
         password=payload.password,
         role=UserRole.ADMIN,
     )
-    user = users_service.create(admin_payload)
-    return User.model_validate(user)
+    return users_service.create(user_model)
 
 
 @router.post(
@@ -46,10 +44,10 @@ def login(
     req: Request,
     payload: AuthLogin,
     auth_service: AuthService = Depends(get_auth_service),
-) -> User:
+) -> UserModel:
     user = auth_service.validate(payload.username, payload.password)
     req.session["user_id"] = str(user.id)
-    return User.model_validate(user)
+    return user
 
 
 @router.post(
@@ -59,7 +57,7 @@ def login(
 )
 def logout(
     req: Request,
-    current_user: UserModel = Depends(CurrentUserFetcher(required=True)),
+    current_user: UserModel = Depends(SessionGuard()),
 ):
     req.session.clear()
     return {"message": "Sikeres kijelentkezés"}

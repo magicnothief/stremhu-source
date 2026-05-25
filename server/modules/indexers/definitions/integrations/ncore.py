@@ -12,9 +12,8 @@ from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefi
 from modules.indexers.definitions.enums import AuthenticationErrorEnum
 from modules.indexers.definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
-    IndexerDefinitionLoginRequest,
+    IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
-    IndexerDefinitionTorrentWithInfo,
 )
 from selectolax.parser import HTMLParser
 
@@ -44,7 +43,7 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
     def details_path(self) -> str:
         return "/torrents.php?action=details&id={torrent_id}"
 
-    def detect_authentication_error(
+    def _detect_authentication_error(
         self, response: httpx.Response
     ) -> Optional[AuthenticationErrorEnum]:
         final_path = str(response.url.path)
@@ -58,20 +57,18 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
         return None
 
-    async def perform_login(
-        self, credential: IndexerDefinitionLoginRequest
-    ) -> httpx.Response:
-        return await self._post(
+    async def _login(self, credential: IndexerDefinitionLogin) -> httpx.Response:
+        return await self._client.post(
             self.login_path,
             data={"nev": credential.username, "pass": credential.password},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
-    async def fetch_torrents(
+    async def _fetch_torrents(
         self, imdb_id: str, page: Optional[int] = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 1
-        response = await self._get(
+        response = await self._client.get(
             "/torrents.php",
             params={
                 "oldal": str(current_page),
@@ -93,18 +90,15 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
                 return IndexerDefinitionFindTorrentsResult(torrents=[])
             raise Exception(error_text or "Ismeretlen nCore hiba.")
 
-        torrents: list[IndexerDefinitionTorrentWithInfo] = []
+        torrents: list[IndexerDefinitionTorrent] = []
 
         for torrent in data.get("results", []):
             category = torrent.get("category", "")
             torrents.append(
-                IndexerDefinitionTorrentWithInfo(
-                    tracker_id=self.id,
+                IndexerDefinitionTorrent(
                     imdb_id=torrent.get("imdb_id"),
                     torrent_id=str(torrent["torrent_id"]),
                     seeders=int(torrent.get("seeders", 0)),
-                    resolution=self._resolve_resolution(category),
-                    language=self._resolve_language(category),
                     download_url=torrent["download_url"],
                 )
             )
@@ -119,9 +113,9 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
             next_page=current_page + 1 if last_page > on_page else None,
         )
 
-    async def fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
+    async def _fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
         details_url = self.details_path.replace("{torrent_id}", torrent_id)
-        response = await self._get(details_url)
+        response = await self._client.get(details_url)
         tree = HTMLParser(response.text)
 
         download_node = tree.css_first(
@@ -139,14 +133,13 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
             raise Exception('A "downloadPath" nem található!')
 
         return IndexerDefinitionTorrent(
-            tracker_id=self.id,
             torrent_id=torrent_id,
             imdb_id=imdb_id,
             download_url=urljoin(self.url, download_path),
         )
 
-    async def fetch_hit_and_run_ids(self) -> list[str]:
-        response = await self._get("/hitnrun.php", params={"showall": "false"})
+    async def _fetch_hit_and_run_ids(self) -> list[str]:
+        response = await self._client.get("/hitnrun.php", params={"showall": "false"})
         tree = HTMLParser(response.text)
 
         content = tree.css_first("#main_tartalom")

@@ -1,6 +1,6 @@
 from common.enums import UserRole
 from fastapi import APIRouter, Depends
-from modules.auth.roles import RoleChecker
+from modules.auth.dependencies import SessionGuard
 from modules.settings.dependencies import get_settings_service
 from modules.settings.schemas import (
     AppSettings,
@@ -42,7 +42,7 @@ class LocalUrlResponse(BaseModel):
 )
 def get_app_settings(
     settings_service: SettingsService = Depends(get_settings_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> AppSettings:
     return settings_service.get_app_settings()
 
@@ -55,7 +55,7 @@ def get_app_settings(
 def update_app_settings(
     payload: UpdateAppSettings,
     settings_service: SettingsService = Depends(get_settings_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> AppSettings:
     return settings_service.update_app_settings(payload)
 
@@ -67,7 +67,7 @@ def update_app_settings(
 )
 def get_relay_settings(
     settings_service: SettingsService = Depends(get_settings_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> RelaySettings:
     return settings_service.get_relay_settings()
 
@@ -80,6 +80,6 @@ def get_relay_settings(
 def update_relay_settings(
     payload: UpdateRelaySettings,
     settings_service: SettingsService = Depends(get_settings_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> RelaySettings:
     return settings_service.update_relay_settings(payload)

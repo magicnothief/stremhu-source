@@ -32,7 +32,7 @@ class TorrentStream(BaseModel):
     file_size: str
     file_index: int
     play_url: str
-    seeders: int
+    seeders: int | None = 0
     attributes: List[Attribute] = Field(default_factory=list)
     is_persisted_torrent: bool
 

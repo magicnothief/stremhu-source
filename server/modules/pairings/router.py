@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status
-from modules.auth.dependencies import CurrentUserFetcher
+from modules.auth.dependencies import SessionGuard
 from modules.pairings.dependencies import get_pairings_service
 from modules.pairings.schemas import (
     PairInit,
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/auth/pair", tags=["Pairing"])
     "/init",
     response_model=PairInit,
     status_code=status.HTTP_201_CREATED,
-    operation_id="pairInit",
+    openapi_extra={"x-external": True},
 )
 def init(
     pairings_service: PairingsService = Depends(get_pairings_service),
@@ -32,7 +32,7 @@ def init(
     "/status",
     response_model=PairStatus,
     status_code=status.HTTP_200_OK,
-    operation_id="pairStatus",
+    openapi_extra={"x-external": True},
 )
 def status_endpoint(
     payload: PairStatusRequest,
@@ -47,11 +47,10 @@ def status_endpoint(
     "/verify",
     response_model=PairVerify,
     status_code=status.HTTP_200_OK,
-    operation_id="pairVerify",
 )
 def verify(
     payload: PairVerifyRequest,
-    current_user: UserModel = Depends(CurrentUserFetcher(required=True)),
+    current_user: UserModel = Depends(SessionGuard()),
     pairings_service: PairingsService = Depends(get_pairings_service),
 ) -> PairVerify:
     """4 jegyű párosító kód jóváhagyása a bejelentkezett felhasználó által."""

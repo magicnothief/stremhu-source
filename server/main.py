@@ -2,9 +2,11 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 
+import pydash
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from config import config
+from config import NodeEnv, config
 from fastapi import APIRouter, FastAPI
+from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from modules.auth.router import router as auth_router
 from modules.libtorrent_client.background_tasks import alert_loop, resume_save_loop
@@ -23,11 +25,18 @@ from modules.users.router import router as users_router
 from setproctitle import setproctitle
 from starlette.middleware.sessions import SessionMiddleware
 
-setproctitle("stremhu-relay")
+setproctitle("stremhu-source")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if config.node_env == NodeEnv.PRODUCTION:
+        for route in app.routes:
+            if isinstance(route, APIRoute):
+                is_external = pydash.get(route, "openapi_extra.x-external") is True
+                if not is_external:
+                    route.include_in_schema = False
+
     out_dir = config.openapi_dir
     with (out_dir / "openapi.json").open("w", encoding="utf-8") as f:
         json.dump(app.openapi(), f, indent=2, ensure_ascii=False)

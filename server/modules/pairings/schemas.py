@@ -1,5 +1,4 @@
 import datetime
-import uuid
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -14,17 +13,17 @@ class PairingBaseSchema(BaseModel):
 
 class PairInit(PairingBaseSchema):
     user_code: str
-    device_code: uuid.UUID
+    device_code: str
     expires_at: datetime.datetime
 
 
 class PairStatusRequest(PairingBaseSchema):
-    device_code: uuid.UUID
+    device_code: str
 
 
 class PairStatus(PairingBaseSchema):
     status: str
-    token: uuid.UUID | None = None
+    token: str | None = None
 
 
 class PairVerifyRequest(PairingBaseSchema):

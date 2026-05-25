@@ -1,5 +1,6 @@
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.schemas import TorrentFilesFilter
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 
@@ -23,7 +24,8 @@ class TorrentFilesRepository:
         )
 
     def find_all(
-        self, filter: TorrentFilesFilter | None = None
+        self,
+        filter: TorrentFilesFilter | None = None,
     ) -> list[TorrentFileModel]:
         query = self.db.query(TorrentFileModel)
 
@@ -32,6 +34,15 @@ class TorrentFilesRepository:
                 query = query.filter_by(indexer_id=filter.indexer_id)
             if filter.torrent_id:
                 query = query.filter_by(torrent_id=filter.torrent_id)
+            if filter.identifiers:
+                conditions = [
+                    and_(
+                        TorrentFileModel.indexer_id == identifier.indexer_id,
+                        TorrentFileModel.torrent_id == identifier.torrent_id,
+                    )
+                    for identifier in filter.identifiers
+                ]
+                query = query.filter(or_(*conditions))
 
         return query.all()
 

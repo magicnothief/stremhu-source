@@ -11,11 +11,14 @@ class UsersService:
     def __init__(self, users_repository: UsersRepository):
         self._users_repository = users_repository
 
-    def get_by_id(self, user_id: uuid.UUID) -> UserModel | None:
+    def get_by_id(self, user_id: str) -> UserModel | None:
         return self._users_repository.find_by_id(user_id)
 
     def get_by_username(self, username: str) -> UserModel | None:
         return self._users_repository.find_by_username(username)
+
+    def get_by_token(self, token: str) -> UserModel | None:
+        return self._users_repository.find_by_token(token)
 
     def count(self) -> int:
         return self._users_repository.count()
@@ -35,14 +38,14 @@ class UsersService:
             username=payload.username,
             password_hash=password_hash,
             role=payload.role,
-            token=uuid.uuid4(),
+            token=str(uuid.uuid4()),
             torrent_seed=payload.torrent_seed,
             only_best_torrent=payload.only_best_torrent,
         )
 
         return self._users_repository.create(user)
 
-    def update(self, user_id: uuid.UUID, payload: UpdateUser) -> UserModel:
+    def update(self, user_id: str, payload: UpdateUser) -> UserModel:
         user = self.get_by_id(user_id)
         if not user:
             raise HTTPException(

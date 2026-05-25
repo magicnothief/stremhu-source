@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 from common.enums import UserRole
@@ -36,7 +35,7 @@ class UpdateUser(BaseModel):
 
 
 class User(BaseUser):
-    id: uuid.UUID
-    token: uuid.UUID
+    id: str
+    token: str
     updated_at: datetime
     created_at: datetime

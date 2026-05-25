@@ -1,5 +1,4 @@
 import datetime
-import uuid
 
 from modules.pairings.models import PairingModel
 from sqlalchemy.orm import Session
@@ -9,7 +8,7 @@ class PairingsRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find_by_device_code(self, device_code: uuid.UUID) -> PairingModel | None:
+    def find_by_device_code(self, device_code: str) -> PairingModel | None:
         return self.db.query(PairingModel).filter_by(device_code=device_code).first()
 
     def find_by_user_code(self, user_code: str) -> PairingModel | None:

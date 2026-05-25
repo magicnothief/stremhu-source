@@ -1,8 +1,6 @@
-import uuid
-
 from common.enums import UserRole
 from fastapi import APIRouter, Depends, status
-from modules.auth.roles import RoleChecker
+from modules.auth.dependencies import SessionGuard
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
 from modules.users.schemas import CreateUser, UpdateUser, User
@@ -19,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 def create(
     payload: CreateUser,
     users_service: UsersService = Depends(get_users_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> User:
     new_user = users_service.create(payload)
     return User.model_validate(new_user)
@@ -30,10 +28,10 @@ def create(
     response_model=User,
 )
 def update(
-    user_id: uuid.UUID,
+    user_id: str,
     payload: UpdateUser,
     users_service: UsersService = Depends(get_users_service),
-    current_user: UserModel = Depends(RoleChecker([UserRole.ADMIN])),
+    current_user: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> User:
     updated_user = users_service.update(user_id, payload)
     return User.model_validate(updated_user)

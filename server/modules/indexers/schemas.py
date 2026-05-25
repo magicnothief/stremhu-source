@@ -14,6 +14,12 @@ class IndexerTorrent(IndexerDefinitionTorrent):
     torrent_id: str
 
 
+class DownloadedTorrentFile(BaseModel):
+    indexer_id: str
+    torrent_id: str
+    torrent_bytes: bytes
+
+
 class IndexerFindTorrentsResult(BaseModel):
     torrents: list[IndexerTorrent] = []
     next_page: int | None = None

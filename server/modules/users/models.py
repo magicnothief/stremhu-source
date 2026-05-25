@@ -28,9 +28,10 @@ class UserModel(Base):
         nullable=False,
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
+        sa.String,
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
     )
 
     password_hash: Mapped[str | None] = mapped_column(
@@ -39,8 +40,9 @@ class UserModel(Base):
         nullable=True,
     )
 
-    token: Mapped[uuid.UUID] = mapped_column(
-        default=uuid.uuid4,
+    token: Mapped[str] = mapped_column(
+        sa.String,
+        default=lambda: str(uuid.uuid4()),
         index=True,
         nullable=False,
     )

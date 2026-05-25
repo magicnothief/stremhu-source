@@ -2,8 +2,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
+from modules.auth.dependencies import ApiKeyGuard
 from modules.stremio.dependencies import (
-    get_current_user_by_token,
     get_parsed_catalog_id,
     get_parsed_extra,
     get_parsed_stream_id,
@@ -25,7 +25,7 @@ from modules.users.models import UserModel
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
-    prefix="/{token}/stremio",
+    prefix="/{api_key}/stremio",
     tags=["Stremio"],
 )
 
@@ -42,7 +42,7 @@ router = APIRouter(
 )
 def manifest(
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(get_current_user_by_token),
+    user: UserModel = Depends(ApiKeyGuard()),
 ) -> Manifest:
     return stremio_service.manifest()
 
@@ -53,7 +53,7 @@ def manifest(
     operation_id="stremio_configure",
 )
 def configure(
-    current_user: UserModel = Depends(get_current_user_by_token),
+    _: UserModel = Depends(ApiKeyGuard()),
 ) -> RedirectResponse:
     return RedirectResponse(url="/", status_code=status.HTTP_308_PERMANENT_REDIRECT)
 
@@ -69,12 +69,12 @@ def configure(
     operation_id="stremio_streams",
 )
 async def streams(
-    media_type: MediaType,
+    _: MediaType,
     parsed_id: ParsedStreamId = Depends(get_parsed_stream_id),
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(get_current_user_by_token),
+    user: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioStreamsResponse:
-    stream_list = await stremio_service.get_streams(current_user, parsed_id)
+    stream_list = await stremio_service.get_streams(user, parsed_id)
     return StremioStreamsResponse(streams=stream_list)
 
 
@@ -92,7 +92,7 @@ async def catalog(
     media_type: MediaType,
     catalog_id: str,
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(get_current_user_by_token),
+    current_user: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioCatalogResponse:
     return await _get_catalog(stremio_service, media_type, catalog_id)
 
@@ -107,7 +107,7 @@ async def catalog_with_extra(
     catalog_id: str,
     parsed_extra: ParsedExtra = Depends(get_parsed_extra),
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(get_current_user_by_token),
+    current_user: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioCatalogResponse:
     return await _get_catalog(stremio_service, media_type, catalog_id, parsed_extra)
 
@@ -159,7 +159,7 @@ async def meta(
     media_type: MediaType,
     parsed_id: ParsedCatalogId = Depends(get_parsed_catalog_id),
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(get_current_user_by_token),
+    current_user: UserModel = Depends(ApiKeyGuard()),
 ) -> MetaResponse:
     if media_type != MediaType.MOVIE:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)

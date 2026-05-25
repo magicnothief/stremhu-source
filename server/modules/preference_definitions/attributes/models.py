@@ -14,7 +14,7 @@ class PreferenceDefinitionAttributeModel(Base):
 
     __tablename__ = "preference_definition_attributes"
 
-    definition_id: Mapped[uuid.UUID] = mapped_column(
+    definition_id: Mapped[str] = mapped_column(
         sa.ForeignKey("preference_definitions.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -31,7 +31,7 @@ class PreferenceDefinitionAttributeModel(Base):
         back_populates="attributes",
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
     )

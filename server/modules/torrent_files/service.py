@@ -46,6 +46,11 @@ class TorrentFilesService:
             )
         )
 
+    def get_list(
+        self, filter: TorrentFilesFilter | None = None
+    ) -> list[TorrentFileModel]:
+        return self._repository.find_all(filter)
+
     def get_one(self, indexer_id: str, torrent_id: str) -> TorrentFileModel | None:
         return self._repository.find_one(
             indexer_id=indexer_id,

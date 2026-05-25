@@ -22,14 +22,15 @@ class PairingModel(Base):
         index=True,
     )
 
-    device_code: Mapped[uuid.UUID] = mapped_column(
-        sa.Uuid,
+    device_code: Mapped[str] = mapped_column(
+        sa.String,
         index=True,
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
+        sa.String,
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
     )
 
     status: Mapped[str] = mapped_column(
@@ -37,7 +38,7 @@ class PairingModel(Base):
         default="pending",
     )
 
-    user_id: Mapped[uuid.UUID | None] = mapped_column(
+    user_id: Mapped[str | None] = mapped_column(
         sa.ForeignKey("users.id", ondelete="CASCADE"),
         default=None,
     )

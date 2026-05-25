@@ -15,9 +15,9 @@ class IndexerModel(Base):
 
     password: Mapped[str] = mapped_column(sa.String)
 
-    hit_and_run: Mapped[bool | None] = mapped_column(sa.Boolean)
+    hit_and_run: Mapped[bool | None] = mapped_column(sa.Boolean, default=None)
 
-    keep_seed_seconds: Mapped[int | None] = mapped_column(sa.Integer)
+    keep_seed_seconds: Mapped[int | None] = mapped_column(sa.Integer, default=None)
 
     download_full_torrent: Mapped[bool] = mapped_column(sa.Boolean, default=False)
 

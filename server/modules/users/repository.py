@@ -1,5 +1,3 @@
-import uuid
-
 from modules.users.models import UserModel
 from sqlalchemy.orm import Session
 
@@ -8,11 +6,14 @@ class UsersRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find_by_id(self, user_id: uuid.UUID) -> UserModel | None:
+    def find_by_id(self, user_id: str) -> UserModel | None:
         return self.db.query(UserModel).filter_by(id=user_id).first()
 
     def find_by_username(self, username: str) -> UserModel | None:
         return self.db.query(UserModel).filter_by(username=username).first()
+
+    def find_by_token(self, token: str) -> UserModel | None:
+        return self.db.query(UserModel).filter_by(token=token).first()
 
     def count(self) -> int:
         return self.db.query(UserModel).count()

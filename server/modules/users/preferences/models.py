@@ -18,7 +18,7 @@ class UserPreferenceModel(Base):
 
     __tablename__ = "user_preferences"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -28,7 +28,7 @@ class UserPreferenceModel(Base):
         back_populates="preferences",
     )
 
-    definition_id: Mapped[uuid.UUID] = mapped_column(
+    definition_id: Mapped[str] = mapped_column(
         ForeignKey("preference_definitions.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -39,7 +39,7 @@ class UserPreferenceModel(Base):
 
     order: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[str] = mapped_column(
         primary_key=True,
-        default=uuid.uuid4,
+        default=lambda: str(uuid.uuid4()),
     )

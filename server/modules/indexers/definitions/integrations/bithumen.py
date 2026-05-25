@@ -7,9 +7,8 @@ from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefi
 from modules.indexers.definitions.enums import AuthenticationErrorEnum
 from modules.indexers.definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
-    IndexerDefinitionLoginRequest,
+    IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
-    IndexerDefinitionTorrentWithInfo,
 )
 from selectolax.parser import HTMLParser
 
@@ -54,7 +53,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
     def details_path(self) -> str:
         return "/details.php?id={torrent_id}"
 
-    def detect_authentication_error(
+    def _detect_authentication_error(
         self, response: httpx.Response
     ) -> Optional[AuthenticationErrorEnum]:
         if response.status_code == 401:
@@ -66,10 +65,8 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
 
         return None
 
-    async def perform_login(
-        self, credential: IndexerDefinitionLoginRequest
-    ) -> httpx.Response:
-        return await self._post(
+    async def _login(self, credential: IndexerDefinitionLogin) -> httpx.Response:
+        return await self._client.post(
             self.login_path,
             data={
                 "username": credential.username,
@@ -79,11 +76,11 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
-    async def fetch_torrents(
+    async def _fetch_torrents(
         self, imdb_id: str, page: Optional[int] = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
-        response = await self._get(
+        response = await self._client.get(
             "/torrents.php",
             params={
                 "genre": "0",
@@ -98,7 +95,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
 
         tree = HTMLParser(html)
         torrent_rows = tree.css("#torrenttable tbody tr")[1:]
-        torrents: list[IndexerDefinitionTorrentWithInfo] = []
+        torrents: list[IndexerDefinitionTorrent] = []
 
         for row in torrent_rows:
             cols = row.css("td")
@@ -130,14 +127,11 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
             seeders = cols[7].text(strip=True)
 
             torrents.append(
-                IndexerDefinitionTorrentWithInfo(
-                    tracker_id=self.id,
+                IndexerDefinitionTorrent(
                     torrent_id=torrent_id,
                     download_url=download_url,
                     seeders=int(seeders) if seeders.isdigit() else 0,
                     imdb_id=imdb_id_val or None,
-                    resolution=self._resolve_resolution(category),
-                    language=self._resolve_language(category),
                 )
             )
 
@@ -161,8 +155,8 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
             next_page=current_page + 1 if has_next_page else None,
         )
 
-    async def fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
-        response = await self._get(f"/details.php?id={torrent_id}")
+    async def _fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
+        response = await self._client.get(f"/details.php?id={torrent_id}")
         tree = HTMLParser(response.text)
 
         dl_node = tree.css_first(f'a[href*="download.php/{torrent_id}"]')
@@ -177,15 +171,16 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
             raise Exception('A "downloadPath" nem található!')
 
         return IndexerDefinitionTorrent(
-            tracker_id=self.id,
             torrent_id=torrent_id,
             imdb_id=imdb_id,
             download_url=urljoin(self.url, download_path),
         )
 
-    async def fetch_hit_and_run_ids(self) -> list[str]:
+    async def _fetch_hit_and_run_ids(self) -> list[str]:
         user_id = await self._get_user_id()
-        response = await self._get("/hitnrun.php", params={"id": user_id, "hnr": "1"})
+        response = await self._client.get(
+            "/hitnrun.php", params={"id": user_id, "hnr": "1"}
+        )
         tree = HTMLParser(response.text)
 
         hrefs = [
@@ -210,7 +205,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
         if self._cached_user_id:
             return self._cached_user_id
 
-        response = await self._get("/index.php")
+        response = await self._client.get("/index.php")
         tree = HTMLParser(response.text)
 
         user_node = tree.css_first('#status a[href*="/userdetails.php?"]')

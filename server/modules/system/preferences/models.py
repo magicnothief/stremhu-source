@@ -1,4 +1,3 @@
-import uuid
 from typing import TYPE_CHECKING
 
 from common.database import Base
@@ -17,7 +16,7 @@ class SystemPreferenceModel(Base):
 
     __tablename__ = "system_preferences"
 
-    definition_id: Mapped[uuid.UUID] = mapped_column(
+    definition_id: Mapped[str] = mapped_column(
         ForeignKey("preference_definitions.id", ondelete="CASCADE"),
         primary_key=True,
     )

@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Optional
 
 import httpx
 from modules.indexers.definitions.enums import AuthenticationErrorEnum
@@ -11,8 +11,9 @@ from modules.indexers.definitions.exceptions import (
     TrackerException,
 )
 from modules.indexers.definitions.schemas import (
+    CredentialsProvider,
     IndexerDefinitionFindTorrentsResult,
-    IndexerDefinitionLoginRequest,
+    IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )
 
@@ -33,32 +34,63 @@ _DEFAULT_HEADERS = {
 }
 
 
+class IndexerTransport(httpx.AsyncBaseTransport):
+    def __init__(
+        self,
+        transport: httpx.AsyncBaseTransport,
+        definition: "BaseIndexerDefinition",
+    ):
+        self._transport = transport
+        self._definition = definition
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        async with self._definition._semaphore:
+            response = await self._transport.handle_async_request(request)
+
+        await response.aread()
+
+        auth_error = self._definition._detect_authentication_error(response)
+
+        if auth_error == AuthenticationErrorEnum.CREDENTIAL_ERROR:
+            raise AuthenticationException(
+                f"Sikertelen bejelentkezés a(z) {self._definition.name} fiókba."
+            )
+
+        if auth_error == AuthenticationErrorEnum.SESSION_ERROR:
+            await self._definition.relogin()
+
+            cookie = "; ".join(
+                [
+                    f"{key}={value}"
+                    for key, value in self._definition._client.cookies.items()
+                ]
+            )
+
+            request.headers["cookie"] = cookie
+
+            async with self._definition._semaphore:
+                response = await self._transport.handle_async_request(request)
+
+        return response
+
+
 class BaseIndexerDefinition(ABC):
-    """
-    A NestJS BaseIndexerIntegration absztrakt osztály portolása.
-
-    Minden tracker adapter ebből az osztályból öröklődik és implementálja
-    az absztrakt metódusokat. A konkurrencia-kezelés asyncio.Semaphore-ral,
-    a HTTP klienskezelés httpx.AsyncClient-tel, a HTML parse-olás pyquery-vel
-    történik.
-    """
-
-    def __init__(self, credentials_provider: Callable) -> None:
+    def __init__(self, credentials_provider: CredentialsProvider = None) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self._get_credentials = credentials_provider
 
-        # Konkurencia-limiter (a NestJS Bottleneck maxConcurrent megfelelője)
         self._semaphore = asyncio.Semaphore(self.max_concurrent)
-
-        # Párhuzamos relogin-ek összevonásához (a NestJS loginInProgress megfelelője)
         self._login_in_progress: Optional[asyncio.Future] = None
 
-        # httpx kliens – cookie-kat automatikusan kezeli
-        self.client = httpx.AsyncClient(
+        base_transport = httpx.AsyncHTTPTransport()
+        interceptor_transport = IndexerTransport(base_transport, self)
+
+        self._client = httpx.AsyncClient(
             base_url=self.url,
             follow_redirects=True,
             headers=_DEFAULT_HEADERS,
             timeout=20.0,
+            transport=interceptor_transport,
         )
 
     # --- Absztrakt tulajdonságok ---
@@ -101,7 +133,7 @@ class BaseIndexerDefinition(ABC):
     # --- Absztrakt üzleti metódusok ---
 
     @abstractmethod
-    def detect_authentication_error(
+    def _detect_authentication_error(
         self, response: httpx.Response
     ) -> Optional[AuthenticationErrorEnum]:
         """
@@ -114,35 +146,34 @@ class BaseIndexerDefinition(ABC):
         """
 
     @abstractmethod
-    async def perform_login(
-        self, credential: IndexerDefinitionLoginRequest
-    ) -> httpx.Response:
+    async def _login(self, credential: IndexerDefinitionLogin) -> httpx.Response:
         """Végrehajtja a tényleges POST bejelentkezési kérést a tracker felé."""
 
     @abstractmethod
-    async def fetch_torrents(
+    async def _fetch_torrents(
         self, imdb_id: str, page: Optional[int] = None
     ) -> IndexerDefinitionFindTorrentsResult:
         """
         Keresést hajt végre a trackeren és visszaadja a találatokat.
 
         Visszatér:
-        - torrents: a talált torrentek listája IndexerDefinitionTorrentWithInfo-ként
+        - torrents: a talált torrentek listája IndexerDefinitionTorrent-ként
         - next_page: a következő oldal száma, ha van; egyébként None
         """
 
     @abstractmethod
-    async def fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
+    async def _fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
         """Lekéri egy konkrét torrent részletes adatait az azonosítója alapján."""
 
     @abstractmethod
-    async def fetch_hit_and_run_ids(self) -> list[str]:
+    async def _fetch_hit_and_run_ids(self) -> list[str]:
         """Lekéri a Hit 'n' Run listán lévő torrent azonosítókat."""
 
     # --- Megvalósított publikus API ---
 
     async def login(
-        self, credential: Optional[IndexerDefinitionLoginRequest] = None
+        self,
+        credential: Optional[IndexerDefinitionLogin] = None,
     ) -> None:
         """
         A NestJS login() megfelelője.
@@ -150,101 +181,58 @@ class BaseIndexerDefinition(ABC):
         Ha nem adunk meg hitelesítési adatot, a credentials_provider-ből olvassa ki.
         """
         if not credential:
+            if not self._get_credentials:
+                raise CredentialsRequiredException(
+                    f"{self.name} hitelesítési információk nincsenek megadva (hiányzó credentials_provider)."
+                )
             tracker_data = await self._get_credentials(self.id)
             if not tracker_data:
                 raise CredentialsRequiredException(
                     f"{self.name} hitelesítési információk nincsenek megadva."
                 )
-            credential = IndexerDefinitionLoginRequest(
-                username=tracker_data.username,
-                password=tracker_data.password,
-            )
+            credential = tracker_data
 
         # Sütik törlése új bejelentkezés előtt
-        self.client.cookies.clear()
+        self._client.cookies.clear()
 
-        async with self._semaphore:
-            await self.perform_login(credential)
+        await self._login(credential)
 
-    async def find(self, imdb_id: str) -> list[IndexerDefinitionTorrent]:
+    async def find_torrents_by_imdb_id(
+        self, imdb_id: str
+    ) -> list[IndexerDefinitionTorrent]:
         """A NestJS find() megfelelője – összegyűjti az összes találatot lapozással."""
         return await self._find_all(imdb_id, None, [])
 
-    async def find_one(self, torrent_id: str) -> IndexerDefinitionTorrent:
+    async def find_torrent_by_id(self, torrent_id: str) -> IndexerDefinitionTorrent:
         """A NestJS findOne() megfelelője – lekéri egy torrent adatait."""
         try:
-            async with self._semaphore:
-                return await self.fetch_torrent(torrent_id)
+            return await self._fetch_torrent(torrent_id)
         except Exception as e:
             error_msg = f"{self.name} nem érhető el vagy megváltozott a struktúrája."
             self.logger.error(error_msg, exc_info=e)
             raise TrackerException(error_msg) from e
 
-    async def download(self, payload: IndexerDefinitionTorrent) -> bytes:
-        """A NestJS download() megfelelője – letölti a .torrent fájlt."""
+    async def download_torrent(self, download_url: str) -> bytes:
+        """A NestJS download() megfelelője - letölti a .torrent fájlt."""
         try:
-            async with self._semaphore:
-                response = await self.client.get(payload.download_url)
-                response.raise_for_status()
-
+            response = await self._client.get(download_url)
+            response.raise_for_status()
             return response.content
         except Exception as e:
             self.logger.error(
-                f'🚨 Hiba történt a(z) "[{self.name}] - {payload.torrent_id}" torrent letöltése közben.',
+                f'🚨 Hiba történt a(z) "[{self.name}] - {download_url}" torrent letöltése közben.',
                 exc_info=e,
             )
             raise
 
-    async def seed_requirement(self) -> list[str]:
+    async def find_hit_and_run_ids(self) -> list[str]:
         """A NestJS seedRequirement() megfelelője – lekéri a Hit 'n' Run listát."""
         try:
-            async with self._semaphore:
-                return await self.fetch_hit_and_run_ids()
+            return await self._fetch_hit_and_run_ids()
         except Exception as e:
             error_msg = f"{self.name} nem érhető el vagy megváltozott a struktúrája."
             self.logger.error(error_msg, exc_info=e)
             raise TrackerException(error_msg) from e
-
-    # --- Belső HTTP segédmetódusok ---
-
-    async def _get(self, path: str, **kwargs) -> httpx.Response:
-        """
-        Sebességkorlátozott GET kérés auth-ellenőrzéssel és automatikus session-frissítéssel.
-        Az összes fetch_* metódusnak ezt kell használnia self.client.get() helyett.
-        """
-        return await self._request("GET", path, **kwargs)
-
-    async def _post(self, path: str, **kwargs) -> httpx.Response:
-        """
-        Sebességkorlátozott POST kérés auth-ellenőrzéssel és automatikus session-frissítéssel.
-        Az összes perform_login metódusnak ezt kell használnia self.client.post() helyett.
-        """
-        return await self._request("POST", path, **kwargs)
-
-    async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
-        """
-        Kérés küldése és autentikáció ellenőrzése.
-
-        A NestJS Axios interceptor + Bottleneck limiter Python megfelelője.
-        Ha SESSION_ERROR → relogin + újrapróbálás.
-        Ha CREDENTIAL_ERROR → kivétel dobása.
-        """
-        async with self._semaphore:
-            response = await self.client.request(method, path, **kwargs)
-
-        auth_error = self.detect_authentication_error(response)
-
-        if auth_error == AuthenticationErrorEnum.CREDENTIAL_ERROR:
-            raise AuthenticationException(
-                f"Sikertelen bejelentkezés a(z) {self.name} fiókba."
-            )
-
-        if auth_error == AuthenticationErrorEnum.SESSION_ERROR:
-            await self.relogin()
-            async with self._semaphore:
-                response = await self.client.request(method, path, **kwargs)
-
-        return response
 
     # --- Belső folyamatkezelők ---
 
@@ -254,12 +242,12 @@ class BaseIndexerDefinition(ABC):
         page: Optional[int],
         accumulator: list[IndexerDefinitionTorrent],
     ) -> list[IndexerDefinitionTorrent]:
-        """Rekurzív lapozó logika – a NestJS findAll() privát metódus portolása."""
+        """Rekurzív lapozó logika - a NestJS findAll() privát metódus portolása."""
         if len(accumulator) > FIND_TORRENTS_LIMIT:
             return accumulator
 
         try:
-            result = await self.fetch_torrents(imdb_id, page)
+            result = await self._fetch_torrents(imdb_id, page)
             accumulator.extend(result.torrents)
 
             if result.next_page is not None:
@@ -299,4 +287,4 @@ class BaseIndexerDefinition(ABC):
 
     async def close(self) -> None:
         """Lezárja a HTTP hálózati kapcsolatokat (alkalmazás leállásakor)."""
-        await self.client.aclose()
+        await self._client.aclose()

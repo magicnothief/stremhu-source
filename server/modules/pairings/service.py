@@ -31,7 +31,7 @@ class PairingsService:
                     self._pairings_repository.delete(existing)
                     is_unique = True
 
-        device_code = uuid.uuid4()
+        device_code = str(uuid.uuid4())
         # 10 minutes expiry
         expires_at = datetime.datetime.now() + datetime.timedelta(minutes=10)
 
@@ -49,7 +49,7 @@ class PairingsService:
             "expires_at": expires_at,
         }
 
-    def poll_pairing_status(self, device_code: uuid.UUID) -> dict:
+    def poll_pairing_status(self, device_code: str) -> dict:
         pairing = self._pairings_repository.find_by_device_code(device_code)
 
         if not pairing:

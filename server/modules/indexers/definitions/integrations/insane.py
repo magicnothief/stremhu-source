@@ -12,9 +12,8 @@ from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefi
 from modules.indexers.definitions.enums import AuthenticationErrorEnum
 from modules.indexers.definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
-    IndexerDefinitionLoginRequest,
+    IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
-    IndexerDefinitionTorrentWithInfo,
 )
 from selectolax.parser import HTMLParser
 
@@ -59,7 +58,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
     def details_path(self) -> str:
         return "/details.php?id={torrent_id}"
 
-    def detect_authentication_error(
+    def _detect_authentication_error(
         self, response: httpx.Response
     ) -> Optional[AuthenticationErrorEnum]:
         final_path = str(response.url.path)
@@ -73,10 +72,8 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
         return None
 
-    async def perform_login(
-        self, credential: IndexerDefinitionLoginRequest
-    ) -> httpx.Response:
-        return await self._post(
+    async def _login(self, credential: IndexerDefinitionLogin) -> httpx.Response:
+        return await self._client.post(
             self.login_path,
             data={
                 "username": credential.username,
@@ -85,11 +82,11 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
-    async def fetch_torrents(
+    async def _fetch_torrents(
         self, imdb_id: str, page: Optional[int] = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
-        response = await self._get(
+        response = await self._client.get(
             "/browse.php",
             params={
                 "search": imdb_id,
@@ -107,7 +104,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
         tree = HTMLParser(html)
         torrent_rows = tree.css(".torrenttable tbody .torrentrow")
-        torrents: list[IndexerDefinitionTorrentWithInfo] = []
+        torrents: list[IndexerDefinitionTorrent] = []
 
         for row in torrent_rows:
             cat_node = row.css_first('a[href*="browse.php?cat="]')
@@ -133,14 +130,11 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
             if torrent_id and download_url:
                 torrents.append(
-                    IndexerDefinitionTorrentWithInfo(
-                        tracker_id=self.id,
+                    IndexerDefinitionTorrent(
                         torrent_id=torrent_id,
                         download_url=download_url,
                         seeders=int(seeders_text) if seeders_text.isdigit() else 0,
                         imdb_id=imdb_id_val or None,
-                        resolution=self._resolve_resolution(category),
-                        language=self._resolve_language(category),
                     )
                 )
 
@@ -151,8 +145,8 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
             next_page=current_page + 1 if has_next_page else None,
         )
 
-    async def fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
-        response = await self._get(f"/details.php?id={torrent_id}")
+    async def _fetch_torrent(self, torrent_id: str) -> IndexerDefinitionTorrent:
+        response = await self._client.get(f"/details.php?id={torrent_id}")
         tree = HTMLParser(response.text)
 
         dl_node = tree.css_first(f'a[href*="download.php/{torrent_id}"]')
@@ -167,14 +161,13 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
             raise Exception('A "downloadPath" nem található!')
 
         return IndexerDefinitionTorrent(
-            tracker_id=self.id,
             torrent_id=torrent_id,
             imdb_id=imdb_id,
             download_url=urljoin(self.url, download_path),
         )
 
-    async def fetch_hit_and_run_ids(self) -> list[str]:
-        response = await self._get("/hitnrun.php")
+    async def _fetch_hit_and_run_ids(self) -> list[str]:
+        response = await self._client.get("/hitnrun.php")
         tree = HTMLParser(response.text)
 
         hrefs = [
