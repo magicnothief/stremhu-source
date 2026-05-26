@@ -40,5 +40,5 @@ class PreferenceDefinitionAttributeModel(Base):
 
     id: Mapped[str] = mapped_column(
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default_factory=lambda: str(uuid.uuid4()),
     )

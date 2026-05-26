@@ -19,3 +19,4 @@ argon2-cffi==25.1.0
 apscheduler==3.11.2
 openapi-python-client==0.28.4
 humanize==4.15.0
+tzlocal==5.3.1

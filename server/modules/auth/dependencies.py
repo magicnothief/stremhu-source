@@ -1,6 +1,6 @@
-from common.enums import UserRole
 from fastapi import Depends, HTTPException, Request, status
 from modules.auth.service import AuthService
+from modules.roles.enums import UserRole
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
 from modules.users.service import UsersService
@@ -29,7 +29,7 @@ class SessionGuard:
                 detail="A munkamenethez tartozó felhasználó nem található.",
             )
 
-        if self.allowed_roles and user.role not in self.allowed_roles:
+        if self.allowed_roles and user.role_id not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Nincs jogosultságod a művelet végrehajtásához.",
@@ -62,7 +62,7 @@ class ApiKeyGuard:
                 detail="A megadott API kulcs érvénytelen.",
             )
 
-        if self.allowed_roles and user.role not in self.allowed_roles:
+        if self.allowed_roles and user.role_id not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Nincs jogosultságod a művelet végrehajtásához.",

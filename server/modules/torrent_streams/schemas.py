@@ -17,7 +17,7 @@ class TorrentStream(BaseModel):
     info_hash: str
     torrent_name: str
     file_name: str
-    file_size: str
+    file_size: int
     file_index: int
     play_url: str
     seeders: int = 0

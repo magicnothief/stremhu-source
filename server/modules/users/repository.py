@@ -6,8 +6,11 @@ class UsersRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find_by_id(self, user_id: str) -> UserModel | None:
-        return self.db.query(UserModel).filter_by(id=user_id).first()
+    def find(self) -> list[UserModel]:
+        return self.db.query(UserModel).all()
+
+    def find_by_id(self, id: str) -> UserModel | None:
+        return self.db.query(UserModel).filter_by(id=id).first()
 
     def find_by_username(self, username: str) -> UserModel | None:
         return self.db.query(UserModel).filter_by(username=username).first()
@@ -23,3 +26,6 @@ class UsersRepository:
         self.db.flush()
 
         return user
+
+    def delete(self, user_id: str) -> None:
+        self.db.query(UserModel).filter_by(id=user_id).delete()

@@ -14,7 +14,6 @@ def setup_directories():
     print("🔄 Szükséges könyvtárstruktúra ellenőrzése és létrehozása...")
 
     config.downloads_dir.mkdir(parents=True, exist_ok=True)
-    config.torrents_dir.mkdir(parents=True, exist_ok=True)
     config.openapi_dir.mkdir(parents=True, exist_ok=True)
     config.client_path.mkdir(parents=True, exist_ok=True)
 

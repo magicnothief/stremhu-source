@@ -7,9 +7,9 @@ from modules.attributes.models import AttributeModel
 from modules.indexers.schemas import IndexerTorrent
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
+from modules.torrent_files.schemas import TorrentFileInfo
 from modules.torrent_streams.schemas import TorrentStream
 from modules.torrent_streams.utils.metadata_parser import TorrentMetadataParser
-from torf import File
 
 
 def is_video(filename: str) -> bool:
@@ -50,9 +50,8 @@ class TorrentStreamResolver:
         if torrent_file is None:
             return None
 
-        # Parse torrent metadata using TorrentMetadataParser
         parse_attributes = TorrentMetadataParser(
-            name=self._torrent_file.info.name or "",
+            name=self._torrent_file.info.name,
             attributes_map=self._attribute_map,
             fallback_attributes=[],
         )
@@ -64,7 +63,7 @@ class TorrentStreamResolver:
             torrent_id=self._torrent_file.torrent_id,
             info_hash=self._torrent_file.info_hash,
             seeders=self._indexer_torrent.seeders,
-            torrent_name=self._torrent_file.info.name or "",
+            torrent_name=self._torrent_file.info.name,
             attributes=parsed_attributes,
             file_name=torrent_file.name,
             file_size=torrent_file.size,
@@ -73,23 +72,24 @@ class TorrentStreamResolver:
             is_persisted_torrent=False,
         )
 
-    def _resolve_largest_file(self) -> Optional[File]:
+    def _resolve_largest_file(self) -> Optional[TorrentFileInfo]:
         valid_files = [
             file
             for file in self._torrent_file.info.files
-            if is_video(str(file)) and not is_sample(str(file))
+            if is_video(file.name) and not is_sample(file.name)
         ]
         if not valid_files:
             return None
         return max(valid_files, key=lambda file: file.size)
 
-    def resolve_series_file(self, series: ParsedStreamSeries) -> Optional[File]:
+    def resolve_series_file(
+        self, series: ParsedStreamSeries
+    ) -> Optional[TorrentFileInfo]:
         for file in self._torrent_file.info.files:
-            normalized_name = str(file).lower()
-            if is_sample_or_trash(normalized_name):
+            if is_sample_or_trash(file.name):
                 continue
 
-            parsed = PTN.parse(normalized_name)
+            parsed = PTN.parse(file.name)
             season = parsed.get("season")
             episode = parsed.get("episode")
 

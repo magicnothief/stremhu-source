@@ -50,15 +50,21 @@ async def lifespan(app: FastAPI):
 
     db = SessionLocal()
     try:
-        # 1. Preferenciák szinkronizálása (elsőként, mert az attribútumok hivatkoznak rájuk)
+        # 1. Szerepkörök szinkronizálása (elsőként, mert a felhasználók hivatkoznak rájuk)
+        from modules.roles.service import RolesService
+
+        roles_service = RolesService(db)
+        roles_service.sync_to_db()
+
+        # 2. Preferenciák szinkronizálása (az attribútumok hivatkoznak rájuk)
         preferences_service = PreferencesService(db)
         preferences_service.sync_to_db()
 
-        # 2. Attribútumok szinkronizálása
+        # 3. Attribútumok szinkronizálása
         attributes_service = AttributesService(db)
         attributes_service.sync_to_db()
 
-        # 3. Indexer definíciók szinkronizálása
+        # 4. Indexer definíciók szinkronizálása
         from modules.indexers.definitions.service import IndexerDefinitionsService
 
         indexer_definitions_service = IndexerDefinitionsService()

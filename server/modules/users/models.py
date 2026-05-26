@@ -2,8 +2,9 @@ import uuid
 from datetime import datetime
 
 import sqlalchemy as sa
-from common.database import Base
-from common.enums import UserRole
+from common.database import Base, UTCDateTime
+from modules.roles.enums import UserRole
+from modules.roles.models import RoleModel
 from modules.users.preferences.models import UserPreferenceModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,7 +29,7 @@ class UserModel(Base):
     id: Mapped[str] = mapped_column(
         sa.String,
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default_factory=lambda: str(uuid.uuid4()),
     )
 
     password_hash: Mapped[str | None] = mapped_column(
@@ -39,16 +40,18 @@ class UserModel(Base):
 
     token: Mapped[str] = mapped_column(
         sa.String,
-        default=lambda: str(uuid.uuid4()),
+        default_factory=lambda: str(uuid.uuid4()),
         index=True,
         nullable=False,
     )
 
-    role: Mapped[UserRole] = mapped_column(
-        sa.String,
+    role_id: Mapped[UserRole] = mapped_column(
+        sa.ForeignKey("roles.id"),
         default=UserRole.USER,
         nullable=False,
     )
+
+    role: Mapped["RoleModel"] = relationship("RoleModel", init=False)
 
     torrent_seed: Mapped[int | None] = mapped_column(
         default=None,
@@ -61,15 +64,15 @@ class UserModel(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(
-        sa.DateTime,
-        default=datetime.now,
+        UTCDateTime,
+        default_factory=datetime.now,
         server_default=sa.func.now(),
         nullable=False,
     )
 
     updated_at: Mapped[datetime] = mapped_column(
-        sa.DateTime,
-        default=datetime.now,
+        UTCDateTime,
+        default_factory=datetime.now,
         server_default=sa.func.now(),
         onupdate=sa.func.now(),
         nullable=False,

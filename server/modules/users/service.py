@@ -11,8 +11,47 @@ class UsersService:
     def __init__(self, users_repository: UsersRepository):
         self._users_repository = users_repository
 
-    def get_by_id(self, user_id: str) -> UserModel | None:
-        return self._users_repository.find_by_id(user_id)
+    def get_list(self) -> list[UserModel]:
+        return self._users_repository.find()
+
+    def create(self, payload: CreateUser) -> UserModel:
+        self._check_exist_username(payload.username)
+
+        password_hash = self._hash_password(payload.password)
+
+        user = UserModel(
+            username=payload.username,
+            password_hash=password_hash,
+            role_id=payload.role_id,
+            token=str(uuid.uuid4()),
+            torrent_seed=payload.torrent_seed,
+            only_best_torrent=payload.only_best_torrent,
+        )
+
+        password_hash = self._hash_password(payload.password)
+
+        user = UserModel(
+            username=payload.username,
+            password_hash=password_hash,
+            role_id=payload.role_id,
+            token=str(uuid.uuid4()),
+            torrent_seed=payload.torrent_seed,
+            only_best_torrent=payload.only_best_torrent,
+        )
+
+        return self._users_repository.create(user)
+
+    def get_by_id(self, id: str) -> UserModel | None:
+        return self._users_repository.find_by_id(id)
+
+    def get_by_id_or_raise(self, id: str) -> UserModel:
+        user = self.get_by_id(id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="A felhasználó nem található.",
+            )
+        return user
 
     def get_by_username(self, username: str) -> UserModel | None:
         return self._users_repository.find_by_username(username)
@@ -23,37 +62,13 @@ class UsersService:
     def count(self) -> int:
         return self._users_repository.count()
 
-    def create(self, payload: CreateUser) -> UserModel:
-        existing_user = self._users_repository.find_by_username(payload.username)
-
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Ez a felhasználónév már foglalt.",
-            )
-
-        password_hash = self._hash_password(payload.password)
-
-        user = UserModel(
-            username=payload.username,
-            password_hash=password_hash,
-            role=payload.role,
-            token=str(uuid.uuid4()),
-            torrent_seed=payload.torrent_seed,
-            only_best_torrent=payload.only_best_torrent,
-        )
-
-        return self._users_repository.create(user)
-
     def update(self, user_id: str, payload: UpdateUser) -> UserModel:
-        user = self.get_by_id(user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="A felhasználó nem található.",
-            )
+        user = self.get_by_id_or_raise(user_id)
 
         update_data = payload.model_dump(exclude_unset=True)
+
+        if "username" in update_data:
+            self._check_exist_username(update_data["username"])
 
         if "password" in update_data:
             password = update_data.pop("password")
@@ -66,6 +81,29 @@ class UsersService:
             setattr(user, key, value)
 
         return self._users_repository.create(user)
+
+    def regenerate_token(self, user_id: str) -> UserModel:
+        user = self.get_by_id_or_raise(user_id)
+        user.token = str(uuid.uuid4())
+        return self._users_repository.create(user)
+
+    def delete(self, user_id: str, current_user: UserModel) -> None:
+        if user_id == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Saját fiókod törlésére nincs lehetőség!",
+            )
+
+        self.get_by_id_or_raise(user_id)
+        self._users_repository.delete(user_id)
+
+    def _check_exist_username(self, username: str) -> None:
+        existing_user = self._users_repository.find_by_username(username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ez a felhasználónév már foglalt.",
+            )
 
     def _hash_password(self, password: str) -> str:
         ph = PasswordHasher()

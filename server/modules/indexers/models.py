@@ -32,11 +32,11 @@ class IndexerModel(Base):
 
     updated_at: Mapped[Date] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
         onupdate=datetime.datetime.now,
     )
 
     created_at: Mapped[Date] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
     )

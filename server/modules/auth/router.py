@@ -1,8 +1,8 @@
-from common.enums import UserRole
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from modules.auth.dependencies import SessionGuard, get_auth_service
 from modules.auth.schemas import AuthLogin
 from modules.auth.service import AuthService
+from modules.roles.enums import UserRole
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
 from modules.users.schemas import CreateUser, User
@@ -30,7 +30,7 @@ def register(
     user_model = CreateUser(
         username=payload.username,
         password=payload.password,
-        role=UserRole.ADMIN,
+        role_id=UserRole.ADMIN,
     )
     return users_service.create(user_model)
 

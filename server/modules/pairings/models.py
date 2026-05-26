@@ -30,7 +30,7 @@ class PairingModel(Base):
     id: Mapped[str] = mapped_column(
         sa.String,
         primary_key=True,
-        default=lambda: str(uuid.uuid4()),
+        default_factory=lambda: str(uuid.uuid4()),
     )
 
     status: Mapped[str] = mapped_column(
@@ -51,7 +51,7 @@ class PairingModel(Base):
 
     created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
         server_default=sa.func.now(),
         nullable=False,
     )

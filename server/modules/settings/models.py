@@ -7,4 +7,4 @@ class SettingModel(Base):
     __tablename__ = "settings"
 
     key: Mapped[str] = mapped_column(sa.String, primary_key=True)
-    value: Mapped[dict] = mapped_column(sa.JSON, default=dict)
+    value: Mapped[dict] = mapped_column(sa.JSON, default_factory=dict)

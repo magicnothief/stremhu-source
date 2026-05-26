@@ -32,7 +32,7 @@ class PersistedTorrentModel(Base):
 
     last_played_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
     )
 
     is_persisted: Mapped[bool] = mapped_column(sa.Boolean, default=False)
@@ -49,13 +49,13 @@ class PersistedTorrentModel(Base):
 
     updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
         onupdate=datetime.datetime.now,
     )
 
     created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
     )
 
     torrent_file: Mapped["TorrentFileModel"] = relationship(

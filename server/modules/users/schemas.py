@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from common.enums import UserRole
+from modules.roles.enums import UserRole
+from modules.roles.schemas import Role
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -12,13 +13,13 @@ class BaseUser(BaseModel):
     )
 
     username: str
-    role: UserRole = UserRole.USER
     torrent_seed: int | None = None
     only_best_torrent: bool = False
 
 
 class CreateUser(BaseUser):
     password: str
+    role_id: UserRole = UserRole.USER
 
 
 class UpdateUser(BaseModel):
@@ -29,13 +30,14 @@ class UpdateUser(BaseModel):
 
     username: str | None = None
     password: str | None = None
-    role: UserRole | None = None
+    role_id: UserRole | None = None
     torrent_seed: int | None = None
     only_best_torrent: bool | None = None
 
 
 class User(BaseUser):
     id: str
+    role: Role
     token: str
     updated_at: datetime
     created_at: datetime

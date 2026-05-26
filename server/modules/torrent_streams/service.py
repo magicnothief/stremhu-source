@@ -3,6 +3,7 @@ import logging
 from typing import Awaitable, List, Optional, Tuple
 
 import humanize
+from modules.attributes.service import AttributesService
 from modules.indexers.schemas import DownloadedTorrentFile, IndexerTorrent
 from modules.indexers.service import IndexersService
 from modules.persisted_torrents.service import TorrentsService
@@ -30,11 +31,13 @@ class TorrentStreamsService:
         indexers_service: IndexersService,
         torrent_files_service: TorrentFilesService,
         torrents_service: TorrentsService,
+        attributes_service: AttributesService,
     ):
         self.db = db
         self._indexers_service = indexers_service
         self._torrents_service = torrents_service
         self._torrent_files_service = torrent_files_service
+        self._attributes_service = attributes_service
 
     async def find_by_imdb(
         self,
@@ -42,6 +45,10 @@ class TorrentStreamsService:
         imdb_id: str,
         series: Optional[ParsedStreamSeries] = None,
     ) -> Tuple[List[TorrentStream], List[str]]:
+        attributes_map = await asyncio.to_thread(
+            self._attributes_service.get_all_as_map
+        )
+
         (
             indexer_torrents,
             indexer_errors,
@@ -119,7 +126,10 @@ class TorrentStreamsService:
                 continue
 
             torrent_stream = TorrentStreamResolver(
-                indexer_torrent, torrent_file, series
+                indexer_torrent=indexer_torrent,
+                torrent_file=torrent_file,
+                series=series,
+                attribute_map=attributes_map,
             ).resolve()
 
             if torrent_stream:
@@ -137,6 +147,9 @@ class TorrentStreamsService:
         indexer_id: str,
         torrent_id: str,
     ) -> Optional[TorrentStream]:
+        attributes_map = await asyncio.to_thread(
+            self._attributes_service.get_all_as_map
+        )
 
         indexer_torrent = await self._indexers_service.get_torrent_by_torrent_id(
             indexer_id, torrent_id
@@ -162,7 +175,10 @@ class TorrentStreamsService:
             )
 
         torrent_stream = TorrentStreamResolver(
-            indexer_torrent, current_torrent_file, None
+            indexer_torrent=indexer_torrent,
+            torrent_file=current_torrent_file,
+            series=None,
+            attribute_map=attributes_map,
         ).resolve()
 
         return torrent_stream

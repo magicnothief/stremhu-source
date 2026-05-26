@@ -25,5 +25,5 @@ class Playback(Base):
 
     # Ezt frissíti minden egyes beérkező HTTP Range Request (heartbeat)
     last_seen_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.now, nullable=False
+        DateTime, default_factory=datetime.now, nullable=False
     )
