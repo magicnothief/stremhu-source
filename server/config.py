@@ -32,20 +32,16 @@ class Config(BaseSettings):
         return Path(__file__).resolve().parent.parent / "data"
 
     @property
-    def database_url(self) -> str:
-        return f"sqlite:///{self.base_data_dir}/stremhu.db"
-
-    @property
     def downloads_dir(self) -> Path:
         return self.base_data_dir / "downloads"
 
     @property
-    def resume_data_dir(self) -> Path:
-        return self.base_data_dir / "system" / "resumes"
+    def system_dir(self) -> Path:
+        return self.base_data_dir / "system"
 
     @property
-    def torrents_dir(self) -> Path:
-        return self.base_data_dir / "system" / "torrents"
+    def database_url(self) -> str:
+        return f"sqlite:///{self.system_dir}/stremhu.db"
 
     @property
     def openapi_dir(self) -> Path:

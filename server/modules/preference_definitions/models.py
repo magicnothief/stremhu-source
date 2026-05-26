@@ -1,15 +1,12 @@
 import uuid
-from typing import TYPE_CHECKING
 
 from common.database import Base
+from modules.preference_definitions.attributes.models import (
+    PreferenceDefinitionAttributeModel,
+)
 from modules.preferences.enums import PreferenceEnum
-from sqlalchemy import String
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-if TYPE_CHECKING:
-    from modules.preference_definitions.attributes.models import (
-        PreferenceDefinitionAttributeModel,
-    )
 
 
 class PreferenceDefinitionModel(Base):
@@ -21,7 +18,7 @@ class PreferenceDefinitionModel(Base):
     __tablename__ = "preference_definitions"
 
     preference_id: Mapped[PreferenceEnum] = mapped_column(
-        String,
+        ForeignKey("preferences.id", ondelete="CASCADE"),
         nullable=False,
     )
 

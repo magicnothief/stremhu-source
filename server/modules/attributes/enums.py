@@ -30,7 +30,7 @@ class SourceEnum(str, Enum):
     WEB_RIP = "web-rip"
     BROADCAST = "broadcast"
     THEATRICAL = "theatrical"
-    UNKNOWN = "unknown"
+    UNKNOWN = "source-unknown"
 
 
 class AudioQualityEnum(str, Enum):
@@ -40,7 +40,7 @@ class AudioQualityEnum(str, Enum):
     DTS = "dts"
     DD = "dd"
     AAC = "aac"
-    UNKNOWN = "unknown"
+    UNKNOWN = "audio-unknown"
 
 
 class AudioSpatialEnum(str, Enum):

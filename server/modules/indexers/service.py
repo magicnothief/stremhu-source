@@ -89,13 +89,15 @@ class IndexersService:
     ) -> tuple[list[IndexerTorrent], list[str]]:
         indexers = await asyncio.to_thread(self.get_list)
 
-        async def fetch_and_map(indexer_id: str) -> IndexerTorrent:
-            indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
+        async def fetch_and_map(indexer: IndexerModel) -> IndexerTorrent:
+            indexer_definition = self._indexer_definitions_service.get_by_id(
+                indexer.definition.id
+            )
             indexer_definition_torrent = await indexer_definition.find_torrent_by_id(
                 torrent_id
             )
             return IndexerTorrent(
-                indexer_id=indexer_id,
+                indexer=indexer,
                 torrent_id=indexer_definition_torrent.torrent_id,
                 download_url=indexer_definition_torrent.download_url,
                 imdb_id=indexer_definition_torrent.imdb_id,
@@ -103,7 +105,7 @@ class IndexersService:
                 fallback_attributes=indexer_definition_torrent.fallback_attributes,
             )
 
-        tasks = [fetch_and_map(indexer.id) for indexer in indexers]
+        tasks = [fetch_and_map(indexer) for indexer in indexers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         indexer_torrents: list[IndexerTorrent] = []
@@ -129,7 +131,7 @@ class IndexersService:
             torrent_id
         )
         return IndexerTorrent(
-            indexer_id=indexer.id,
+            indexer=indexer,
             torrent_id=indexer_definition_torrent.torrent_id,
             download_url=indexer_definition_torrent.download_url,
             imdb_id=indexer_definition_torrent.imdb_id,
@@ -142,15 +144,15 @@ class IndexersService:
     ) -> tuple[list[IndexerTorrent], list[str]]:
         indexers = await asyncio.to_thread(self.get_list)
 
-        async def fetch_and_map(indexer_id: str) -> list[IndexerTorrent]:
+        async def fetch_and_map(indexer: IndexerModel) -> list[IndexerTorrent]:
 
-            indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
+            indexer_definition = self._indexer_definitions_service.get_by_id(indexer.id)
             indexer_definition_torrents = (
                 await indexer_definition.find_torrents_by_imdb_id(imdb_id)
             )
             return [
                 IndexerTorrent(
-                    indexer_id=indexer_id,
+                    indexer=indexer,
                     torrent_id=indexer_definition_torrent.torrent_id,
                     download_url=indexer_definition_torrent.download_url,
                     imdb_id=indexer_definition_torrent.imdb_id,
@@ -160,7 +162,7 @@ class IndexersService:
                 for indexer_definition_torrent in indexer_definition_torrents
             ]
 
-        tasks = [fetch_and_map(indexer.id) for indexer in indexers]
+        tasks = [fetch_and_map(indexer) for indexer in indexers]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         indexer_torrents: list[IndexerTorrent] = []
@@ -179,9 +181,10 @@ class IndexersService:
     ) -> DownloadedTorrentFile:
         indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
         torrent_bytes = await indexer_definition.download_torrent(download_url)
+        indexer = await asyncio.to_thread(self.get_by_id_or_raise, indexer_id)
 
         return DownloadedTorrentFile(
-            indexer_id=indexer_id,
+            indexer=indexer,
             torrent_id=torrent_id,
             torrent_bytes=torrent_bytes,
         )

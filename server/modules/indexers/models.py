@@ -3,13 +3,22 @@ from sqlite3 import Date
 
 import sqlalchemy as sa
 from common.database import Base
-from sqlalchemy.orm import Mapped, mapped_column
+from modules.indexers.definitions.models import IndexerDefinitionModel
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class IndexerModel(Base):
     __tablename__ = "indexers"
 
-    id: Mapped[str] = mapped_column(sa.String, primary_key=True)
+    id: Mapped[str] = mapped_column(
+        sa.ForeignKey("indexer_definitions.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    definition: Mapped["IndexerDefinitionModel"] = relationship(
+        "IndexerDefinitionModel",
+        init=False,
+    )
 
     username: Mapped[str] = mapped_column(sa.String)
 

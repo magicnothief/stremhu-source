@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import RedirectResponse
 from modules.auth.dependencies import ApiKeyGuard
 from modules.stremio.dependencies import (
@@ -17,7 +17,7 @@ from modules.stremio.schemas import (
     ParsedExtra,
     ParsedStreamId,
     StremioCatalogResponse,
-    StremioStreamsResponse,
+    StremioStreams,
 )
 from modules.stremio.service import StremioService
 from modules.users.models import UserModel
@@ -65,17 +65,16 @@ def configure(
 
 @router.get(
     "/stream/{media_type}/{stream_id}.json",
-    response_model=StremioStreamsResponse,
-    operation_id="stremio_streams",
+    response_model=StremioStreams,
 )
 async def streams(
     _: MediaType,
     parsed_id: ParsedStreamId = Depends(get_parsed_stream_id),
     stremio_service: StremioService = Depends(get_stremio_service),
     user: UserModel = Depends(ApiKeyGuard()),
-) -> StremioStreamsResponse:
-    stream_list = await stremio_service.get_streams(user, parsed_id)
-    return StremioStreamsResponse(streams=stream_list)
+) -> StremioStreams:
+    streams = await stremio_service.get_streams(user, parsed_id)
+    return StremioStreams(streams=streams)
 
 
 # ──────────────────────────────────────────────
@@ -157,16 +156,16 @@ async def _get_catalog(
 )
 async def meta(
     media_type: MediaType,
-    parsed_id: ParsedCatalogId = Depends(get_parsed_catalog_id),
+    parsed_id: ParsedCatalogId | None = Depends(get_parsed_catalog_id),
     stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(ApiKeyGuard()),
+    _: UserModel = Depends(ApiKeyGuard()),
 ) -> MetaResponse:
-    if media_type != MediaType.MOVIE:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    if media_type != MediaType.MOVIE or parsed_id is None:
+        return MetaResponse(meta={})
 
     result = await stremio_service.get_meta(parsed_id.tracker_id, parsed_id.torrent_id)
 
     if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        return MetaResponse(meta={})
 
     return MetaResponse(meta=result)

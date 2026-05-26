@@ -41,13 +41,29 @@ async def lifespan(app: FastAPI):
     with (out_dir / "openapi.json").open("w", encoding="utf-8") as f:
         json.dump(app.openapi(), f, indent=2, ensure_ascii=False)
 
-    # Beállítások inicializálása az adatbázisban és a libtorrent-ben induláskor
+    # Beállítások és attribútumok inicializálása az adatbázisban és a libtorrent-ben induláskor
     from common.database import SessionLocal
+    from modules.attributes.service import AttributesService
+    from modules.preferences.service import PreferencesService
     from modules.settings.repository import SettingsRepository
     from modules.settings.service import SettingsService
 
     db = SessionLocal()
     try:
+        # 1. Preferenciák szinkronizálása (elsőként, mert az attribútumok hivatkoznak rájuk)
+        preferences_service = PreferencesService(db)
+        preferences_service.sync_to_db()
+
+        # 2. Attribútumok szinkronizálása
+        attributes_service = AttributesService(db)
+        attributes_service.sync_to_db()
+
+        # 3. Indexer definíciók szinkronizálása
+        from modules.indexers.definitions.service import IndexerDefinitionsService
+
+        indexer_definitions_service = IndexerDefinitionsService()
+        indexer_definitions_service.sync_to_db(db)
+
         repository = SettingsRepository(db)
         settings_service = SettingsService(repository, get_libtorrent_client_service())
         settings_service.initialize_defaults()
@@ -57,7 +73,7 @@ async def lifespan(app: FastAPI):
         import logging
 
         logging.getLogger("main").error(
-            f"Nem sikerült a beállítások inicializálása induláskor: {e}"
+            f"Nem sikerült a beállítások/attribútumok/indexerek inicializálása induláskor: {e}"
         )
     finally:
         db.close()

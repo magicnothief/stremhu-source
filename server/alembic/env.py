@@ -8,17 +8,18 @@ from alembic import context
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # 2. Import Base and engine from common.database and load application config
-# 3. Dynamic model auto-discovery: Auto-import all files named "models.py" under relay root
+# 3. Dynamic model auto-discovery: Auto-import all files named "models.py" under server root
 import importlib
-import pkgutil
 
 from common.database import Base, engine
 from config import config
 
 root_path = Path(__file__).resolve().parent.parent
-for _, module_name, _ in pkgutil.walk_packages([str(root_path)]):
-    if "models" in module_name:
-        importlib.import_module(module_name)
+for path in root_path.rglob("models.py"):
+    relative_path = path.relative_to(root_path)
+    module_name = ".".join(relative_path.with_suffix("").parts)
+    importlib.import_module(module_name)
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

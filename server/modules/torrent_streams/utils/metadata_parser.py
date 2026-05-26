@@ -9,7 +9,7 @@ from modules.attributes.enums import (
     SourceEnum,
     VideoQualityEnum,
 )
-from modules.attributes.schemas import Attribute, Attributes
+from modules.attributes.models import AttributeModel
 from modules.preferences.enums import PreferenceEnum
 
 
@@ -122,46 +122,48 @@ class TorrentMetadataParser:
     def __init__(
         self,
         name: str,
-        fallback_attributes: list[Attribute],
+        attributes_map: dict[str, AttributeModel],
+        fallback_attributes: list[AttributeModel],
     ):
-        self.name = name.lower()
-        self.fallback_attributes = fallback_attributes
+        self._name = name.lower()
+        self._attribute_map = attributes_map
+        self._fallback_attributes = fallback_attributes
 
     def parse_resolution(self) -> ResolutionEnum | None:
         for res_enum, pattern in RESOLUTION_PATTERNS.items():
-            if pattern.search(self.name):
+            if pattern.search(self._name):
                 return res_enum
-        for fallback_attribute in self.fallback_attributes:
-            if fallback_attribute.preference == PreferenceEnum.RESOLUTION:
+        for fallback_attribute in self._fallback_attributes:
+            if fallback_attribute.preference_id == PreferenceEnum.RESOLUTION:
                 return ResolutionEnum(fallback_attribute.id)
         return None
 
     def parse_video_quality(self) -> List[VideoQualityEnum]:
         matched = []
         for quality_enum, patterns in VIDEO_QUALITY_PATTERNS.items():
-            if any(p in self.name for p in patterns):
+            if any(p in self._name for p in patterns):
                 matched.append(quality_enum)
         return matched if matched else [VideoQualityEnum.SDR]
 
     def parse_audio_quality(self) -> AudioQualityEnum:
         for audio_enum, patterns in AUDIO_QUALITY_PATTERNS.items():
-            if any(p in self.name for p in patterns):
+            if any(p in self._name for p in patterns):
                 return audio_enum
         return AudioQualityEnum.UNKNOWN
 
     def parse_audio_spatial(self) -> Optional[AudioSpatialEnum]:
         for spatial_enum, patterns in AUDIO_SPATIAL_PATTERNS.items():
-            if any(p in self.name for p in patterns):
+            if any(p in self._name for p in patterns):
                 return spatial_enum
         return None
 
     def parse_source(self) -> SourceEnum:
         for source_enum, patterns in SOURCE_PATTERNS.items():
-            if any(p in self.name for p in patterns):
+            if any(p in self._name for p in patterns):
                 return source_enum
         return SourceEnum.UNKNOWN
 
-    def parse(self) -> list[Attribute]:
+    def parse(self) -> list[AttributeModel]:
         row_attribute_ids: list[str | None] = [
             self.parse_resolution(),
             *self.parse_video_quality(),
@@ -176,9 +178,9 @@ class TorrentMetadataParser:
             if row_attribute_id is not None
         ]
 
-        attributes: list[Attribute] = []
+        attributes: list[AttributeModel] = []
         for attribute_id in attribute_ids:
-            attribute = Attributes.get(attribute_id)
+            attribute = self._attribute_map.get(attribute_id)
             if attribute is None:
                 continue
             attributes.append(attribute)

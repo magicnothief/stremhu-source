@@ -25,6 +25,11 @@ class TorrentsService:
         self.libtorrent_client_service = libtorrent_client_service
         self.stream_service = stream_service
 
+        # Subscribe to libtorrent resume events (Observer Pattern)
+        self.libtorrent_client_service.on_save_resume.append(self._save_resume_data)
+        self.libtorrent_client_service.on_load_resume = self._load_resume_data
+        self.libtorrent_client_service.on_delete_resume.append(self._delete_resume_data)
+
     def add_torrent(
         self,
         payload: AddTorrent,
@@ -157,3 +162,61 @@ class TorrentsService:
             connections=status.num_connections,
             max_connections=status.connections_limit,
         )
+
+    def _save_resume_data(self, info_hash_str: str, resume_bytes: bytes) -> None:
+        from common.database import db_session
+        from modules.persisted_torrents.models import PersistedTorrentModel
+        from modules.torrent_files.models import TorrentFileModel
+
+        with db_session() as db:
+            torrent_file = (
+                db.query(TorrentFileModel)
+                .filter(TorrentFileModel.info_hash == info_hash_str)
+                .first()
+            )
+            if torrent_file:
+                persisted = (
+                    db.query(PersistedTorrentModel)
+                    .filter(
+                        PersistedTorrentModel.indexer_id == torrent_file.indexer_id,
+                        PersistedTorrentModel.torrent_id == torrent_file.torrent_id,
+                    )
+                    .first()
+                )
+                if not persisted:
+                    persisted = PersistedTorrentModel(
+                        indexer_id=torrent_file.indexer_id,
+                        torrent_id=torrent_file.torrent_id,
+                        is_persisted=True,
+                    )
+                    db.add(persisted)
+                persisted.resume_bytes = resume_bytes
+
+    def _load_resume_data(self, info_hash_str: str) -> bytes | None:
+        from common.database import db_session
+        from modules.persisted_torrents.models import PersistedTorrentModel
+        from modules.torrent_files.models import TorrentFileModel
+
+        with db_session() as db:
+            persisted = (
+                db.query(PersistedTorrentModel)
+                .join(TorrentFileModel)
+                .filter(TorrentFileModel.info_hash == info_hash_str)
+                .first()
+            )
+            return persisted.resume_bytes if persisted else None
+
+    def _delete_resume_data(self, info_hash_str: str) -> None:
+        from common.database import db_session
+        from modules.persisted_torrents.models import PersistedTorrentModel
+        from modules.torrent_files.models import TorrentFileModel
+
+        with db_session() as db:
+            persisted = (
+                db.query(PersistedTorrentModel)
+                .join(TorrentFileModel)
+                .filter(TorrentFileModel.info_hash == info_hash_str)
+                .first()
+            )
+            if persisted:
+                persisted.resume_bytes = None

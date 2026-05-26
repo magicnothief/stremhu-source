@@ -15,9 +15,6 @@ def get_stremio_service(
     return StremioService(torrent_streams_service=torrent_streams_service)
 
 
-
-
-
 def get_parsed_stream_id(
     stream_id: str = Path(
         ..., description="Stream azonosító (IMDB ID vagy torrent ID)"
@@ -31,7 +28,7 @@ def get_parsed_catalog_id(
     meta_id: str = Path(
         ..., description="Katalógus / Meta azonosító (trackerId:torrentId)"
     ),
-) -> ParsedCatalogId:
+) -> ParsedCatalogId | None:
     """Automatikus parse-olás a Stremio catalog / meta azonosítóhoz (pl. trackerId:torrentId)."""
     return parse_catalog_id(meta_id)
 

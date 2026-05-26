@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from modules.stremio.constants import ADDON_APP_PREFIX_ID, ADDON_STREMHU_PREFIX_ID
+from modules.stremio.constants import ADDON_APP_PREFIX_ID
 from modules.stremio.enums import StreamIdType
 from modules.stremio.schemas import (
     ParsedCatalogId,
@@ -13,11 +13,9 @@ from modules.stremio.schemas import (
 
 def parse_stream_id(value: str) -> ParsedStreamId:
     """
-    Az NestJS ParseStreamIdPipe logikájának portolása.
-
     Támogatott formátumok:
-    - "stremhu-source:<tracker>:<torrentId>" → torrent stream
-    - "tt1234567" vagy "stremhu:tt1234567" → IMDB stream
+    - "stremhu-source:<indexer_id>:<torrent_id>" → torrent stream
+    - "tt1234567" → IMDB stream
     - "tt1234567:1:2" → IMDB stream sorozattal (season=1, episode=2)
     """
     is_app = value.startswith(ADDON_APP_PREFIX_ID)
@@ -32,10 +30,10 @@ def parse_stream_id(value: str) -> ParsedStreamId:
                 detail="Érvénytelen stream azonosító formátum.",
             )
 
-        tracker = parts[0]
+        indexer_id = parts[0]
         torrent_id = parts[1]
 
-        if not tracker or not torrent_id:
+        if not indexer_id or not torrent_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Érvénytelen stream azonosító formátum.",
@@ -43,17 +41,12 @@ def parse_stream_id(value: str) -> ParsedStreamId:
 
         return ParsedTorrentStreamId(
             type=StreamIdType.TORRENT,
-            tracker=tracker,
+            indexer_id=indexer_id,
             torrent_id=torrent_id,
         )
 
-    meta_id = value
-    is_stremhu_meta = value.startswith(ADDON_STREMHU_PREFIX_ID)
-    if is_stremhu_meta:
-        meta_id = value.removeprefix(ADDON_STREMHU_PREFIX_ID)
-
-    parts = meta_id.split(":")
-    imdb = parts[0]
+    parts = value.split(":")
+    imdb_id = parts[0]
 
     season: int | None = None
     if len(parts) > 1 and parts[1]:
@@ -69,22 +62,22 @@ def parse_stream_id(value: str) -> ParsedStreamId:
 
     return ParsedImdbStreamId(
         type=StreamIdType.IMDB,
-        imdb_id=imdb,
+        imdb_id=imdb_id,
         series=series,
     )
 
 
-def parse_catalog_id(value: str) -> ParsedCatalogId:
+def parse_catalog_id(value: str) -> ParsedCatalogId | None:
     """
-    Az NestJS ParseCatalogIdPipe logikájának portolása.
-
-    Formátum: "stremhu-source:<trackerId>:<torrentId>" vagy "<trackerId>:<torrentId>"
+    Formátum: "stremhu-source:<trackerId>:<torrentId>"
     """
     meta_id = value
 
     is_app = meta_id.startswith(ADDON_APP_PREFIX_ID)
     if is_app:
         meta_id = value.removeprefix(ADDON_APP_PREFIX_ID)
+    else:
+        return None
 
     parts = meta_id.split(":")
 

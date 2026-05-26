@@ -49,7 +49,7 @@ class TorrentStreamsService:
 
         torrent_file_ids: list[TorrentFileIdentifier] = [
             TorrentFileIdentifier(
-                indexer_id=indexer_torrent.indexer_id,
+                indexer_id=indexer_torrent.indexer.id,
                 torrent_id=indexer_torrent.torrent_id,
             )
             for indexer_torrent in indexer_torrents
@@ -71,14 +71,14 @@ class TorrentStreamsService:
         download_tasks: list[Awaitable[DownloadedTorrentFile]] = []
         for indexer_torrent in indexer_torrents:
             if (
-                indexer_torrent.indexer_id,
+                indexer_torrent.indexer.id,
                 indexer_torrent.torrent_id,
             ) in current_torrent_files_map:
                 continue
 
             download_tasks.append(
                 self._indexers_service.download_torrent(
-                    indexer_torrent.indexer_id,
+                    indexer_torrent.indexer.id,
                     indexer_torrent.torrent_id,
                     indexer_torrent.download_url,
                 )
@@ -95,7 +95,7 @@ class TorrentStreamsService:
 
             torrent_file = await asyncio.to_thread(
                 self._torrent_files_service.create,
-                indexer_id=downloaded_torrent_file.indexer_id,
+                indexer_id=downloaded_torrent_file.indexer.id,
                 torrent_id=downloaded_torrent_file.torrent_id,
                 torrent_bytes=downloaded_torrent_file.torrent_bytes,
             )
@@ -104,7 +104,7 @@ class TorrentStreamsService:
         torrent_files = current_torrent_files + created_torrent_files
 
         indexer_torrents_map: dict[tuple[str, str], IndexerTorrent] = {
-            (indexer_torrent.indexer_id, indexer_torrent.torrent_id): indexer_torrent
+            (indexer_torrent.indexer.id, indexer_torrent.torrent_id): indexer_torrent
             for indexer_torrent in indexer_torrents
         }
 
@@ -144,19 +144,19 @@ class TorrentStreamsService:
 
         current_torrent_file = await asyncio.to_thread(
             self._torrent_files_service.get_one,
-            indexer_torrent.indexer_id,
+            indexer_torrent.indexer.id,
             indexer_torrent.torrent_id,
         )
 
         if current_torrent_file is None:
             downloaded_torrent_file = await self._indexers_service.download_torrent(
-                indexer_torrent.indexer_id,
+                indexer_torrent.indexer.id,
                 indexer_torrent.torrent_id,
                 indexer_torrent.download_url,
             )
             current_torrent_file = await asyncio.to_thread(
                 self._torrent_files_service.create,
-                indexer_id=downloaded_torrent_file.indexer_id,
+                indexer_id=downloaded_torrent_file.indexer.id,
                 torrent_id=downloaded_torrent_file.torrent_id,
                 torrent_bytes=downloaded_torrent_file.torrent_bytes,
             )
@@ -218,7 +218,7 @@ class TorrentStreamsService:
             for pref_id, rank_map, fallback in preference_rank_maps:
                 best_rank = fallback
                 for attr in stream.attributes:
-                    if attr.preference == pref_id and attr.id in rank_map:
+                    if attr.preference_id == pref_id and attr.id in rank_map:
                         best_rank = min(best_rank, rank_map[attr.id])
                 pref_ranks.append(best_rank)
 

@@ -2,6 +2,7 @@ from modules.indexers.definitions.schemas import (
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )
+from modules.indexers.models import IndexerModel
 from pydantic import BaseModel
 
 
@@ -10,12 +11,12 @@ class IndexerLogin(IndexerDefinitionLogin):
 
 
 class IndexerTorrent(IndexerDefinitionTorrent):
-    indexer_id: str
+    indexer: IndexerModel
     torrent_id: str
 
 
 class DownloadedTorrentFile(BaseModel):
-    indexer_id: str
+    indexer: IndexerModel
     torrent_id: str
     torrent_bytes: bytes
 

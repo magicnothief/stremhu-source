@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import libtorrent as libtorrent
 from config import config
@@ -42,6 +42,11 @@ class LibtorrentClientService:
         )
 
         self.torrent_connections_limit = 20
+
+        # Event hooks for resume data management (Observer Pattern)
+        self.on_save_resume: List[Callable[[str, bytes], None]] = []
+        self.on_load_resume: Optional[Callable[[str], Optional[bytes]]] = None
+        self.on_delete_resume: List[Callable[[str], None]] = []
 
     def update_settings(
         self,
@@ -95,7 +100,6 @@ class LibtorrentClientService:
         priority: int,
     ) -> libtorrent.torrent_handle:
         save_path = str(config.downloads_dir.absolute())
-        resume_data_dir = config.resume_data_dir
 
         torrent_file_path = os.path.abspath(torrent_file_path)
 
@@ -106,14 +110,13 @@ class LibtorrentClientService:
 
         torrent_info = libtorrent.torrent_info(torrent_file_path)
         info_hash_str = str(torrent_info.info_hash())
-        resume_file_path = resume_data_dir / f"{info_hash_str}.resume"
 
         params = None
-        if resume_file_path.exists():
+        if self.on_load_resume:
             try:
-                with open(resume_file_path, "rb") as f:
-                    resume_data = f.read()
-                    params = libtorrent.read_resume_data(resume_data)
+                resume_bytes = self.on_load_resume(info_hash_str)
+                if resume_bytes:
+                    params = libtorrent.read_resume_data(resume_bytes)
             except Exception as e:
                 logger.error(
                     f"Hiba történt a(z) {info_hash_str} torrent adatok visszaállítása közben: {e}"
@@ -183,7 +186,6 @@ class LibtorrentClientService:
         self,
         info_hash: libtorrent.sha1_hash,
     ):
-
         torrent_handle = self.get_torrent_or_raise(
             info_hash=info_hash,
         )
@@ -194,11 +196,10 @@ class LibtorrentClientService:
         )
 
         info_hash_str = str(info_hash)
-        resume_file_path = config.resume_data_dir / f"{info_hash_str}.resume"
-        if resume_file_path.exists():
+        for callback in self.on_delete_resume:
             try:
-                os.remove(resume_file_path)
-            except OSError as e:
+                callback(info_hash_str)
+            except Exception as e:
                 logger.error(
                     f"Hiba történt a(z) {info_hash_str} torrent visszaállítási adatok törlése közben: {e}"
                 )
@@ -212,7 +213,6 @@ class LibtorrentClientService:
 
     def process_alerts(self):
         alerts = self.libtorrent_session.pop_alerts()
-        config.resume_data_dir.mkdir(parents=True, exist_ok=True)
 
         for alert in alerts:
             if isinstance(alert, libtorrent.save_resume_data_alert):
@@ -223,10 +223,14 @@ class LibtorrentClientService:
                     torrent_handle = alert.handle
                     if torrent_handle.is_valid():
                         info_hash_str = str(torrent_handle.info_hash())
-                        resume_file = config.resume_data_dir / f"{info_hash_str}.resume"
 
-                        with open(resume_file, "wb") as f:
-                            f.write(resume_data)
+                        for callback in self.on_save_resume:
+                            try:
+                                callback(info_hash_str, resume_data)
+                            except Exception as e:
+                                logger.error(
+                                    f"Hiba történt az on_save_resume eseménykezelő futtatása közben: {e}"
+                                )
                 except Exception as e:
                     logger.error(
                         f"Hiba történt a torrent visszaállítási adatok mentése közben: {e}"

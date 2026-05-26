@@ -6,6 +6,7 @@ from common.database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
+    from modules.attributes.models import AttributeModel
     from modules.preference_definitions.models import PreferenceDefinitionModel
 
 
@@ -20,8 +21,14 @@ class PreferenceDefinitionAttributeModel(Base):
     )
 
     attribute_id: Mapped[str] = mapped_column(
-        sa.String,
+        sa.ForeignKey("attributes.id", ondelete="CASCADE"),
         nullable=False,
+    )
+
+    attribute: Mapped["AttributeModel"] = relationship(
+        "AttributeModel",
+        uselist=False,
+        init=False,
     )
 
     order: Mapped[int] = mapped_column(sa.Integer, nullable=False)

@@ -1,14 +1,11 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from common.database import Base
 from common.enums import UserRole
+from modules.users.preferences.models import UserPreferenceModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-if TYPE_CHECKING:
-    from modules.users.preferences.models import UserPreferenceModel
 
 
 class UserModel(Base):

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from modules.attributes.models import AttributeModel
+from modules.preferences.enums import PreferenceEnum
 from modules.stremio.enums import (
     ContentType,
     ExtraName,
@@ -9,6 +13,10 @@ from modules.stremio.enums import (
     StreamIdType,
 )
 from pydantic import BaseModel, ConfigDict
+from pydash import compact
+
+if TYPE_CHECKING:
+    from modules.torrent_streams.schemas import TorrentStream
 
 # ──────────────────────────────────────────────
 # Manifest schemas
@@ -81,7 +89,7 @@ class Manifest(BaseModel):
 
 class BehaviorHints(BaseModel):
     country_whitelist: list[str] | None = None
-    not_web_ready: bool
+    not_web_ready: bool = True
     binge_group: str | None = None
     filename: str | None = None
 
@@ -92,8 +100,105 @@ class StremioStream(BaseModel):
     url: str
     behavior_hints: BehaviorHints
 
+    @classmethod
+    def from_torrent_stream(
+        cls,
+        torrent_stream: TorrentStream,
+    ) -> StremioStream:
+        file_size = f"💾 {torrent_stream.file_size}"
+        seeders = f"👥 {torrent_stream.seeders}"
+        indexer = f"🧲 {torrent_stream.indexer.definition.name}"
 
-class StremioStreamsResponse(BaseModel):
+        description_first_line = " | ".join(compact([indexer, seeders, file_size]))
+
+        resolutions = cls._attributes_parser(
+            preference=PreferenceEnum.RESOLUTION,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_resolutions = ", ".join(
+            [resolution.name for resolution in resolutions]
+        )
+
+        audio_qualities = cls._attributes_parser(
+            preference=PreferenceEnum.AUDIO_QUALITY,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_audio_qualities = ", ".join(
+            [audio_quality.name for audio_quality in audio_qualities]
+        )
+
+        video_qualities = cls._attributes_parser(
+            preference=PreferenceEnum.VIDEO_QUALITY,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_video_qualities = ", ".join(
+            [video_quality.name for video_quality in video_qualities]
+        )
+
+        audio_spatials = cls._attributes_parser(
+            preference=PreferenceEnum.AUDIO_SPATIAL,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_audio_spatials = ", ".join(
+            [audio_spatial.name for audio_spatial in audio_spatials]
+        )
+
+        language = cls._attributes_parser(
+            preference=PreferenceEnum.LANGUAGE,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_language = ", ".join([language.name for language in language])
+
+        sources = cls._attributes_parser(
+            preference=PreferenceEnum.SOURCE,
+            attributes=torrent_stream.attributes,
+        )
+
+        readable_source = ", ".join([source.name for source in sources])
+
+        description_second_line = " | ".join(
+            compact(
+                [readable_language, readable_audio_qualities, readable_audio_spatials]
+            )
+        )
+
+        name = " | ".join(
+            compact([readable_resolutions, readable_video_qualities, readable_source])
+        )
+        description = "\n".join([description_first_line, description_second_line])
+        binge_group = (
+            f"{torrent_stream.indexer.definition.name}-{torrent_stream.torrent_id}"
+        )
+
+        return cls(
+            name=name,
+            description=description,
+            url=torrent_stream.play_url,
+            behavior_hints=BehaviorHints(
+                filename=torrent_stream.file_name,
+                binge_group=binge_group,
+            ),
+        )
+
+    @classmethod
+    def _attributes_parser(
+        cls,
+        preference: PreferenceEnum,
+        attributes: list[AttributeModel],
+    ) -> list[AttributeModel]:
+        return [
+            attribute
+            for attribute in attributes
+            if attribute.preference_id == preference
+        ]
+
+
+class StremioStreams(BaseModel):
     streams: list[StremioStream]
 
 
@@ -167,7 +272,7 @@ class StremioCatalogResponse(BaseModel):
 
 
 class MetaResponse(BaseModel):
-    meta: MetaDetail
+    meta: MetaDetail | dict
 
 
 class StremioCache(BaseModel):

@@ -3,7 +3,9 @@ import logging
 from fastapi import HTTPException, status
 from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexers.definitions.integrations import discover_indexer_definitions
+from modules.indexers.definitions.models import IndexerDefinitionModel
 from modules.indexers.definitions.schemas import CredentialsProvider
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +52,57 @@ class IndexerDefinitionsService:
         """Lezárja az összes adapter HTTP kliensét (alkalmazás leállásakor)."""
         for adapter in self._definitions.values():
             await adapter.close()
+
+    def sync_to_db(self, db: Session):
+        """Szinkronizálja az integrations/ mappából dinamikusan felderített indexereket az adatbázissal (Upsert + Delete)."""
+        logger.info(
+            "🔄 Szinkronizálás: Támogatott indexerek szinkronizálása az adatbázissal..."
+        )
+
+        discovered_definitions = self.get_list()
+        discovered_ids = {instance.id for instance in discovered_definitions}
+
+        # 1. Töröljük a DB-ből azokat a trackereket, amelyek kikerültek az integrations/ mappából
+        deleted_count = (
+            db.query(IndexerDefinitionModel)
+            .filter(IndexerDefinitionModel.id.not_in(discovered_ids))
+            .delete(synchronize_session=False)
+        )
+        if deleted_count > 0:
+            logger.info(
+                f"🗑️ Törölve {deleted_count} elavult indexer definíció a DB-ből."
+            )
+
+        # 2. Beszúrás és frissítés (Upsert)
+        for instance in discovered_definitions:
+            db_definition = (
+                db.query(IndexerDefinitionModel)
+                .filter(IndexerDefinitionModel.id == instance.id)
+                .first()
+            )
+
+            if db_definition:
+                if (
+                    db_definition.name != instance.name
+                    or db_definition.url != instance.url
+                    or db_definition.details_path != instance.details_path
+                    or db_definition.requires_full_download
+                    != instance.requires_full_download
+                ):
+                    db_definition.name = instance.name
+                    db_definition.url = instance.url
+                    db_definition.details_path = instance.details_path
+                    db_definition.requires_full_download = (
+                        instance.requires_full_download
+                    )
+            else:
+                new_definition = IndexerDefinitionModel(
+                    id=instance.id,
+                    name=instance.name,
+                    url=instance.url,
+                    details_path=instance.details_path,
+                    requires_full_download=instance.requires_full_download,
+                )
+                db.add(new_definition)
+
+        db.commit()

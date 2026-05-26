@@ -3,6 +3,7 @@ from typing import Optional
 
 import content_types
 import PTN
+from modules.attributes.models import AttributeModel
 from modules.indexers.schemas import IndexerTorrent
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
@@ -33,10 +34,12 @@ class TorrentStreamResolver:
         indexer_torrent: IndexerTorrent,
         torrent_file: TorrentFileModel,
         series: Optional[ParsedStreamSeries],
+        attribute_map: dict[str, AttributeModel],
     ):
         self._indexer_torrent = indexer_torrent
         self._torrent_file = torrent_file
         self._series = series
+        self._attribute_map = attribute_map
 
     def resolve(self) -> Optional[TorrentStream]:
         if self._series:
@@ -50,13 +53,14 @@ class TorrentStreamResolver:
         # Parse torrent metadata using TorrentMetadataParser
         parse_attributes = TorrentMetadataParser(
             name=self._torrent_file.info.name or "",
+            attributes_map=self._attribute_map,
             fallback_attributes=[],
         )
 
         parsed_attributes = parse_attributes.parse()
 
         return TorrentStream(
-            indexer_id=self._torrent_file.indexer_id,
+            indexer=self._indexer_torrent.indexer,
             torrent_id=self._torrent_file.torrent_id,
             info_hash=self._torrent_file.info_hash,
             seeders=self._indexer_torrent.seeders,

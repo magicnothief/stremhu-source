@@ -1,7 +1,6 @@
 from config import NodeEnv, config
 from modules.stremio.constants import (
     ADDON_APP_PREFIX_ID,
-    ADDON_STREMHU_PREFIX_ID,
     SEARCH_ID,
 )
 from modules.stremio.enums import (
@@ -57,7 +56,7 @@ class StremioService:
                 ShortManifestResource.META,
             ],
             types=[ContentType.MOVIE, ContentType.SERIES],
-            id_prefixes=["tt", ADDON_APP_PREFIX_ID, ADDON_STREMHU_PREFIX_ID],
+            id_prefixes=["tt", ADDON_APP_PREFIX_ID],
             catalogs=catalogs,
             behavior_hints=ManifestBehaviorHints(
                 configurable=True,
@@ -85,9 +84,8 @@ class StremioService:
             stremio_streams = []
             if torrent_stream:
                 stremio_streams.append(
-                    self._build_stremio_stream(
-                        video=torrent_stream,
-                        tracker_name=torrent_stream.tracker.name,
+                    StremioStream.from_torrent_stream(
+                        torrent_stream=torrent_stream,
                     )
                 )
             return stremio_streams
@@ -102,10 +100,8 @@ class StremioService:
         stremio_streams = []
         for video in torrent_videos:
             stremio_streams.append(
-                self._build_stremio_stream(
-                    video=video,
-                    tracker_name=video.tracker.name,
-                    seeders=video.seeders,
+                StremioStream.from_torrent_stream(
+                    torrent_stream=video,
                 )
             )
 

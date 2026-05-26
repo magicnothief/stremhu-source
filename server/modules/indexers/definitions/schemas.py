@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable, List, Optional
 
-from modules.attributes.schemas import Attribute
-from pydantic import BaseModel, Field
+from modules.attributes.models import AttributeModel
+from pydantic import BaseModel
 
 
 class IndexerDefinitionLogin(BaseModel):
@@ -13,12 +13,12 @@ class IndexerDefinitionTorrent(BaseModel):
     torrent_id: str
     download_url: str
     imdb_id: Optional[str] = None
-    seeders: Optional[int] = None
-    fallback_attributes: List[Attribute] = Field(default_factory=list)
+    seeders: int = 0
+    fallback_attributes: List[AttributeModel] = []
 
 
 class IndexerDefinitionFindTorrentsResult(BaseModel):
-    torrents: List[IndexerDefinitionTorrent] = Field(default_factory=list)
+    torrents: List[IndexerDefinitionTorrent] = []
     next_page: Optional[int] = None
 
 
