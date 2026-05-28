@@ -23,6 +23,9 @@ class TorrentFilesRepository:
             .first()
         )
 
+    def find_by_info_hash(self, info_hash: str) -> TorrentFileModel | None:
+        return self.db.query(TorrentFileModel).filter_by(info_hash=info_hash).first()
+
     def find_all(
         self,
         filter: TorrentFilesFilter | None = None,

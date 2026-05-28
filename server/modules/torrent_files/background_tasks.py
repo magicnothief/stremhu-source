@@ -1,7 +1,7 @@
 import logging
 
 from common.database import db_session
-from modules.libtorrent_client.dependencies import get_libtorrent_client_service
+from modules.relay.dependencies import get_relay_service
 from modules.torrent_files.repository import TorrentFilesRepository
 from modules.torrent_files.service import TorrentFilesService
 
@@ -17,7 +17,7 @@ def run_torrent_files_retention_cleanup():
     try:
         with db_session() as db:
             repository = TorrentFilesRepository(db)
-            libtorrent_service = get_libtorrent_client_service()
+            libtorrent_service = get_relay_service()
             torrent_files_service = TorrentFilesService(repository, libtorrent_service)
             torrent_files_service.run_retention_cleanup()
         logger.info("✅ Automatikus gyorsítótár tisztítás sikeresen befejeződött.")

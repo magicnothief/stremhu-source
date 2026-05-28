@@ -1,0 +1,26 @@
+import logging
+
+from common.database import db_session
+from modules.persisted_torrents.dependencies import create_torrents_service
+from modules.persisted_torrents.service import TorrentsService
+from modules.relay.dependencies import get_relay_service
+
+logger = logging.getLogger(__name__)
+
+
+def handle_save_resume_data(info_hash: str, resume_bytes: bytes) -> None:
+    try:
+        with db_session() as db:
+            service = _get_bg_service(db)
+            service.save_resume_data(info_hash, resume_bytes)
+    except Exception as e:
+        logger.error(f"Hiba a resume adatok mentése során: {e}")
+
+
+def _get_bg_service(db) -> TorrentsService:
+    return create_torrents_service(db)
+
+
+def register_persisted_torrents_callbacks() -> None:
+    relay_service = get_relay_service()
+    relay_service.on_save_resume.append(handle_save_resume_data)

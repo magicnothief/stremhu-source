@@ -3,7 +3,6 @@
 @website https://stremhu.hu
 """
 
-from typing import Optional
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -45,7 +44,7 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         final_path = str(response.url.path)
         original_url = str(response.request.url)
         ended_up_at_login = self.login_path in final_path
@@ -65,7 +64,7 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 1
         response = await self._client.get(
@@ -93,7 +92,7 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
         torrents: list[IndexerDefinitionTorrent] = []
 
         for torrent in data.get("results", []):
-            category = torrent.get("category", "")
+            torrent.get("category", "")
             torrents.append(
                 IndexerDefinitionTorrent(
                     imdb_id=torrent.get("imdb_id"),

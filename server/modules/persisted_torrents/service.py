@@ -1,17 +1,16 @@
 import logging
-from typing import List
 
 import libtorrent as libtorrent
 from common.constants import PRIO_0, PRIO_1
-from modules.libtorrent_client.schemas import UpdateTorrent
-from modules.libtorrent_client.service import LibtorrentClientService
-from modules.persisted_torrents.schemas import (
-    AddTorrent,
-    RelayTorrent,
-    RelayTorrentState,
-    UpdateRelayTorrent,
-)
-from modules.stream.service import StreamService
+from fastapi import HTTPException
+from modules.indexers.service import IndexersService
+from modules.persisted_torrents.models import PersistedTorrentModel
+from modules.persisted_torrents.repository import TorrentRepository
+from modules.persisted_torrents.schemas import TorrentUpdate
+from modules.relay.schemas import RelayTorrent
+from modules.relay.service import RelayService
+from modules.torrent_files.models import TorrentFileModel
+from modules.torrent_files.service import TorrentFilesService
 
 logger = logging.getLogger(__name__)
 
@@ -19,204 +18,162 @@ logger = logging.getLogger(__name__)
 class TorrentsService:
     def __init__(
         self,
-        libtorrent_client_service: LibtorrentClientService,
-        stream_service: StreamService,
-    ) -> None:
-        self.libtorrent_client_service = libtorrent_client_service
-        self.stream_service = stream_service
-
-        # Subscribe to libtorrent resume events (Observer Pattern)
-        self.libtorrent_client_service.on_save_resume.append(self._save_resume_data)
-        self.libtorrent_client_service.on_load_resume = self._load_resume_data
-        self.libtorrent_client_service.on_delete_resume.append(self._delete_resume_data)
-
-    def add_torrent(
-        self,
-        payload: AddTorrent,
-    ) -> RelayTorrent:
-        priority = PRIO_0
-        if payload.download_full_torrent:
-            priority = PRIO_1
-
-        torrent_handle = self.libtorrent_client_service.add_torrent(
-            torrent_file_path=payload.torrent_file_path,
-            priority=priority,
-        )
-
-        self.stream_service.register_torrent(torrent_handle)
-
-        return self._build_torrent(torrent_handle)
-
-    def get_torrents(self) -> List[RelayTorrent]:
-        torrent_handlers = self.libtorrent_client_service.get_torrents()
-
-        return [
-            self._build_torrent(torrent_handle) for torrent_handle in torrent_handlers
-        ]
-
-    def get_torrent_or_raise(
-        self,
-        info_hash: str,
-    ) -> RelayTorrent:
-        info_hash_sha1 = self.libtorrent_client_service.parse_info_hash(info_hash)
-        torrent_handle = self.libtorrent_client_service.get_torrent_or_raise(
-            info_hash=info_hash_sha1
-        )
-
-        return self._build_torrent(torrent_handle)
-
-    def update_torrent_or_raise(
-        self,
-        info_hash: str,
-        payload: UpdateRelayTorrent,
+        torrent_repository: TorrentRepository,
+        torrent_files_service: TorrentFilesService,
+        indexers_service: IndexersService,
+        relay_service: RelayService,
     ):
-        info_hash_sha1 = self.libtorrent_client_service.parse_info_hash(info_hash)
-        torrent_handle = self.libtorrent_client_service.get_torrent_or_raise(
-            info_hash=info_hash_sha1
+        self._torrent_repository = torrent_repository
+        self._torrent_files_service = torrent_files_service
+        self._indexers_service = indexers_service
+        self._relay_service = relay_service
+
+    def get_torrents(self) -> list[tuple[PersistedTorrentModel, RelayTorrent]]:
+        torrents = self._torrent_repository.find()
+        relay_torrents = self._relay_service.get_torrents()
+
+        relay_torrent_map = {
+            relay_torrent.info_hash: relay_torrent for relay_torrent in relay_torrents
+        }
+
+        result: list[tuple[PersistedTorrentModel, RelayTorrent]] = []
+        for torrent in torrents:
+            if torrent.torrent_file and torrent.torrent_file.info_hash:
+                info_hash = torrent.torrent_file.info_hash
+                if info_hash in relay_torrent_map:
+                    result.append((torrent, relay_torrent_map[info_hash]))
+
+        return result
+
+    async def create(
+        self,
+        indexer_id: str,
+        torrent_id: str,
+    ) -> tuple[PersistedTorrentModel, RelayTorrent]:
+        existing_torrent = self._torrent_repository.find_by_id(
+            indexer_id=indexer_id,
+            torrent_id=torrent_id,
+        )
+        if existing_torrent:
+            raise HTTPException(409, "A torrent már létezik.")
+
+        torrent_file = self._torrent_files_service.get_one(
+            indexer_id=indexer_id,
+            torrent_id=torrent_id,
         )
 
-        update_torrent = UpdateTorrent(
-            priority=None,
-        )
-
-        if payload.download_full_torrent is True:
-            update_torrent.priority = PRIO_1
-        elif payload.download_full_torrent is False:
-            update_torrent.priority = PRIO_0
-
-        if update_torrent.priority is not None:
-            self.stream_service.update_torrent_priority(
-                info_hash=info_hash,
-                priority=update_torrent.priority,
+        if torrent_file is None:
+            indexer_torrent = await self._indexers_service.get_torrent_by_torrent_id(
+                indexer_id=indexer_id, torrent_id=torrent_id
+            )
+            downloaded_torrent_file = await self._indexers_service.download_torrent(
+                indexer_id=indexer_id,
+                torrent_id=torrent_id,
+                download_url=indexer_torrent.download_url,
+            )
+            torrent_file = self._torrent_files_service.create(
+                indexer_id=indexer_id,
+                torrent_id=torrent_id,
+                torrent_bytes=downloaded_torrent_file.torrent_bytes,
             )
 
-        return self._build_torrent(torrent_handle)
+        info_hash = torrent_file.info.info_hash
 
-    def get_torrent_state(
+        torrent_model = PersistedTorrentModel(
+            indexer_id=indexer_id,
+            torrent_id=torrent_id,
+            info_hash=info_hash,
+        )
+
+        torrent = self._torrent_repository.create(torrent_model)
+        relay_torrent = self._relay_service.add_torrent(
+            torrent_bytes=torrent.torrent_file.torrent_bytes,
+        )
+
+        return torrent, relay_torrent
+
+    def create_from_torrent_file(
+        self, torrent_file: TorrentFileModel
+    ) -> tuple[PersistedTorrentModel, RelayTorrent]:
+        torrent_model = PersistedTorrentModel(
+            indexer_id=torrent_file.indexer_id,
+            torrent_id=torrent_file.torrent_id,
+            info_hash=torrent_file.info.info_hash,
+        )
+
+        torrent = self._torrent_repository.create(torrent_model)
+        relay_torrent = self._relay_service.add_torrent(
+            torrent_bytes=torrent.torrent_file.torrent_bytes,
+        )
+
+        return torrent, relay_torrent
+
+    def get_one(
         self,
-        info_hash: libtorrent.sha1_hash,
-    ) -> RelayTorrentState:
-        torrent_handle = self.libtorrent_client_service.get_torrent_or_raise(
-            info_hash=info_hash
+        indexer_id: str,
+        torrent_id: str,
+    ) -> tuple[PersistedTorrentModel, RelayTorrent] | None:
+        torrent = self._torrent_repository.find_by_id(
+            indexer_id=indexer_id,
+            torrent_id=torrent_id,
         )
+        if torrent is None:
+            return None
 
-        return self._torrent_state(
-            torrent_handle=torrent_handle,
-        )
+        relay_torrent = self._relay_service.get_torrent_or_raise(torrent.info_hash)
+        return torrent, relay_torrent
 
-    def remove_torrent(
+    def get_or_raise(
+        self,
+        info_hash: str,
+    ) -> tuple[PersistedTorrentModel, RelayTorrent]:
+        torrent = self._torrent_repository.find_by_info_hash(info_hash)
+        if torrent is None:
+            raise HTTPException(404, "A torrent nem található")
+
+        relay_torrent = self._relay_service.get_torrent_or_raise(info_hash)
+
+        return torrent, relay_torrent
+
+    def update(
+        self,
+        info_hash: str,
+        payload: TorrentUpdate,
+    ) -> tuple[PersistedTorrentModel, RelayTorrent]:
+        persisted = self._torrent_repository.find_by_info_hash(info_hash)
+        if persisted is None:
+            raise HTTPException(404, "A torrent nem található")
+
+        if payload.is_persisted is not None:
+            persisted.is_persisted = payload.is_persisted
+
+        if payload.download_full_torrent is not None:
+            persisted.full_download = payload.download_full_torrent
+
+            priority = PRIO_1 if payload.download_full_torrent else PRIO_0
+            sha1_hash = self.parse_info_hash(info_hash)
+            torrent = self._relay_service._torrents.get(sha1_hash)
+            if torrent:
+                torrent.update_default_priorities(priority)
+
+        self._torrent_repository.update(persisted)
+
+        relay_torrent = self._relay_service.get_torrent_or_raise(info_hash)
+        return persisted, relay_torrent
+
+    def delete(
         self,
         info_hash: str,
     ):
-        torrent = self.get_torrent_or_raise(
-            info_hash=info_hash,
-        )
-
-        info_hash_sha1 = self.libtorrent_client_service.parse_info_hash(info_hash)
-
-        self.libtorrent_client_service.remove_torrent(
-            info_hash=info_hash_sha1,
-        )
-
-        self.stream_service.remove_torrent(
-            info_hash=info_hash,
-        )
-
-        return torrent
+        self._torrent_repository.delete(info_hash=info_hash)
+        self._relay_service.delete_torrent(info_hash=info_hash)
 
     def parse_info_hash(self, info_hash_str: str) -> libtorrent.sha1_hash:
         sha1_hash = libtorrent.sha1_hash(bytes.fromhex(info_hash_str))
         return sha1_hash
 
-    def _torrent_state(
-        self,
-        torrent_handle: libtorrent.torrent_handle,
-    ) -> RelayTorrentState:
-        torrent_status = torrent_handle.status()
-        return RelayTorrentState(
-            state=torrent_status.state,
-            progress=torrent_status.progress,
-        )
-
-    def _build_torrent(
-        self,
-        torrent_handle: libtorrent.torrent_handle,
-    ) -> RelayTorrent:
-        status = torrent_handle.status()
-
-        total = 0
-        torrent_info = torrent_handle.torrent_file()
-        if torrent_info:
-            total = torrent_info.total_size()
-
-        return RelayTorrent(
-            name=status.name,
-            info_hash=str(status.info_hash),
-            download_speed=status.download_payload_rate,
-            upload_speed=status.upload_payload_rate,
-            downloaded=status.total_done,
-            uploaded=status.all_time_upload,
-            state=status.state,
-            progress=status.progress,
-            total=total,
-            connections=status.num_connections,
-            max_connections=status.connections_limit,
-        )
-
-    def _save_resume_data(self, info_hash_str: str, resume_bytes: bytes) -> None:
-        from common.database import db_session
-        from modules.persisted_torrents.models import PersistedTorrentModel
-        from modules.torrent_files.models import TorrentFileModel
-
-        with db_session() as db:
-            torrent_file = (
-                db.query(TorrentFileModel)
-                .filter(TorrentFileModel.info_hash == info_hash_str)
-                .first()
-            )
-            if torrent_file:
-                persisted = (
-                    db.query(PersistedTorrentModel)
-                    .filter(
-                        PersistedTorrentModel.indexer_id == torrent_file.indexer_id,
-                        PersistedTorrentModel.torrent_id == torrent_file.torrent_id,
-                    )
-                    .first()
-                )
-                if not persisted:
-                    persisted = PersistedTorrentModel(
-                        indexer_id=torrent_file.indexer_id,
-                        torrent_id=torrent_file.torrent_id,
-                        is_persisted=True,
-                    )
-                    db.add(persisted)
-                persisted.resume_bytes = resume_bytes
-
-    def _load_resume_data(self, info_hash_str: str) -> bytes | None:
-        from common.database import db_session
-        from modules.persisted_torrents.models import PersistedTorrentModel
-        from modules.torrent_files.models import TorrentFileModel
-
-        with db_session() as db:
-            persisted = (
-                db.query(PersistedTorrentModel)
-                .join(TorrentFileModel)
-                .filter(TorrentFileModel.info_hash == info_hash_str)
-                .first()
-            )
-            return persisted.resume_bytes if persisted else None
-
-    def _delete_resume_data(self, info_hash_str: str) -> None:
-        from common.database import db_session
-        from modules.persisted_torrents.models import PersistedTorrentModel
-        from modules.torrent_files.models import TorrentFileModel
-
-        with db_session() as db:
-            persisted = (
-                db.query(PersistedTorrentModel)
-                .join(TorrentFileModel)
-                .filter(TorrentFileModel.info_hash == info_hash_str)
-                .first()
-            )
-            if persisted:
-                persisted.resume_bytes = None
+    def save_resume_data(self, info_hash: str, resume_bytes: bytes) -> None:
+        persisted = self._torrent_repository.find_by_info_hash(info_hash)
+        if persisted:
+            persisted.resume_bytes = resume_bytes
+            self._torrent_repository.update(persisted)

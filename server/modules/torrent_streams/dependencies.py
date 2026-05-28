@@ -1,5 +1,7 @@
 from common.database import get_db
 from fastapi import Depends
+from modules.attributes.dependencies import get_attributes_service
+from modules.attributes.service import AttributesService
 from modules.indexers.dependencies import (
     get_indexers_service,
 )
@@ -17,10 +19,12 @@ def get_torrent_streams_service(
     indexers_service: IndexersService = Depends(get_indexers_service),
     torrent_files_service: TorrentFilesService = Depends(get_torrent_files_service),
     torrents_service: TorrentsService = Depends(get_torrents_service),
+    attributes_service: AttributesService = Depends(get_attributes_service),
 ) -> TorrentStreamsService:
     return TorrentStreamsService(
         db=db,
         indexers_service=indexers_service,
         torrent_files_service=torrent_files_service,
         torrents_service=torrents_service,
+        attributes_service=attributes_service,
     )

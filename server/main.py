@@ -1,22 +1,34 @@
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 
 import pydash
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from common.database import SessionLocal
 from config import NodeEnv, config
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from modules.attributes.repository import AttributesRepository
+from modules.attributes.service import AttributesService
 from modules.auth.router import router as auth_router
-from modules.libtorrent_client.background_tasks import alert_loop, resume_save_loop
-from modules.libtorrent_client.dependencies import get_libtorrent_client_service
+from modules.indexers.definitions.service import IndexerDefinitionsService
+from modules.me.router import router as me_router
 from modules.monitoring.router import router as monitoring_router
 from modules.pairings.background_tasks import run_expired_pairings_cleanup
 from modules.pairings.router import router as pairings_router
+from modules.persisted_torrents.background_tasks import (
+    register_persisted_torrents_callbacks,
+)
 from modules.persisted_torrents.router import router as torrents_router
+from modules.preferences.service import PreferencesService
+from modules.relay.background_tasks import alert_loop, resume_save_loop
+from modules.relay.dependencies import get_relay_service
+from modules.roles.service import RolesService
+from modules.settings.repository import SettingsRepository
 from modules.settings.router import router as setting_router
-from modules.stream.dependencies import get_stream_service
+from modules.settings.service import SettingsService
 from modules.stream.router import router as stream_router
 from modules.stremio.router import router as stremio_router
 from modules.torrent_files.background_tasks import run_torrent_files_retention_cleanup
@@ -42,17 +54,9 @@ async def lifespan(app: FastAPI):
         json.dump(app.openapi(), f, indent=2, ensure_ascii=False)
 
     # Beállítások és attribútumok inicializálása az adatbázisban és a libtorrent-ben induláskor
-    from common.database import SessionLocal
-    from modules.attributes.service import AttributesService
-    from modules.preferences.service import PreferencesService
-    from modules.settings.repository import SettingsRepository
-    from modules.settings.service import SettingsService
-
     db = SessionLocal()
     try:
         # 1. Szerepkörök szinkronizálása (elsőként, mert a felhasználók hivatkoznak rájuk)
-        from modules.roles.service import RolesService
-
         roles_service = RolesService(db)
         roles_service.sync_to_db()
 
@@ -61,23 +65,19 @@ async def lifespan(app: FastAPI):
         preferences_service.sync_to_db()
 
         # 3. Attribútumok szinkronizálása
-        attributes_service = AttributesService(db)
+        attributes_service = AttributesService(AttributesRepository(db))
         attributes_service.sync_to_db()
 
         # 4. Indexer definíciók szinkronizálása
-        from modules.indexers.definitions.service import IndexerDefinitionsService
-
         indexer_definitions_service = IndexerDefinitionsService()
         indexer_definitions_service.sync_to_db(db)
 
         repository = SettingsRepository(db)
-        settings_service = SettingsService(repository, get_libtorrent_client_service())
+        settings_service = SettingsService(repository, get_relay_service())
         settings_service.initialize_defaults()
         db.commit()
     except Exception as e:
         db.rollback()
-        import logging
-
         logging.getLogger("main").error(
             f"Nem sikerült a beállítások/attribútumok/indexerek inicializálása induláskor: {e}"
         )
@@ -108,11 +108,10 @@ async def lifespan(app: FastAPI):
     )
     scheduler.start()
 
-    libtorrent_client_service = get_libtorrent_client_service()
-    stream_service = get_stream_service(
-        libtorrent_client_service=libtorrent_client_service
-    )
-    priority_manager_task = asyncio.create_task(stream_service.priority_manager_loop())
+    relay_service = get_relay_service()
+    register_persisted_torrents_callbacks()
+
+    priority_manager_task = asyncio.create_task(relay_service.priority_manager_loop())
 
     yield
 
@@ -121,10 +120,10 @@ async def lifespan(app: FastAPI):
     save_task.cancel()
     alert_task.cancel()
 
-    libtorrent_client_service.trigger_save_resume_data()
+    relay_service.trigger_save_resume_data()
 
     await asyncio.sleep(1)
-    libtorrent_client_service.process_alerts()
+    relay_service.process_alerts()
 
 
 app = FastAPI(
@@ -146,6 +145,7 @@ api_router = APIRouter(prefix="/api")
 api_router.include_router(monitoring_router)
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
+api_router.include_router(me_router)
 api_router.include_router(setting_router)
 api_router.include_router(torrents_router)
 api_router.include_router(torrent_files_router)

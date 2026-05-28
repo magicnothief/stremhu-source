@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import httpx
 from modules.indexers.definitions.enums import AuthenticationErrorEnum
@@ -80,7 +79,7 @@ class BaseIndexerDefinition(ABC):
         self._get_credentials = credentials_provider
 
         self._semaphore = asyncio.Semaphore(self.max_concurrent)
-        self._login_in_progress: Optional[asyncio.Future] = None
+        self._login_in_progress: asyncio.Future | None = None
 
         base_transport = httpx.AsyncHTTPTransport()
         interceptor_transport = IndexerTransport(base_transport, self)
@@ -135,7 +134,7 @@ class BaseIndexerDefinition(ABC):
     @abstractmethod
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         """
         Kiszűri és detektálja a hitelesítési vagy munkamenet hibákat az httpx válasz alapján.
 
@@ -151,7 +150,7 @@ class BaseIndexerDefinition(ABC):
 
     @abstractmethod
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         """
         Keresést hajt végre a trackeren és visszaadja a találatokat.
@@ -173,7 +172,7 @@ class BaseIndexerDefinition(ABC):
 
     async def login(
         self,
-        credential: Optional[IndexerDefinitionLogin] = None,
+        credential: IndexerDefinitionLogin | None = None,
     ) -> None:
         """
         A NestJS login() megfelelője.
@@ -239,7 +238,7 @@ class BaseIndexerDefinition(ABC):
     async def _find_all(
         self,
         imdb_id: str,
-        page: Optional[int],
+        page: int | None,
         accumulator: list[IndexerDefinitionTorrent],
     ) -> list[IndexerDefinitionTorrent]:
         """Rekurzív lapozó logika - a NestJS findAll() privát metódus portolása."""

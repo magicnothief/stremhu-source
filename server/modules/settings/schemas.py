@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,7 +16,7 @@ class AppSettings(BaseModel):
     hit_and_run: bool = True
     keep_seed_seconds: int = 0
     cache_retention_seconds: int = 14 * 24 * 60 * 60  # 14 nap másodpercekben
-    catalog_token: Optional[str] = None
+    catalog_token: str | None = None
 
 
 class UpdateAppSettings(BaseModel):
@@ -26,11 +25,11 @@ class UpdateAppSettings(BaseModel):
         alias_generator=to_camel,
     )
 
-    instance_id: Optional[str] = None
-    hit_and_run: Optional[bool] = None
-    keep_seed_seconds: Optional[int] = None
-    cache_retention_seconds: Optional[int] = None
-    catalog_token: Optional[str] = None
+    instance_id: str | None = None
+    hit_and_run: bool | None = None
+    keep_seed_seconds: int | None = None
+    cache_retention_seconds: int | None = None
+    catalog_token: str | None = None
 
 
 class RelaySettings(BaseModel):
@@ -53,9 +52,9 @@ class UpdateRelaySettings(BaseModel):
         alias_generator=to_camel,
     )
 
-    port: Optional[int] = None
-    download_limit: Optional[int] = None
-    upload_limit: Optional[int] = None
-    connections_limit: Optional[int] = None
-    torrent_connections_limit: Optional[int] = None
-    enable_upnp_and_natpmp: Optional[bool] = None
+    port: int | None = None
+    download_limit: int | None = None
+    upload_limit: int | None = None
+    connections_limit: int | None = None
+    torrent_connections_limit: int | None = None
+    enable_upnp_and_natpmp: bool | None = None

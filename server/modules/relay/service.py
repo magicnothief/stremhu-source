@@ -1,21 +1,26 @@
+import asyncio
 import logging
-import os
-import time
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import libtorrent as libtorrent
+from common.torrent_info import parse_torrent_info
 from config import config
 from fastapi import HTTPException
-from modules.libtorrent_client.schemas import (
-    UpdateSettings,
+from modules.relay.entities import File, Torrent
+from modules.relay.schemas import (
+    RelaySettingsUpdate,
+    RelayTorrent,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class LibtorrentClientService:
-    def __init__(self):
-        self.libtorrent_session = libtorrent.session()
+class RelayService:
+    def __init__(
+        self,
+    ):
+        self._libtorrent_session = libtorrent.session()
 
         alert_mask = (  # pyright: ignore[reportUnknownVariableType]
             libtorrent.alert.category_t.error_notification  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
@@ -23,7 +28,7 @@ class LibtorrentClientService:
             | libtorrent.alert.category_t.status_notification  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
         )
 
-        self.libtorrent_session.apply_settings(
+        self._libtorrent_session.apply_settings(
             {
                 "alert_mask": alert_mask,
                 "listen_interfaces": f"0.0.0.0:{config.libtorrent_port},[::]:{config.libtorrent_port}",
@@ -38,21 +43,29 @@ class LibtorrentClientService:
                 "unchoke_interval": 1,
                 "disk_io_write_mode": 1,
                 "disk_io_read_mode": 1,
+                "active_downloads": -1,
+                "active_seeds": -1,
+                "active_limit": -1,
             }
         )
 
-        self.torrent_connections_limit = 20
+        self._torrent_connections_limit = 20
+        self._torrents: dict[libtorrent.sha1_hash, Torrent] = {}
 
         # Event hooks for resume data management (Observer Pattern)
-        self.on_save_resume: List[Callable[[str, bytes], None]] = []
-        self.on_load_resume: Optional[Callable[[str], Optional[bytes]]] = None
-        self.on_delete_resume: List[Callable[[str], None]] = []
+        self.on_save_resume: list[Callable[[str, bytes], None]] = []
+
+    async def priority_manager_loop(self):
+        while True:
+            for torrent in self._torrents.values():
+                torrent.priority_manager()
+            await asyncio.sleep(0.1)
 
     def update_settings(
         self,
-        payload: UpdateSettings,
+        payload: RelaySettingsUpdate,
     ):
-        apply_settings: Dict[str, Any] = {}
+        apply_settings: dict[str, Any] = {}
 
         if payload.download_limit is not None:
             apply_settings["download_rate_limit"] = payload.download_limit
@@ -68,23 +81,30 @@ class LibtorrentClientService:
             apply_settings["enable_natpmp"] = payload.enable_upnp_and_natpmp
 
         if payload.torrent_connections_limit is not None:
-            self.torrent_connections_limit = payload.torrent_connections_limit
-            for torrent_handle in self.libtorrent_session.get_torrents():
+            self._torrent_connections_limit = payload.torrent_connections_limit
+            for torrent_handle in self._libtorrent_session.get_torrents():
                 if torrent_handle.is_valid():
-                    torrent_handle.set_max_connections(self.torrent_connections_limit)
+                    torrent_handle.set_max_connections(self._torrent_connections_limit)
 
         if payload.port is not None:
             apply_settings["listen_interfaces"] = (
                 f"0.0.0.0:{payload.port},[::]:{payload.port}"
             )
 
-        self.libtorrent_session.apply_settings(apply_settings)
+        self._libtorrent_session.apply_settings(apply_settings)
 
-        if payload.torrent_connections_limit is not None:
-            self.torrent_connections_limit = payload.torrent_connections_limit
+    def get_torrents(self) -> list[RelayTorrent]:
+        torrent_handlers = self._get_torrents()
 
-    def get_torrents(self) -> List[libtorrent.torrent_handle]:
-        torrent_handlers = self.libtorrent_session.get_torrents()
+        return [
+            RelayTorrent.from_libtorrent_handle(torrent_handle)
+            for torrent_handle in torrent_handlers
+        ]
+
+    def _get_torrents(
+        self,
+    ) -> list[libtorrent.torrent_handle]:
+        torrent_handlers = self._libtorrent_session.get_torrents()
 
         valid_torrent_handlers = [
             torrent_handler
@@ -94,33 +114,28 @@ class LibtorrentClientService:
 
         return valid_torrent_handlers
 
+    def get_torrent_file(self, info_hash: str, file_index: int) -> File:
+        sha1_info_hash = self._parse_info_hash(info_hash)
+        file = self._torrents[sha1_info_hash].files[file_index]
+
+        return file
+
     def add_torrent(
         self,
-        torrent_file_path: str,
-        priority: int,
-    ) -> libtorrent.torrent_handle:
+        torrent_bytes: bytes,
+        priority: int = 1,
+        resume_bytes: bytes | None = None,
+    ) -> RelayTorrent:
         save_path = str(config.downloads_dir.absolute())
 
-        torrent_file_path = os.path.abspath(torrent_file_path)
+        try:
+            torrent_info = libtorrent.torrent_info(torrent_bytes)
+        except Exception:
+            raise HTTPException(400, "A torrent nem érvényes.")
 
-        if not os.path.isfile(torrent_file_path):
-            raise HTTPException(
-                400, f'A(z) "{torrent_file_path}" torrent fájl nem található.'
-            )
-
-        torrent_info = libtorrent.torrent_info(torrent_file_path)
-        info_hash_str = str(torrent_info.info_hash())
-
-        params = None
-        if self.on_load_resume:
-            try:
-                resume_bytes = self.on_load_resume(info_hash_str)
-                if resume_bytes:
-                    params = libtorrent.read_resume_data(resume_bytes)
-            except Exception as e:
-                logger.error(
-                    f"Hiba történt a(z) {info_hash_str} torrent adatok visszaállítása közben: {e}"
-                )
+        params: libtorrent.add_torrent_params | None = None
+        if resume_bytes:
+            params = libtorrent.read_resume_data(resume_bytes)
 
         if params is None:
             params = libtorrent.add_torrent_params()
@@ -129,90 +144,92 @@ class LibtorrentClientService:
         params.save_path = save_path
         params.storage_mode = libtorrent.storage_mode_t.storage_mode_sparse
 
-        torrent_handle = self.libtorrent_session.add_torrent(params)
-        torrent_handle.set_max_connections(self.torrent_connections_limit)
+        torrent_handle = self._libtorrent_session.add_torrent(params)
+        torrent_handle.set_max_connections(self._torrent_connections_limit)
         torrent_handle.unset_flags(libtorrent.torrent_flags.disable_pex)
-
-        is_valid = False
-
-        deadline = time.monotonic() + 5.0
-        while time.monotonic() < deadline:
-            is_valid = torrent_handle.is_valid()
-            if is_valid:
-                break
-
-            time.sleep(0.1)
-
-        if not is_valid:
-            self.libtorrent_session.remove_torrent(
-                torrent_handle,
-                libtorrent.options_t.delete_files,
-            )
-            raise HTTPException(
-                500,
-                f'A(z) "{torrent_file_path}" .torrent-et nem sikerült hozzáadni.',
-            )
 
         priorities = torrent_handle.piece_priorities()
         torrent_handle.prioritize_pieces([priority] * len(priorities))
 
-        return torrent_handle
+        parsed_torrent_info = parse_torrent_info(torrent_info)
+
+        torrent = Torrent(
+            torrent_handle=torrent_handle,
+            torrent_info=parsed_torrent_info,
+        )
+
+        self._torrents[torrent_info.info_hash()] = torrent
+
+        return RelayTorrent.from_libtorrent_handle(torrent_handle)
 
     def get_torrent(
         self,
+        info_hash: str,
+    ) -> RelayTorrent | None:
+        sha1_info_hash = self._parse_info_hash(info_hash)
+        torrent_handle = self._get_torrent(sha1_info_hash)
+
+        if torrent_handle is None:
+            return None
+
+        return RelayTorrent.from_libtorrent_handle(torrent_handle)
+
+    def get_torrent_or_raise(
+        self,
+        info_hash: str,
+    ) -> RelayTorrent:
+        relay_torrent = self.get_torrent(
+            info_hash=info_hash,
+        )
+
+        if relay_torrent is None:
+            raise HTTPException(404, f'"{info_hash}" torrent nem található.')
+
+        return relay_torrent
+
+    def _get_torrent(
+        self,
         info_hash: libtorrent.sha1_hash,
     ) -> libtorrent.torrent_handle | None:
-        torrent_handle = self.libtorrent_session.find_torrent(info_hash)
+        torrent_handle = self._libtorrent_session.find_torrent(info_hash)
 
         if not torrent_handle.is_valid():
             return None
 
         return torrent_handle
 
-    def get_torrent_or_raise(
+    def delete_torrent(
         self,
-        info_hash: libtorrent.sha1_hash,
-    ) -> libtorrent.torrent_handle:
-        torrent_handle = self.get_torrent(
-            info_hash=info_hash,
-        )
+        info_hash: str,
+    ) -> bool:
+        sha1_info_hash = self._parse_info_hash(info_hash)
+
+        return self._delete_torrent(sha1_info_hash)
+
+    def _delete_torrent(self, info_hash: libtorrent.sha1_hash) -> bool:
+        torrent_handle = self._get_torrent(info_hash)
 
         if torrent_handle is None:
-            raise HTTPException(404, f'"{info_hash}" torrent nem található.')
+            return False
 
-        return torrent_handle
+        del self._torrents[info_hash]
 
-    def remove_torrent(
-        self,
-        info_hash: libtorrent.sha1_hash,
-    ):
-        torrent_handle = self.get_torrent_or_raise(
-            info_hash=info_hash,
-        )
-
-        self.libtorrent_session.remove_torrent(
+        self._libtorrent_session.remove_torrent(
             torrent_handle,
             libtorrent.options_t.delete_files,
         )
 
-        info_hash_str = str(info_hash)
-        for callback in self.on_delete_resume:
-            try:
-                callback(info_hash_str)
-            except Exception as e:
-                logger.error(
-                    f"Hiba történt a(z) {info_hash_str} torrent visszaállítási adatok törlése közben: {e}"
-                )
+        return True
 
     def trigger_save_resume_data(self):
-        for torrent_handle in self.libtorrent_session.get_torrents():
+        for torrent_handle in self._libtorrent_session.get_torrents():
             if torrent_handle.is_valid():
                 torrent_handle.save_resume_data(
                     libtorrent.save_resume_flags_t.flush_disk_cache
                 )
 
     def process_alerts(self):
-        alerts = self.libtorrent_session.pop_alerts()
+        alerts = self._libtorrent_session.pop_alerts()
 
         for alert in alerts:
             if isinstance(alert, libtorrent.save_resume_data_alert):
@@ -240,7 +257,7 @@ class LibtorrentClientService:
                     f"Hiba történt a torrent visszaállítási adatok mentése közben: {alert.message()}"
                 )
 
-    def parse_info_hash(
+    def _parse_info_hash(
         self,
         info_hash_str: str,
     ) -> libtorrent.sha1_hash:

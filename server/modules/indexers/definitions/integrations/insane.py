@@ -3,7 +3,6 @@
 @website https://stremhu.hu
 """
 
-from typing import Optional
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -60,7 +59,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         final_path = str(response.url.path)
         original_url = str(response.request.url)
         ended_up_at_login = self.login_path in final_path
@@ -83,7 +82,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
         response = await self._client.get(
@@ -109,7 +108,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
         for row in torrent_rows:
             cat_node = row.css_first('a[href*="browse.php?cat="]')
             category_href = cat_node.attributes.get("href") if cat_node else ""
-            category = category_href.replace("browse.php?cat=", "")
+            category_href.replace("browse.php?cat=", "")
 
             id_node = row.css_first('.torrentmain a[href*="details.php?id="]')
             torrent_id_href = id_node.attributes.get("href") if id_node else ""

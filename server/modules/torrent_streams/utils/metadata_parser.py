@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 from modules.attributes.enums import (
     AudioQualityEnum,
@@ -16,9 +16,9 @@ from modules.preferences.enums import PreferenceEnum
 class ParsedTorrentMetadata(TypedDict):
     language: LanguageEnum
     resolution: ResolutionEnum
-    video_quality: List[VideoQualityEnum]
+    video_quality: list[VideoQualityEnum]
     audio_quality: AudioQualityEnum
-    audio_spatial: Optional[AudioSpatialEnum]
+    audio_spatial: AudioSpatialEnum | None
     source: SourceEnum
 
 
@@ -138,7 +138,7 @@ class TorrentMetadataParser:
                 return ResolutionEnum(fallback_attribute.id)
         return None
 
-    def parse_video_quality(self) -> List[VideoQualityEnum]:
+    def parse_video_quality(self) -> list[VideoQualityEnum]:
         matched = []
         for quality_enum, patterns in VIDEO_QUALITY_PATTERNS.items():
             if any(p in self._name for p in patterns):
@@ -151,7 +151,7 @@ class TorrentMetadataParser:
                 return audio_enum
         return AudioQualityEnum.UNKNOWN
 
-    def parse_audio_spatial(self) -> Optional[AudioSpatialEnum]:
+    def parse_audio_spatial(self) -> AudioSpatialEnum | None:
         for spatial_enum, patterns in AUDIO_SPATIAL_PATTERNS.items():
             if any(p in self._name for p in patterns):
                 return spatial_enum

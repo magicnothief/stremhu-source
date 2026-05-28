@@ -161,4 +161,10 @@ DEFAULT_ATTRIBUTES = [
         name="Dolby Atmos",
         preference_id=PreferenceEnum.AUDIO_SPATIAL,
     ),
+    # Others
+    AttributeModel(
+        id="3d",
+        name="3D",
+        preference_id=None,
+    ),
 ]

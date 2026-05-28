@@ -1,24 +1,31 @@
 import logging
-from typing import Dict
 
 from modules.attributes.models import AttributeModel
+from modules.attributes.repository import AttributesRepository
 from modules.attributes.seeds import DEFAULT_ATTRIBUTES
-from sqlalchemy.orm import Session
+from modules.preferences.enums import PreferenceEnum
 
 logger = logging.getLogger(__name__)
 
 
 class AttributesService:
-    def __init__(self, db: Session):
-        self.db = db
+    def __init__(self, repository: AttributesRepository):
+        """Initializes the service with the attributes repository."""
+        self._repository = repository
 
     def get_all(self) -> list[AttributeModel]:
-        return self.db.query(AttributeModel).all()
+        """Fetches all attributes."""
+        return self._repository.find_all()
 
-    def get_all_as_map(self) -> Dict[str, AttributeModel]:
+    def get_by_preference(self, preference: PreferenceEnum) -> list[AttributeModel]:
+        """Fetches all attributes belonging to a specific preference category."""
+        return self._repository.find_by_preference(preference)
+
+    def get_all_as_map(self) -> dict[str, AttributeModel]:
+        """Fetches all attributes as a dictionary mapping ID to AttributeModel."""
         return {model.id: model for model in self.get_all()}
 
-    def sync_to_db(self):
+    def sync_to_db(self) -> None:
         """Synchronizes the list of attributes in the codebase with the database.
 
         Updates existing ones, inserts new ones, and deletes those that were removed
@@ -31,22 +38,13 @@ class AttributesService:
         code_ids = {attr.id for attr in DEFAULT_ATTRIBUTES}
 
         # 1. Töröljük azokat az attribútumokat a DB-ből, amelyek kikerültek a kódból
-        # A Foreign Key szinten beállított CASCADE törlés miatt ez mindenhonnan törli a kapcsolatokat is!
-        deleted_count = (
-            self.db.query(AttributeModel)
-            .filter(AttributeModel.id.not_in(code_ids))
-            .delete(synchronize_session=False)
-        )
+        deleted_count = self._repository.delete_excluding_ids(code_ids)
         if deleted_count > 0:
             logger.info(f"🗑️ Törölve {deleted_count} elavult attribútum a DB-ből.")
 
         # 2. Beszúrás és frissítés (Upsert)
         for code_attribute in DEFAULT_ATTRIBUTES:
-            db_attribute = (
-                self.db.query(AttributeModel)
-                .filter(AttributeModel.id == code_attribute.id)
-                .first()
-            )
+            db_attribute = self._repository.find_by_id(code_attribute.id)
 
             if db_attribute:
                 if (
@@ -61,6 +59,6 @@ class AttributesService:
                     name=code_attribute.name,
                     preference_id=code_attribute.preference_id,
                 )
-                self.db.add(new_attribute)
+                self._repository.add(new_attribute)
 
-        self.db.commit()
+        self._repository.commit()

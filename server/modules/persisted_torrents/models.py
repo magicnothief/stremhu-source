@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from common.database import Base
+from modules.indexers.models import IndexerModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -20,14 +21,24 @@ class PersistedTorrentModel(Base):
         ),
     )
 
-    indexer_id: Mapped[str] = mapped_column(
+    info_hash: Mapped[str] = mapped_column(
         sa.String,
         primary_key=True,
     )
 
+    indexer_id: Mapped[str] = mapped_column(
+        sa.ForeignKey("indexers.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+    indexer: Mapped["IndexerModel"] = relationship(
+        "IndexerModel",
+        uselist=False,
+        init=False,
+    )
+
     torrent_id: Mapped[str] = mapped_column(
         sa.String,
-        primary_key=True,
     )
 
     last_played_at: Mapped[datetime.datetime] = mapped_column(
@@ -62,4 +73,5 @@ class PersistedTorrentModel(Base):
         "TorrentFileModel",
         back_populates="persisted_torrent",
         init=False,
+        overlaps="indexer",
     )

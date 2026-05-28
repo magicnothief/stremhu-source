@@ -17,7 +17,7 @@ class ResolutionEnum(str, Enum):
 
 class VideoQualityEnum(str, Enum):
     DV = "dolby-vision"
-    HDR10P = "hdr10+"
+    HDR10P = "hdr10plus"
     HDR10 = "hdr10"
     HLG = "hlg"
     SDR = "sdr"

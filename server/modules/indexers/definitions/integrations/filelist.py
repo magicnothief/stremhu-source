@@ -1,4 +1,5 @@
-from typing import Optional
+import re
+import unicodedata
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -53,7 +54,7 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
 
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         request_path = str(response.url.path)
         is_login_path = "/login.php" in request_path or "/takelogin.php" in request_path
 
@@ -87,7 +88,7 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
         response = await self._client.get(
@@ -120,7 +121,7 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
             except Exception:
                 category = ""
 
-            resolution = self._resolve_resolution(category)
+            self._resolve_resolution(category)
 
             det_node = row.css_first(
                 'a[href^="details.php?id="], a[href^="/details.php?id="]'
@@ -290,13 +291,11 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
 
         return form
 
-    def _resolve_imdb_id(self, imdb_url: str) -> Optional[str]:
-        import re
-
+    def _resolve_imdb_id(self, imdb_url: str) -> str | None:
         match = re.search(r"/title/(tt\d+)", imdb_url)
         return match.group(1) if match else None
 
-    def _resolve_torrent_id(self, details_path: str) -> Optional[str]:
+    def _resolve_torrent_id(self, details_path: str) -> str | None:
         try:
             details_url = urlparse(urljoin("http://localhost", details_path))
             return parse_qs(details_url.query).get("id", [None])[0]
@@ -304,16 +303,11 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
             return None
 
     def _normalize_hnr_text(self, text: str) -> str:
-        import re
-        import unicodedata
-
         normalized = unicodedata.normalize("NFD", text)
         ascii_text = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
         return re.sub(r"\s+", " ", re.sub(r"[_-]+", " ", ascii_text.lower())).strip()
 
     def _has_empty_hnr_state(self, page_text: str) -> bool:
-        import re
-
         patterns = [
             r"\bno\s+(?:torrents|results|snatches|records)\s*(?:found|available)?\b",
             r"\bnothing\s+found\b",
@@ -323,8 +317,6 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
         return any(re.search(p, page_text) for p in patterns)
 
     def _is_hnr_status(self, text: str) -> bool:
-        import re
-
         patterns = [
             r"\bhnr\b",
             r"h\s*&\s*r",
@@ -339,8 +331,6 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
         return any(re.search(p, text) for p in patterns)
 
     def _is_completed_seed_status(self, text: str) -> bool:
-        import re
-
         patterns = [
             r"\b(?:complete|completed|cleared|ok|safe|done|satisfied|fulfilled)\b",
             r"\b(?:finalizat|completat|indeplinit|satisfacut)\b",

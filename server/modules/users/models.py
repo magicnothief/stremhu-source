@@ -3,9 +3,9 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from common.database import Base, UTCDateTime
+from modules.preferences.models import UserPreferenceModel
 from modules.roles.enums import UserRole
 from modules.roles.models import RoleModel
-from modules.users.preferences.models import UserPreferenceModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 

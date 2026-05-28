@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Awaitable, List, Optional, Tuple
+from collections.abc import Awaitable
 
 import humanize
 from modules.attributes.service import AttributesService
@@ -43,8 +43,8 @@ class TorrentStreamsService:
         self,
         user: UserModel,
         imdb_id: str,
-        series: Optional[ParsedStreamSeries] = None,
-    ) -> Tuple[List[TorrentStream], List[str]]:
+        series: ParsedStreamSeries | None = None,
+    ) -> tuple[list[TorrentStream], list[str]]:
         attributes_map = await asyncio.to_thread(
             self._attributes_service.get_all_as_map
         )
@@ -146,7 +146,7 @@ class TorrentStreamsService:
         self,
         indexer_id: str,
         torrent_id: str,
-    ) -> Optional[TorrentStream]:
+    ) -> TorrentStream | None:
         attributes_map = await asyncio.to_thread(
             self._attributes_service.get_all_as_map
         )
@@ -185,9 +185,9 @@ class TorrentStreamsService:
 
     def _filter_torrent_streams(
         self,
-        torrent_streams: List[TorrentStream],
+        torrent_streams: list[TorrentStream],
         user: UserModel,
-    ) -> List[TorrentStream]:
+    ) -> list[TorrentStream]:
         filtered_torrent_streams: list[TorrentStream] = []
         for torrent_stream in torrent_streams:
             if user.torrent_seed is not None and (
@@ -202,11 +202,13 @@ class TorrentStreamsService:
 
     def _sort_torrent_streams(
         self,
-        torrent_streams: List[TorrentStream],
+        torrent_streams: list[TorrentStream],
         user: UserModel,
-    ) -> List[TorrentStream]:
+    ) -> list[TorrentStream]:
         active_torrents = self._torrents_service.get_torrents()
-        active_hashes = {active_torrent.info_hash for active_torrent in active_torrents}
+        active_hashes = {
+            active_torrent[0].info_hash for active_torrent in active_torrents
+        }
 
         for stream in torrent_streams:
             stream.is_persisted_torrent = stream.info_hash in active_hashes
@@ -216,14 +218,15 @@ class TorrentStreamsService:
 
         preference_rank_maps: list[tuple[PreferenceEnum, dict[str, int], int]] = []
         for sorted_preference in sorted_preferences:
-            attributes = sorted(
-                sorted_preference.definition.attributes,
-                key=lambda attribute: attribute.order,
+            definition_attributes = sorted(
+                sorted_preference.definition.definition_attributes,
+                key=lambda def_attr: def_attr.order,
             )
             rank_map = {
-                attribute.attribute_id: idx for idx, attribute in enumerate(attributes)
+                def_attr.attribute_id: idx
+                for idx, def_attr in enumerate(definition_attributes)
             }
-            fallback_rank = len(attributes)
+            fallback_rank = len(definition_attributes)
             preference_rank_maps.append(
                 (sorted_preference.definition.preference_id, rank_map, fallback_rank)
             )

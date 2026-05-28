@@ -1,9 +1,8 @@
 import datetime
 import logging
-from typing import Optional
 
 from fastapi import HTTPException
-from modules.libtorrent_client.service import LibtorrentClientService
+from modules.relay.service import RelayService
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.repository import TorrentFilesRepository
 from modules.torrent_files.schemas import TorrentFilesFilter
@@ -15,10 +14,10 @@ class TorrentFilesService:
     def __init__(
         self,
         repository: TorrentFilesRepository,
-        libtorrent_client_service: LibtorrentClientService,
+        relay_service: RelayService,
     ):
         self._repository = repository
-        self._libtorrent_client_service = libtorrent_client_service
+        self._relay_service = relay_service
 
     def create(
         self,
@@ -57,6 +56,9 @@ class TorrentFilesService:
             torrent_id=torrent_id,
         )
 
+    def get_by_info_hash(self, info_hash: str) -> TorrentFileModel | None:
+        return self._repository.find_by_info_hash(info_hash)
+
     def get_one_or_raise(self, indexer_id: str, torrent_id: str) -> TorrentFileModel:
         record = self.get_one(indexer_id, torrent_id)
         if not record:
@@ -93,8 +95,8 @@ class TorrentFilesService:
         if not records:
             return
 
-        active_torrents = self._libtorrent_client_service.get_torrents()
-        active_hashes = {str(th.info_hash()) for th in active_torrents}
+        active_torrents = self._relay_service.get_torrents()
+        active_hashes = {active_torrent.info_hash for active_torrent in active_torrents}
 
         for record in records:
             info_hash = record.info_hash
@@ -106,7 +108,7 @@ class TorrentFilesService:
                         f"Nem sikerült törölni a(z) {record.indexer_id} - {record.torrent_id} rekordot: {e}"
                     )
 
-    def run_retention_cleanup(self, retention_seconds: Optional[int] = None) -> None:
+    def run_retention_cleanup(self, retention_seconds: int | None = None) -> None:
         """Törli a gyorsítótárból (adatbázisból) a lejárt és inaktív torrent rekordokat (LRU).
 
         Ha retention_seconds = 0, minden inaktív torrentet töröl.
@@ -115,8 +117,8 @@ class TorrentFilesService:
             retention_seconds = 7 * 24 * 3600
 
         now = datetime.datetime.now()
-        active_torrents = self._libtorrent_client_service.get_torrents()
-        active_hashes = {str(th.info_hash()) for th in active_torrents}
+        active_torrents = self._relay_service.get_torrents()
+        active_hashes = {active_torrent.info_hash for active_torrent in active_torrents}
 
         records = self._repository.find_all()
 

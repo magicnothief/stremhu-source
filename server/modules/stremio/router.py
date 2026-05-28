@@ -1,8 +1,9 @@
 import logging
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 from fastapi.responses import RedirectResponse
 from modules.auth.dependencies import ApiKeyGuard
+from modules.stremio.constants import SEARCH_ID
 from modules.stremio.dependencies import (
     get_parsed_catalog_id,
     get_parsed_extra,
@@ -68,7 +69,7 @@ def configure(
     response_model=StremioStreams,
 )
 async def streams(
-    _: MediaType,
+    media_type: MediaType = Path(..., description="A média típusa"),
     parsed_id: ParsedStreamId = Depends(get_parsed_stream_id),
     stremio_service: StremioService = Depends(get_stremio_service),
     user: UserModel = Depends(ApiKeyGuard()),
@@ -102,8 +103,8 @@ async def catalog(
     operation_id="stremio_catalog_with_extra",
 )
 async def catalog_with_extra(
-    media_type: MediaType,
-    catalog_id: str,
+    media_type: MediaType = Path(..., description="A média típusa"),
+    catalog_id: str = Path(..., description="A katalógus azonosítója"),
     parsed_extra: ParsedExtra = Depends(get_parsed_extra),
     stremio_service: StremioService = Depends(get_stremio_service),
     current_user: UserModel = Depends(ApiKeyGuard()),
@@ -118,9 +119,6 @@ async def _get_catalog(
     extra: ParsedExtra | None = None,
 ) -> StremioCatalogResponse:
     """Közös katalógus logika – a NestJS getCatalog() privát metódus portolása."""
-    from modules.stremio.constants import SEARCH_ID
-    from modules.stremio.schemas import ParsedExtra
-
     if extra is None:
         extra = ParsedExtra()
 
@@ -155,7 +153,7 @@ async def _get_catalog(
     operation_id="stremio_meta",
 )
 async def meta(
-    media_type: MediaType,
+    media_type: MediaType = Path(..., description="A média típusa"),
     parsed_id: ParsedCatalogId | None = Depends(get_parsed_catalog_id),
     stremio_service: StremioService = Depends(get_stremio_service),
     _: UserModel = Depends(ApiKeyGuard()),

@@ -1,5 +1,3 @@
-from typing import List
-
 from modules.attributes.models import AttributeModel
 from modules.indexers.models import IndexerModel
 from pydantic import BaseModel, ConfigDict
@@ -21,5 +19,5 @@ class TorrentStream(BaseModel):
     file_index: int
     play_url: str
     seeders: int = 0
-    attributes: List[AttributeModel] = []
+    attributes: list[AttributeModel] = []
     is_persisted_torrent: bool

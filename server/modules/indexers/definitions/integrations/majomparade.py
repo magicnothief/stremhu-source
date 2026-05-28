@@ -1,4 +1,3 @@
-from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -56,7 +55,7 @@ class MajomparadeIndexerDefinition(BaseIndexerDefinition):
 
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         original_url = str(response.request.url)
 
         if self.login_path in original_url and response.request.method == "POST":
@@ -86,7 +85,7 @@ class MajomparadeIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
         response = await self._client.get(
@@ -113,7 +112,7 @@ class MajomparadeIndexerDefinition(BaseIndexerDefinition):
             category_href = cat_node.attributes.get("href") if cat_node else ""
             if not category_href:
                 continue
-            category = category_href.replace(_CATEGORY_URL_PREFIX, "")
+            category_href.replace(_CATEGORY_URL_PREFIX, "")
 
             dl_node = row.css_first(f'a[href*="{_DOWNLOAD_URL_PREFIX}"]')
             download_path = dl_node.attributes.get("href") if dl_node else ""

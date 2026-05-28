@@ -1,19 +1,30 @@
 import datetime
 from dataclasses import field
 
+import libtorrent as libtorrent
 import sqlalchemy as sa
 from common.database import Base
+from common.torrent_info import TorrentInfo, parse_torrent_info
+from modules.indexers.models import IndexerModel
 from modules.persisted_torrents.models import PersistedTorrentModel
 from modules.torrent_files.exceptions import InvalidTorrentFileException
-from modules.torrent_files.schemas import TorrentFileInfo, TorrentInfo
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
-from torf import Torrent as TorfTorrent
 
 
 class TorrentFileModel(Base):
     __tablename__ = "torrent_files"
 
-    indexer_id: Mapped[str] = mapped_column(sa.String, primary_key=True)
+    indexer_id: Mapped[str] = mapped_column(
+        sa.ForeignKey("indexers.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    indexer: Mapped["IndexerModel"] = relationship(
+        "IndexerModel",
+        uselist=False,
+        init=False,
+    )
+
     torrent_id: Mapped[str] = mapped_column(sa.String, primary_key=True)
     info_hash: Mapped[str] = mapped_column(
         sa.String,
@@ -37,6 +48,7 @@ class TorrentFileModel(Base):
         back_populates="torrent_file",
         uselist=False,
         init=False,
+        overlaps="indexer",
     )
 
     _cached_info: TorrentInfo | None = field(default=None, init=False, repr=False)
@@ -53,21 +65,8 @@ class TorrentFileModel(Base):
             self._cached_info = self._torrent_info(self.torrent_bytes)
         return self._cached_info
 
-    def _torrent_info(self, torrent_bytes: bytes) -> TorrentInfo:
+    def _torrent_info(self, torrent: bytes | libtorrent.torrent_info) -> TorrentInfo:
         try:
-            torrent = TorfTorrent.read_stream(torrent_bytes)
-            torrent.validate()
-
-            files = [
-                TorrentFileInfo(name=str(file), index=index, size=file.size)
-                for index, file in enumerate(torrent.files)
-            ]
-
-            return TorrentInfo(
-                info_hash=torrent.infohash,
-                name=torrent.name or "",
-                size=torrent.size,
-                files=files,
-            )
+            return parse_torrent_info(torrent)
         except Exception:
             raise InvalidTorrentFileException()

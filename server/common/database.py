@@ -1,7 +1,7 @@
 import zoneinfo
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Generator
 
 import tzlocal
 from config import config
@@ -24,29 +24,20 @@ class UTCDateTime(TypeDecorator):
     impl = DateTime
     cache_ok = True
 
-    # A szerver aktuális időzónája (pl. Europe/Budapest)
     SERVER_TZ = zoneinfo.ZoneInfo(tzlocal.get_localzone_name())
-    # VAGY ha fixen magyar időzóna kell:
-    # SERVER_TZ = zoneinfo.ZoneInfo("Europe/Budapest")
 
     def process_bind_param(self, value: datetime | None, dialect) -> datetime | None:
         if value is not None:
             if value.tzinfo is not None:
-                # 1. Ha van időzónája, pontosan átkonvertáljuk UTC-be
                 return value.astimezone(timezone.utc).replace(tzinfo=None)
             else:
-                # 2. HA NINCS IDŐZÓNA (mint a te esetedben):
-                # Ráragasztjuk a szerver időzónáját (mondván: "ez helyi időben van"),
-                # majd átkonvertáljuk UTC-re, és eldobjuk a tzinfot a DB-hez.
                 local_dt = value.replace(tzinfo=self.SERVER_TZ)
                 return local_dt.astimezone(timezone.utc).replace(tzinfo=None)
         return value
 
     def process_result_value(self, value: datetime | None, dialect) -> datetime | None:
         if value is not None:
-            # 1. A DB-ből kijövő naive adatot megjelöljük UTC-ként
             utc_dt = value.replace(tzinfo=timezone.utc)
-            # 2. Átszámoljuk a szerver helyi idejére
             return utc_dt.astimezone(self.SERVER_TZ)
         return value
 

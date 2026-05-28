@@ -1,13 +1,12 @@
 import re
-from typing import Optional
 
 import content_types
 import PTN
+from common.torrent_info import TorrentFileInfo
 from modules.attributes.models import AttributeModel
 from modules.indexers.schemas import IndexerTorrent
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
-from modules.torrent_files.schemas import TorrentFileInfo
 from modules.torrent_streams.schemas import TorrentStream
 from modules.torrent_streams.utils.metadata_parser import TorrentMetadataParser
 
@@ -33,7 +32,7 @@ class TorrentStreamResolver:
         self,
         indexer_torrent: IndexerTorrent,
         torrent_file: TorrentFileModel,
-        series: Optional[ParsedStreamSeries],
+        series: ParsedStreamSeries | None,
         attribute_map: dict[str, AttributeModel],
     ):
         self._indexer_torrent = indexer_torrent
@@ -41,7 +40,7 @@ class TorrentStreamResolver:
         self._series = series
         self._attribute_map = attribute_map
 
-    def resolve(self) -> Optional[TorrentStream]:
+    def resolve(self) -> TorrentStream | None:
         if self._series:
             torrent_file = self.resolve_series_file(self._series)
         else:
@@ -72,7 +71,7 @@ class TorrentStreamResolver:
             is_persisted_torrent=False,
         )
 
-    def _resolve_largest_file(self) -> Optional[TorrentFileInfo]:
+    def _resolve_largest_file(self) -> TorrentFileInfo | None:
         valid_files = [
             file
             for file in self._torrent_file.info.files
@@ -82,9 +81,7 @@ class TorrentStreamResolver:
             return None
         return max(valid_files, key=lambda file: file.size)
 
-    def resolve_series_file(
-        self, series: ParsedStreamSeries
-    ) -> Optional[TorrentFileInfo]:
+    def resolve_series_file(self, series: ParsedStreamSeries) -> TorrentFileInfo | None:
         for file in self._torrent_file.info.files:
             if is_sample_or_trash(file.name):
                 continue

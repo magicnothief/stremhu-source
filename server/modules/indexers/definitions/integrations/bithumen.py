@@ -1,4 +1,3 @@
-from typing import Optional
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
@@ -27,7 +26,7 @@ _CATEGORY_MAP: dict[str, str] = {
 class BithumenIndexerDefinition(BaseIndexerDefinition):
     def __init__(self, credentials_provider) -> None:
         super().__init__(credentials_provider)
-        self._cached_user_id: Optional[str] = None
+        self._cached_user_id: str | None = None
 
     @property
     def id(self) -> str:
@@ -55,7 +54,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
 
     def _detect_authentication_error(
         self, response: httpx.Response
-    ) -> Optional[AuthenticationErrorEnum]:
+    ) -> AuthenticationErrorEnum | None:
         if response.status_code == 401:
             return AuthenticationErrorEnum.CREDENTIAL_ERROR
 
@@ -77,7 +76,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: Optional[int] = None
+        self, imdb_id: str, page: int | None = None
     ) -> IndexerDefinitionFindTorrentsResult:
         current_page = page or 0
         response = await self._client.get(
@@ -104,7 +103,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
 
             cat_node = cols[0].css_first("a")
             category_href = cat_node.attributes.get("href") if cat_node else ""
-            category = category_href.replace("?cat=", "")
+            category_href.replace("?cat=", "")
 
             # Direct child a elements of cols[1]
             a_tags = [n for n in cols[1].iter() if n.tag == "a"]

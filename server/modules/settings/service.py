@@ -1,7 +1,8 @@
 import logging
 
 from config import config
-from modules.libtorrent_client.service import LibtorrentClientService
+from modules.relay.schemas import RelaySettingsUpdate
+from modules.relay.service import RelayService
 from modules.settings.repository import SettingsRepository
 from modules.settings.schemas import (
     AppSettings,
@@ -20,13 +21,13 @@ class SettingsService:
     def __init__(
         self,
         repository: SettingsRepository,
-        libtorrent_client_service: LibtorrentClientService,
+        relay_service: RelayService,
     ):
-        self.repository = repository
-        self.libtorrent_client_service = libtorrent_client_service
+        self._repository = repository
+        self._relay_service = relay_service
 
     def get_app_settings(self) -> AppSettings:
-        record = self.repository.find_one(APP_SETTINGS_KEY)
+        record = self._repository.find_one(APP_SETTINGS_KEY)
         data = record.value if record else {}
         return AppSettings.model_validate(data)
 
@@ -35,11 +36,11 @@ class SettingsService:
         updated_data = current.model_copy(
             update=payload.model_dump(exclude_unset=True)
         ).model_dump()
-        self.repository.create_or_update(APP_SETTINGS_KEY, updated_data)
+        self._repository.create_or_update(APP_SETTINGS_KEY, updated_data)
         return AppSettings.model_validate(updated_data)
 
     def get_relay_settings(self) -> RelaySettings:
-        record = self.repository.find_one(TORRENT_SETTINGS_KEY)
+        record = self._repository.find_one(TORRENT_SETTINGS_KEY)
         data = record.value if record else {}
         return RelaySettings.model_validate(data)
 
@@ -48,7 +49,7 @@ class SettingsService:
         updated_data = current.model_copy(
             update=payload.model_dump(exclude_unset=True)
         ).model_dump()
-        self.repository.create_or_update(TORRENT_SETTINGS_KEY, updated_data)
+        self._repository.create_or_update(TORRENT_SETTINGS_KEY, updated_data)
 
         settings = RelaySettings.model_validate(updated_data)
         self._apply_libtorrent_settings(settings)
@@ -60,25 +61,21 @@ class SettingsService:
         logger.info("⚙️ Konfigurációk inicializálása és szinkronizálása...")
 
         # App Settings
-        if not self.repository.find_one(APP_SETTINGS_KEY):
+        if not self._repository.find_one(APP_SETTINGS_KEY):
             defaults = AppSettings().model_dump()
-            self.repository.create_or_update(APP_SETTINGS_KEY, defaults)
+            self._repository.create_or_update(APP_SETTINGS_KEY, defaults)
 
         # Relay Settings
-        if not self.repository.find_one(TORRENT_SETTINGS_KEY):
+        if not self._repository.find_one(TORRENT_SETTINGS_KEY):
             defaults = RelaySettings(port=config.libtorrent_port).model_dump()
-            self.repository.create_or_update(TORRENT_SETTINGS_KEY, defaults)
+            self._repository.create_or_update(TORRENT_SETTINGS_KEY, defaults)
 
         # Alkalmazzuk a mentett libtorrent beállításokat induláskor
         settings = self.get_relay_settings()
         self._apply_libtorrent_settings(settings)
 
     def _apply_libtorrent_settings(self, settings: RelaySettings):
-        from modules.libtorrent_client.schemas import (
-            UpdateSettings as LibtorrentUpdateSettings,
-        )
-
-        libtorrent_update = LibtorrentUpdateSettings(
+        libtorrent_update = RelaySettingsUpdate(
             download_limit=settings.download_limit,
             upload_limit=settings.upload_limit,
             port=settings.port,
@@ -87,7 +84,7 @@ class SettingsService:
             enable_upnp_and_natpmp=settings.enable_upnp_and_natpmp,
         )
         try:
-            self.libtorrent_client_service.update_settings(libtorrent_update)
+            self._relay_service.update_settings(libtorrent_update)
             logger.info("⚙️ Libtorrent beállítások sikeresen alkalmazva.")
         except Exception as e:
             logger.error(

@@ -13,6 +13,7 @@ from modules.stremio.enums import (
     StreamIdType,
 )
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from pydash import compact
 
 if TYPE_CHECKING:
@@ -24,7 +25,10 @@ if TYPE_CHECKING:
 
 
 class ManifestExtra(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
 
     name: ExtraName
     is_required: bool | None = None
@@ -33,7 +37,10 @@ class ManifestExtra(BaseModel):
 
 
 class ManifestCatalog(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
 
     type: ContentType
     id: str
@@ -42,6 +49,11 @@ class ManifestCatalog(BaseModel):
 
 
 class ManifestBehaviorHints(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     adult: bool | None = None
     p2p: bool | None = None
     configurable: bool | None = None
@@ -49,6 +61,11 @@ class ManifestBehaviorHints(BaseModel):
 
 
 class ManifestConfig(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     key: str
     type: ManifestConfigType
     default: str | None = None
@@ -58,13 +75,23 @@ class ManifestConfig(BaseModel):
 
 
 class FullManifestResource(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     name: ShortManifestResource
     types: list[ContentType]
     id_prefixes: list[str] | None = None
 
 
 class Manifest(BaseModel):
-    """Stremio addon manifest – https://stremio.github.io/stremio-addon-guide/"""
+    """Stremio addon manifest - https://stremio.github.io/stremio-addon-guide/"""
+
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
 
     id: str
     name: str
@@ -88,6 +115,11 @@ class Manifest(BaseModel):
 
 
 class BehaviorHints(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     country_whitelist: list[str] | None = None
     not_web_ready: bool = True
     binge_group: str | None = None
@@ -95,6 +127,11 @@ class BehaviorHints(BaseModel):
 
 
 class StremioStream(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     name: str
     description: str
     url: str
@@ -199,6 +236,11 @@ class StremioStream(BaseModel):
 
 
 class StremioStreams(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     streams: list[StremioStream]
 
 
@@ -208,17 +250,32 @@ class StremioStreams(BaseModel):
 
 
 class MetaLink(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     name: str
     category: str
     url: str
 
 
 class MetaTrailer(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     yt_id: str
     description: str
 
 
 class MetaVideo(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     id: str
     title: str
     released: str | None = None
@@ -231,6 +288,11 @@ class MetaVideo(BaseModel):
 
 
 class MetaPreview(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     id: str
     imdb_id: str | None = None
     type: ContentType
@@ -249,6 +311,11 @@ class MetaPreview(BaseModel):
 
 
 class MetaDetailBehaviorHints(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     default_video_id: str | None = None
     has_scheduled_videos: bool | None = None
 
@@ -268,6 +335,11 @@ class MetaDetail(MetaPreview):
 
 
 class StremioCatalogResponse(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
     metas: list[MetaPreview]
 
 

@@ -1,7 +1,7 @@
 from common.database import get_db
 from fastapi import Depends
-from modules.libtorrent_client.dependencies import get_libtorrent_client_service
-from modules.libtorrent_client.service import LibtorrentClientService
+from modules.relay.dependencies import get_relay_service
+from modules.relay.service import RelayService
 from modules.settings.repository import SettingsRepository
 from modules.settings.service import SettingsService
 from sqlalchemy.orm import Session
@@ -13,8 +13,6 @@ def get_settings_repository(db: Session = Depends(get_db)) -> SettingsRepository
 
 def get_settings_service(
     repository: SettingsRepository = Depends(get_settings_repository),
-    libtorrent_client_service: LibtorrentClientService = Depends(
-        get_libtorrent_client_service
-    ),
+    relay_service: RelayService = Depends(get_relay_service),
 ) -> SettingsService:
-    return SettingsService(repository, libtorrent_client_service)
+    return SettingsService(repository, relay_service)

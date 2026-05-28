@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Path, Request, status
 from modules.auth.service import AuthService
 from modules.roles.enums import UserRole
 from modules.users.dependencies import get_users_service
@@ -38,6 +38,19 @@ class SessionGuard:
         return user
 
 
+class OptionalSessionGuard:
+    def __call__(
+        self,
+        request: Request,
+        users_service: UsersService = Depends(get_users_service),
+    ) -> UserModel | None:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return None
+
+        return users_service.get_by_id(user_id)
+
+
 class ApiKeyGuard:
     def __init__(self, allowed_roles: list[UserRole] | None = None):
         self.allowed_roles = allowed_roles
@@ -45,10 +58,9 @@ class ApiKeyGuard:
     def __call__(
         self,
         request: Request,
+        api_key: str = Path(..., description="A felhasználó API kulcsa"),
         users_service: UsersService = Depends(get_users_service),
     ) -> UserModel:
-        api_key = request.path_params.get("api_key")
-
         if not api_key:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
