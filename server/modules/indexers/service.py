@@ -2,17 +2,17 @@ import asyncio
 import logging
 
 from fastapi import HTTPException, status
-from modules.indexers.definitions.exceptions import (
+from modules.indexer_accounts.models import IndexerAccountModel
+from modules.indexer_accounts.schemas import IndexerAccountCreate
+from modules.indexer_accounts.service import IndexerAccountsService
+from modules.indexer_definitions.exceptions import (
     AuthenticationException,
     CredentialsRequiredException,
 )
-from modules.indexers.definitions.schemas import (
-    IndexerDefinitionLogin,
-)
-from modules.indexers.definitions.service import IndexerDefinitionsService
-from modules.indexers.models import IndexerModel
-from modules.indexers.repository import IndexersRepository
+from modules.indexer_definitions.schemas import IndexerDefinitionLogin
+from modules.indexer_definitions.service import IndexerDefinitionsService
 from modules.indexers.schemas import DownloadedTorrentFile, IndexerLogin, IndexerTorrent
+from modules.torrents.service import TorrentsService
 
 logger = logging.getLogger(__name__)
 
@@ -20,24 +20,27 @@ logger = logging.getLogger(__name__)
 class IndexersService:
     def __init__(
         self,
-        indexers_repository: IndexersRepository,
         indexer_definitions_service: IndexerDefinitionsService,
+        indexer_accounts_service: IndexerAccountsService,
+        torrents_service: TorrentsService,
     ):
-        self._indexers_repository = indexers_repository
         self._indexer_definitions_service = indexer_definitions_service
+        self._indexer_accounts_service = indexer_accounts_service
+        self._torrents_service = torrents_service
 
-    async def login(self, payload: IndexerLogin) -> IndexerModel:
-        indexer = await asyncio.to_thread(self.get_by_id, payload.indexer_id)
-
-        if indexer:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A megadott indexer már be van jelentkezve!",
-            )
-
+    async def login(self, payload: IndexerLogin) -> IndexerAccountModel:
         indexer_definition = self._indexer_definitions_service.get_by_id(
             payload.indexer_id
         )
+        indexer_account = await asyncio.to_thread(
+            self._indexer_accounts_service.get_by_id, indexer_definition.id
+        )
+
+        if indexer_account:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"A megadott '{indexer_definition.name}' már be van jelentkezve!",
+            )
 
         try:
             await indexer_definition.login(
@@ -47,12 +50,15 @@ class IndexersService:
                 )
             )
 
-            indexer = IndexerModel(
-                id=payload.indexer_id,
-                username=payload.username,
-                password=payload.password,
+            return await asyncio.to_thread(
+                self._indexer_accounts_service.create,
+                IndexerAccountCreate(
+                    indexer_definition_id=indexer_definition.id,
+                    username=payload.username,
+                    password=payload.password,
+                    download_full_torrent=indexer_definition.requires_full_download,
+                ),
             )
-            return await asyncio.to_thread(self._indexers_repository.create, indexer)
         except CredentialsRequiredException as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -69,35 +75,22 @@ class IndexersService:
                 detail="Bejelentkezés közben hiba történt, próbáld újra!",
             )
 
-    def get_by_id(self, id: str) -> IndexerModel | None:
-        return self._indexers_repository.find_by_id(id)
-
-    def get_by_id_or_raise(self, id: str) -> IndexerModel:
-        indexer = self.get_by_id(id)
-        if indexer is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Nem található indexer!",
-            )
-        return indexer
-
-    def get_list(self) -> list[IndexerModel]:
-        return list(self._indexers_repository.find_all())
-
     async def get_torrents_by_torrent_id(
         self, torrent_id: str
     ) -> tuple[list[IndexerTorrent], list[str]]:
-        indexers = await asyncio.to_thread(self.get_list)
+        indexer_accounts = await asyncio.to_thread(
+            self._indexer_accounts_service.get_list
+        )
 
-        async def fetch_and_map(indexer: IndexerModel) -> IndexerTorrent:
+        async def fetch_and_map(indexer_account: IndexerAccountModel) -> IndexerTorrent:
             indexer_definition = self._indexer_definitions_service.get_by_id(
-                indexer.definition.id
+                indexer_account.indexer_id
             )
             indexer_definition_torrent = await indexer_definition.find_torrent_by_id(
                 torrent_id
             )
             return IndexerTorrent(
-                indexer=indexer,
+                indexer_account=indexer_account,
                 torrent_id=indexer_definition_torrent.torrent_id,
                 download_url=indexer_definition_torrent.download_url,
                 imdb_id=indexer_definition_torrent.imdb_id,
@@ -105,7 +98,7 @@ class IndexersService:
                 fallback_attributes=indexer_definition_torrent.fallback_attributes,
             )
 
-        tasks = [fetch_and_map(indexer) for indexer in indexers]
+        tasks = [fetch_and_map(indexer_account) for indexer_account in indexer_accounts]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         indexer_torrents: list[IndexerTorrent] = []
@@ -124,14 +117,18 @@ class IndexersService:
         indexer_id: str,
         torrent_id: str,
     ) -> IndexerTorrent:
-        indexer = await asyncio.to_thread(self.get_by_id_or_raise, indexer_id)
+        indexer_account = await asyncio.to_thread(
+            self._indexer_accounts_service.get_by_id_or_raise, indexer_id
+        )
 
-        indexer_definition = self._indexer_definitions_service.get_by_id(indexer.id)
+        indexer_definition = self._indexer_definitions_service.get_by_id(
+            indexer_account.indexer_id
+        )
         indexer_definition_torrent = await indexer_definition.find_torrent_by_id(
             torrent_id
         )
         return IndexerTorrent(
-            indexer=indexer,
+            indexer_account=indexer_account,
             torrent_id=indexer_definition_torrent.torrent_id,
             download_url=indexer_definition_torrent.download_url,
             imdb_id=indexer_definition_torrent.imdb_id,
@@ -142,17 +139,23 @@ class IndexersService:
     async def get_torrents_by_imdb_id(
         self, imdb_id: str
     ) -> tuple[list[IndexerTorrent], list[str]]:
-        indexers = await asyncio.to_thread(self.get_list)
+        indexer_accounts = await asyncio.to_thread(
+            self._indexer_accounts_service.get_list
+        )
 
-        async def fetch_and_map(indexer: IndexerModel) -> list[IndexerTorrent]:
+        async def fetch_and_map(
+            indexer_account: IndexerAccountModel,
+        ) -> list[IndexerTorrent]:
 
-            indexer_definition = self._indexer_definitions_service.get_by_id(indexer.id)
+            indexer_definition = self._indexer_definitions_service.get_by_id(
+                indexer_account.indexer_id
+            )
             indexer_definition_torrents = (
                 await indexer_definition.find_torrents_by_imdb_id(imdb_id)
             )
             return [
                 IndexerTorrent(
-                    indexer=indexer,
+                    indexer_account=indexer_account,
                     torrent_id=indexer_definition_torrent.torrent_id,
                     download_url=indexer_definition_torrent.download_url,
                     imdb_id=indexer_definition_torrent.imdb_id,
@@ -162,7 +165,7 @@ class IndexersService:
                 for indexer_definition_torrent in indexer_definition_torrents
             ]
 
-        tasks = [fetch_and_map(indexer) for indexer in indexers]
+        tasks = [fetch_and_map(indexer_account) for indexer_account in indexer_accounts]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         indexer_torrents: list[IndexerTorrent] = []
@@ -179,12 +182,17 @@ class IndexersService:
     async def download_torrent(
         self, indexer_id: str, torrent_id: str, download_url: str
     ) -> DownloadedTorrentFile:
-        indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
+        indexer_account = await asyncio.to_thread(
+            self._indexer_accounts_service.get_by_id_or_raise, indexer_id
+        )
+
+        indexer_definition = self._indexer_definitions_service.get_by_id(
+            indexer_account.indexer_id
+        )
         torrent_bytes = await indexer_definition.download_torrent(download_url)
-        indexer = await asyncio.to_thread(self.get_by_id_or_raise, indexer_id)
 
         return DownloadedTorrentFile(
-            indexer=indexer,
+            indexer_account=indexer_account,
             torrent_id=torrent_id,
             torrent_bytes=torrent_bytes,
         )

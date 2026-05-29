@@ -3,22 +3,20 @@ import logging
 from abc import ABC, abstractmethod
 
 import httpx
-from modules.indexers.definitions.enums import AuthenticationErrorEnum
-from modules.indexers.definitions.exceptions import (
+from modules.indexer_definitions.enums import AuthenticationErrorEnum
+from modules.indexer_definitions.exceptions import (
     AuthenticationException,
     CredentialsRequiredException,
     TrackerException,
 )
-from modules.indexers.definitions.schemas import (
-    CredentialsProvider,
+from modules.indexer_definitions.protocols import CredentialsProvider
+from modules.indexer_definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )
 
-# A NestJS FIND_TORRENTS_LIMIT értéke: 300 (adapter.constant.ts)
-FIND_TORRENTS_LIMIT = 300
-
+_TORRENTS_LIMIT = 300
 _DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -74,7 +72,7 @@ class IndexerTransport(httpx.AsyncBaseTransport):
 
 
 class BaseIndexerDefinition(ABC):
-    def __init__(self, credentials_provider: CredentialsProvider = None) -> None:
+    def __init__(self, credentials_provider: CredentialsProvider | None):
         self.logger = logging.getLogger(self.__class__.__name__)
         self._get_credentials = credentials_provider
 
@@ -97,7 +95,7 @@ class BaseIndexerDefinition(ABC):
     @property
     @abstractmethod
     def id(self) -> str:
-        """A tracker egyedi azonosítója (pl. 'ncore')."""
+        """Az indexer egyedi azonosítója (pl. 'ncore')."""
 
     @property
     @abstractmethod
@@ -182,14 +180,18 @@ class BaseIndexerDefinition(ABC):
         if not credential:
             if not self._get_credentials:
                 raise CredentialsRequiredException(
-                    f"{self.name} hitelesítési információk nincsenek megadva (hiányzó credentials_provider)."
+                    f"{self.name} hitelesítési információk nincsenek megadva."
                 )
-            tracker_data = await self._get_credentials(self.id)
-            if not tracker_data:
+
+            indexer_account = await asyncio.to_thread(self._get_credentials, self.id)
+            if not indexer_account:
                 raise CredentialsRequiredException(
                     f"{self.name} hitelesítési információk nincsenek megadva."
                 )
-            credential = tracker_data
+            credential = IndexerDefinitionLogin(
+                username=indexer_account.username,
+                password=indexer_account.password,
+            )
 
         # Sütik törlése új bejelentkezés előtt
         self._client.cookies.clear()
@@ -242,7 +244,7 @@ class BaseIndexerDefinition(ABC):
         accumulator: list[IndexerDefinitionTorrent],
     ) -> list[IndexerDefinitionTorrent]:
         """Rekurzív lapozó logika - a NestJS findAll() privát metódus portolása."""
-        if len(accumulator) > FIND_TORRENTS_LIMIT:
+        if len(accumulator) > _TORRENTS_LIMIT:
             return accumulator
 
         try:

@@ -6,7 +6,6 @@ import humanize
 from modules.attributes.service import AttributesService
 from modules.indexers.schemas import DownloadedTorrentFile, IndexerTorrent
 from modules.indexers.service import IndexersService
-from modules.persisted_torrents.service import TorrentsService
 from modules.preferences.enums import PreferenceEnum
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
@@ -18,6 +17,7 @@ from modules.torrent_streams.schemas import (
 from modules.torrent_streams.utils.torrent_stream_resolver import (
     TorrentStreamResolver,
 )
+from modules.torrents.service import TorrentPair, TorrentsService
 from modules.users.models import UserModel
 from sqlalchemy.orm import Session
 
@@ -56,7 +56,7 @@ class TorrentStreamsService:
 
         torrent_file_ids: list[TorrentFileIdentifier] = [
             TorrentFileIdentifier(
-                indexer_id=indexer_torrent.indexer.id,
+                indexer_id=indexer_torrent.indexer_account.indexer_id,
                 torrent_id=indexer_torrent.torrent_id,
             )
             for indexer_torrent in indexer_torrents
@@ -78,14 +78,14 @@ class TorrentStreamsService:
         download_tasks: list[Awaitable[DownloadedTorrentFile]] = []
         for indexer_torrent in indexer_torrents:
             if (
-                indexer_torrent.indexer.id,
+                indexer_torrent.indexer_account.indexer_id,
                 indexer_torrent.torrent_id,
             ) in current_torrent_files_map:
                 continue
 
             download_tasks.append(
                 self._indexers_service.download_torrent(
-                    indexer_torrent.indexer.id,
+                    indexer_torrent.indexer_account.indexer_id,
                     indexer_torrent.torrent_id,
                     indexer_torrent.download_url,
                 )
@@ -102,7 +102,7 @@ class TorrentStreamsService:
 
             torrent_file = await asyncio.to_thread(
                 self._torrent_files_service.create,
-                indexer_id=downloaded_torrent_file.indexer.id,
+                indexer_id=downloaded_torrent_file.indexer_account.indexer_id,
                 torrent_id=downloaded_torrent_file.torrent_id,
                 torrent_bytes=downloaded_torrent_file.torrent_bytes,
             )
@@ -111,7 +111,10 @@ class TorrentStreamsService:
         torrent_files = current_torrent_files + created_torrent_files
 
         indexer_torrents_map: dict[tuple[str, str], IndexerTorrent] = {
-            (indexer_torrent.indexer.id, indexer_torrent.torrent_id): indexer_torrent
+            (
+                indexer_torrent.indexer_account.indexer_id,
+                indexer_torrent.torrent_id,
+            ): indexer_torrent
             for indexer_torrent in indexer_torrents
         }
 
@@ -157,19 +160,19 @@ class TorrentStreamsService:
 
         current_torrent_file = await asyncio.to_thread(
             self._torrent_files_service.get_one,
-            indexer_torrent.indexer.id,
+            indexer_torrent.indexer_account.indexer_id,
             indexer_torrent.torrent_id,
         )
 
         if current_torrent_file is None:
             downloaded_torrent_file = await self._indexers_service.download_torrent(
-                indexer_torrent.indexer.id,
+                indexer_torrent.indexer_account.indexer_id,
                 indexer_torrent.torrent_id,
                 indexer_torrent.download_url,
             )
             current_torrent_file = await asyncio.to_thread(
                 self._torrent_files_service.create,
-                indexer_id=downloaded_torrent_file.indexer.id,
+                indexer_id=downloaded_torrent_file.indexer_account.indexer_id,
                 torrent_id=downloaded_torrent_file.torrent_id,
                 torrent_bytes=downloaded_torrent_file.torrent_bytes,
             )
@@ -205,10 +208,8 @@ class TorrentStreamsService:
         torrent_streams: list[TorrentStream],
         user: UserModel,
     ) -> list[TorrentStream]:
-        active_torrents = self._torrents_service.get_torrents()
-        active_hashes = {
-            active_torrent[0].info_hash for active_torrent in active_torrents
-        }
+        torrent_pairs: list[TorrentPair] = self._torrents_service.get_torrents()
+        active_hashes = {torrent_pair.info_hash for torrent_pair in torrent_pairs}
 
         for stream in torrent_streams:
             stream.is_persisted_torrent = stream.info_hash in active_hashes

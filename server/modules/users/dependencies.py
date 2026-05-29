@@ -5,13 +5,14 @@ from modules.users.service import UsersService
 from sqlalchemy.orm import Session
 
 
-def get_users_repository(db: Session = Depends(get_db)) -> UsersRepository:
-    """FastAPI függőség-injektáló provider a UsersRepository példányosításához."""
-    return UsersRepository(db)
+def create_users_service(db: Session) -> UsersService:
+    """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
+    users_repository = UsersRepository(db)
+    return UsersService(users_repository)
 
 
 def get_users_service(
-    users_repository: UsersRepository = Depends(get_users_repository),
+    db: Session = Depends(get_db),
 ) -> UsersService:
     """FastAPI függőség-injektáló provider a UsersService példányosításához."""
-    return UsersService(users_repository)
+    return create_users_service(db)

@@ -1,26 +1,20 @@
 from common.database import get_db
 from fastapi import Depends
-from modules.attributes.dependencies import get_attributes_service
+from modules.attributes.repository import AttributesRepository
 from modules.attributes.service import AttributesService
-from modules.indexers.dependencies import (
-    get_indexers_service,
-)
-from modules.indexers.service import IndexersService
-from modules.persisted_torrents.dependencies import get_torrents_service
-from modules.persisted_torrents.service import TorrentsService
-from modules.torrent_files.dependencies import get_torrent_files_service
-from modules.torrent_files.service import TorrentFilesService
+from modules.indexers.dependencies import create_indexers_service
+from modules.torrent_files.dependencies import create_torrent_files_service
 from modules.torrent_streams.service import TorrentStreamsService
+from modules.torrents.dependencies import create_torrents_service
 from sqlalchemy.orm import Session
 
 
-def get_torrent_streams_service(
-    db: Session = Depends(get_db),
-    indexers_service: IndexersService = Depends(get_indexers_service),
-    torrent_files_service: TorrentFilesService = Depends(get_torrent_files_service),
-    torrents_service: TorrentsService = Depends(get_torrents_service),
-    attributes_service: AttributesService = Depends(get_attributes_service),
-) -> TorrentStreamsService:
+def create_torrent_streams_service(db: Session) -> TorrentStreamsService:
+    attributes_service = AttributesService(AttributesRepository(db))
+    indexers_service = create_indexers_service(db)
+    torrent_files_service = create_torrent_files_service(db)
+    torrents_service = create_torrents_service(db)
+
     return TorrentStreamsService(
         db=db,
         indexers_service=indexers_service,
@@ -28,3 +22,10 @@ def get_torrent_streams_service(
         torrents_service=torrents_service,
         attributes_service=attributes_service,
     )
+
+
+def get_torrent_streams_service(
+    db: Session = Depends(get_db),
+) -> TorrentStreamsService:
+    """FastAPI függőség-injektáló provider a TorrentStreamsService példányosításához."""
+    return create_torrent_streams_service(db)

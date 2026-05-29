@@ -1,9 +1,11 @@
+from common.database import get_db
 from fastapi import Depends, HTTPException, Path, Request, status
 from modules.auth.service import AuthService
 from modules.roles.enums import UserRole
-from modules.users.dependencies import get_users_service
+from modules.users.dependencies import create_users_service, get_users_service
 from modules.users.models import UserModel
 from modules.users.service import UsersService
+from sqlalchemy.orm import Session
 
 
 class SessionGuard:
@@ -89,7 +91,14 @@ class ApiKeyGuard:
         return user
 
 
-def get_auth_service(
-    users_service: UsersService = Depends(get_users_service),
-) -> AuthService:
+def create_auth_service(db: Session) -> AuthService:
+    """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
+    users_service = create_users_service(db)
     return AuthService(users_service)
+
+
+def get_auth_service(
+    db: Session = Depends(get_db),
+) -> AuthService:
+    """FastAPI függőség-injektáló provider a AuthService példányosításához."""
+    return create_auth_service(db)

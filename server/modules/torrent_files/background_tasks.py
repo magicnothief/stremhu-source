@@ -16,9 +16,11 @@ def run_torrent_files_retention_cleanup():
 
     try:
         with db_session() as db:
-            repository = TorrentFilesRepository(db)
+            torrent_files_repository = TorrentFilesRepository(db)
             libtorrent_service = get_relay_service()
-            torrent_files_service = TorrentFilesService(repository, libtorrent_service)
+            torrent_files_service = TorrentFilesService(
+                torrent_files_repository, libtorrent_service
+            )
             torrent_files_service.run_retention_cleanup()
         logger.info("✅ Automatikus gyorsítótár tisztítás sikeresen befejeződött.")
     except Exception as e:

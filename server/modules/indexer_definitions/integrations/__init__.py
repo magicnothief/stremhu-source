@@ -3,7 +3,7 @@ import inspect
 import pkgutil
 from pathlib import Path
 
-from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefinition
+from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 
 
 def discover_indexer_definitions() -> list[type[BaseIndexerDefinition]]:

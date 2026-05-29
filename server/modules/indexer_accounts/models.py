@@ -1,21 +1,25 @@
 import datetime
 from sqlite3 import Date
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from common.database import Base
-from modules.indexers.definitions.models import IndexerDefinitionModel
+from modules.indexer_definitions.models import IndexerDefinitionModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+if TYPE_CHECKING:
+    from modules.torrents.models import TorrentModel
 
-class IndexerModel(Base):
-    __tablename__ = "indexers"
 
-    id: Mapped[str] = mapped_column(
+class IndexerAccountModel(Base):
+    __tablename__ = "indexer_accounts"
+
+    indexer_id: Mapped[str] = mapped_column(
         sa.ForeignKey("indexer_definitions.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    definition: Mapped["IndexerDefinitionModel"] = relationship(
+    indexer_definition: Mapped[IndexerDefinitionModel] = relationship(
         "IndexerDefinitionModel",
         init=False,
     )
@@ -39,4 +43,10 @@ class IndexerModel(Base):
     created_at: Mapped[Date] = mapped_column(
         sa.DateTime,
         default_factory=datetime.datetime.now,
+    )
+
+    torrents: Mapped[list["TorrentModel"]] = relationship(
+        "TorrentModel",
+        back_populates="indexer_account",
+        init=False,
     )

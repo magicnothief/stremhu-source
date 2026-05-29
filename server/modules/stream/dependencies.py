@@ -1,24 +1,30 @@
+from common.database import get_db
 from fastapi import Depends
-from modules.indexers.dependencies import get_indexers_service
-from modules.indexers.service import IndexersService
-from modules.persisted_torrents.dependencies import get_torrents_service
-from modules.persisted_torrents.service import TorrentsService
+from modules.indexers.dependencies import create_indexers_service
 from modules.relay.dependencies import get_relay_service
-from modules.relay.service import RelayService
 from modules.stream.service import StreamService
-from modules.torrent_files.dependencies import get_torrent_files_service
-from modules.torrent_files.service import TorrentFilesService
+from modules.torrent_files.dependencies import create_torrent_files_service
+from modules.torrents.dependencies import create_torrents_service
+from sqlalchemy.orm import Session
 
 
-def get_stream_service(
-    torrents_service: TorrentsService = Depends(get_torrents_service),
-    indexers_service: IndexersService = Depends(get_indexers_service),
-    torrent_files_service: TorrentFilesService = Depends(get_torrent_files_service),
-    relay_service: RelayService = Depends(get_relay_service),
-) -> StreamService:
+def create_stream_service(db: Session) -> StreamService:
+    """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
+    torrents_service = create_torrents_service(db)
+    indexers_service = create_indexers_service(db)
+    torrent_files_service = create_torrent_files_service(db)
+    relay_service = get_relay_service()
+
     return StreamService(
         torrents_service=torrents_service,
         indexers_service=indexers_service,
         torrent_files_service=torrent_files_service,
         relay_service=relay_service,
     )
+
+
+def get_stream_service(
+    db: Session = Depends(get_db),
+) -> StreamService:
+    """FastAPI függőség-injektáló provider a StreamService példányosításához."""
+    return create_stream_service(db)

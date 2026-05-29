@@ -1,5 +1,5 @@
 from modules.attributes.models import AttributeModel
-from modules.indexers.models import IndexerModel
+from modules.indexer_accounts.models import IndexerAccountModel
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -10,7 +10,7 @@ class TorrentStream(BaseModel):
         alias_generator=to_camel,
     )
 
-    indexer: IndexerModel
+    indexer_account: IndexerAccountModel
     torrent_id: str
     info_hash: str
     torrent_name: str

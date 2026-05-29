@@ -1,5 +1,3 @@
-from collections.abc import Awaitable, Callable
-
 from modules.attributes.models import AttributeModel
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -35,6 +33,3 @@ class IndexerDefinitionTorrent(BaseModel):
 class IndexerDefinitionFindTorrentsResult(BaseModel):
     torrents: list[IndexerDefinitionTorrent] = []
     next_page: int | None = None
-
-
-CredentialsProvider = Callable[[str], Awaitable[IndexerDefinitionLogin | None]] | None

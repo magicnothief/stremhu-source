@@ -7,9 +7,9 @@ from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 from modules.attributes.enums import LanguageEnum, ResolutionEnum
-from modules.indexers.definitions.base_indexer_definition import BaseIndexerDefinition
-from modules.indexers.definitions.enums import AuthenticationErrorEnum
-from modules.indexers.definitions.schemas import (
+from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
+from modules.indexer_definitions.enums import AuthenticationErrorEnum
+from modules.indexer_definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,

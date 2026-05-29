@@ -1,9 +1,9 @@
 import logging
 
 from common.database import db_session
-from modules.persisted_torrents.dependencies import create_torrents_service
-from modules.persisted_torrents.service import TorrentsService
 from modules.relay.dependencies import get_relay_service
+from modules.torrents.dependencies import create_torrents_service
+from modules.torrents.service import TorrentsService
 
 logger = logging.getLogger(__name__)
 

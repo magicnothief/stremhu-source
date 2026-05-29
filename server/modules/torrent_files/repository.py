@@ -46,6 +46,8 @@ class TorrentFilesRepository:
                     for identifier in filter.identifiers
                 ]
                 query = query.filter(or_(*conditions))
+            if filter.exclude_persisted:
+                query = query.filter(TorrentFileModel.persisted_torrent.is_(None))
 
         return query.all()
 

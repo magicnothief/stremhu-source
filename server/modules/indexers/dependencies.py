@@ -1,26 +1,24 @@
 from common.database import get_db
 from fastapi import Depends
-from modules.indexers.definitions.schemas import IndexerDefinitionLogin
-from modules.indexers.definitions.service import IndexerDefinitionsService
-from modules.indexers.repository import IndexersRepository
+from modules.indexer_accounts.dependencies import create_indexer_accounts_service
+from modules.indexer_definitions.dependencies import create_indexer_definitions_service
 from modules.indexers.service import IndexersService
+from modules.torrents.dependencies import create_torrents_service
 from sqlalchemy.orm import Session
 
 
 def create_indexers_service(db: Session) -> IndexersService:
-    indexers_repository = IndexersRepository(db)
+    indexer_accounts_service = create_indexer_accounts_service(db)
+    indexer_definitions_service = create_indexer_definitions_service(
+        indexer_accounts_service.get_by_id
+    )
+    torrents_service = create_torrents_service(db)
 
-    async def credentials_provider(indexer_id: str) -> IndexerDefinitionLogin | None:
-        user = indexers_repository.find_by_id(indexer_id)
-        if not user:
-            return None
-        return IndexerDefinitionLogin(
-            username=user.username,
-            password=user.password,
-        )
-
-    indexer_definitions_service = IndexerDefinitionsService(credentials_provider)
-    return IndexersService(indexers_repository, indexer_definitions_service)
+    return IndexersService(
+        indexer_accounts_service=indexer_accounts_service,
+        indexer_definitions_service=indexer_definitions_service,
+        torrents_service=torrents_service,
+    )
 
 
 def get_indexers_service(

@@ -5,9 +5,9 @@ import libtorrent as libtorrent
 import sqlalchemy as sa
 from common.database import Base
 from common.torrent_info import TorrentInfo, parse_torrent_info
-from modules.indexers.models import IndexerModel
-from modules.persisted_torrents.models import PersistedTorrentModel
+from modules.indexer_accounts.models import IndexerAccountModel
 from modules.torrent_files.exceptions import InvalidTorrentFileException
+from modules.torrents.models import TorrentModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 
@@ -15,12 +15,12 @@ class TorrentFileModel(Base):
     __tablename__ = "torrent_files"
 
     indexer_id: Mapped[str] = mapped_column(
-        sa.ForeignKey("indexers.id", ondelete="CASCADE"),
+        sa.ForeignKey("indexer_accounts.indexer_id", ondelete="CASCADE"),
         primary_key=True,
     )
 
-    indexer: Mapped["IndexerModel"] = relationship(
-        "IndexerModel",
+    indexer_account: Mapped["IndexerAccountModel"] = relationship(
+        "IndexerAccountModel",
         uselist=False,
         init=False,
     )
@@ -43,12 +43,12 @@ class TorrentFileModel(Base):
         default_factory=datetime.datetime.now,
     )
 
-    persisted_torrent: Mapped[PersistedTorrentModel | None] = relationship(
-        "PersistedTorrentModel",
+    torrent: Mapped[TorrentModel | None] = relationship(
+        "TorrentModel",
         back_populates="torrent_file",
         uselist=False,
         init=False,
-        overlaps="indexer",
+        overlaps="indexer_account,torrents",
     )
 
     _cached_info: TorrentInfo | None = field(default=None, init=False, repr=False)

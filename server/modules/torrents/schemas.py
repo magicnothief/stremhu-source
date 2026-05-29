@@ -1,10 +1,20 @@
 import datetime
+from typing import NamedTuple
 
-from modules.indexers.definitions.schemas import IndexerDefinition
-from modules.persisted_torrents.models import PersistedTorrentModel
+from modules.indexer_definitions.schemas import IndexerDefinition
 from modules.relay.schemas import RelayTorrent
+from modules.torrents.models import TorrentModel
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+
+
+class TorrentPair(NamedTuple):
+    torrent: TorrentModel
+    relay: RelayTorrent
+
+    @property
+    def info_hash(self) -> str:
+        return self.torrent.info_hash
 
 
 class TorrentState(BaseModel):
@@ -47,28 +57,27 @@ class Torrent(BaseModel):
     created_at: datetime.datetime
 
     @classmethod
-    def from_entity(
+    def from_torrent_pair(
         cls,
-        entity: PersistedTorrentModel,
-        relay_torrent: RelayTorrent,
+        torrent_pair: TorrentPair,
     ) -> "Torrent":
         return cls(
-            info_hash=entity.info_hash,
+            info_hash=torrent_pair.info_hash,
             indexer_definition=IndexerDefinition.model_validate(
-                entity.indexer.definition
+                torrent_pair.torrent.indexer_account.indexer_definition
             ),
-            torrent_id=entity.torrent_id,
-            name=relay_torrent.name,
-            download_speed=relay_torrent.download_speed,
-            upload_speed=relay_torrent.upload_speed,
-            downloaded=relay_torrent.downloaded,
-            uploaded=relay_torrent.uploaded,
-            total=relay_torrent.total,
-            is_persisted=entity.is_persisted,
-            full_download=entity.full_download,
-            last_played_at=entity.last_played_at,
-            updated_at=entity.updated_at,
-            created_at=entity.created_at,
+            torrent_id=torrent_pair.torrent.torrent_id,
+            name=torrent_pair.relay.name,
+            download_speed=torrent_pair.relay.download_speed,
+            upload_speed=torrent_pair.relay.upload_speed,
+            downloaded=torrent_pair.relay.downloaded,
+            uploaded=torrent_pair.relay.uploaded,
+            total=torrent_pair.relay.total,
+            is_persisted=torrent_pair.torrent.is_persisted,
+            full_download=torrent_pair.torrent.full_download,
+            last_played_at=torrent_pair.torrent.last_played_at,
+            updated_at=torrent_pair.torrent.updated_at,
+            created_at=torrent_pair.torrent.created_at,
         )
 
 

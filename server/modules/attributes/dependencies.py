@@ -5,13 +5,12 @@ from modules.attributes.service import AttributesService
 from sqlalchemy.orm import Session
 
 
-def get_attributes_repository(
-    db: Session = Depends(get_db),
-) -> AttributesRepository:
-    return AttributesRepository(db)
+def create_attributes_service(db: Session) -> AttributesService:
+    repository = AttributesRepository(db)
+    return AttributesService(repository)
 
 
 def get_attributes_service(
-    repository: AttributesRepository = Depends(get_attributes_repository),
+    db: Session = Depends(get_db),
 ) -> AttributesService:
-    return AttributesService(repository)
+    return create_attributes_service(db)

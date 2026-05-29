@@ -1,18 +1,23 @@
+from common.database import get_db
 from fastapi import Depends, Path
 from modules.stremio.schemas import ParsedCatalogId, ParsedExtra, ParsedStreamId
 from modules.stremio.service import StremioService
 from modules.stremio.utils import parse_catalog_id, parse_extra, parse_stream_id
-from modules.torrent_streams.dependencies import get_torrent_streams_service
-from modules.torrent_streams.service import TorrentStreamsService
+from modules.torrent_streams.dependencies import create_torrent_streams_service
+from sqlalchemy.orm import Session
+
+
+def create_stremio_service(db: Session) -> StremioService:
+    """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
+    torrent_streams_service = create_torrent_streams_service(db)
+    return StremioService(torrent_streams_service=torrent_streams_service)
 
 
 def get_stremio_service(
-    torrent_streams_service: TorrentStreamsService = Depends(
-        get_torrent_streams_service
-    ),
+    db: Session = Depends(get_db),
 ) -> StremioService:
     """FastAPI függőség-injektáló provider a StremioService példányosításához."""
-    return StremioService(torrent_streams_service=torrent_streams_service)
+    return create_stremio_service(db)
 
 
 def get_parsed_stream_id(

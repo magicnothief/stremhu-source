@@ -10,3 +10,4 @@ class TorrentFilesFilter(BaseModel):
     indexer_id: str | None = None
     torrent_id: str | None = None
     identifiers: list[TorrentFileIdentifier] | None = None
+    exclude_persisted: bool | None = None

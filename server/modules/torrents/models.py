@@ -3,20 +3,20 @@ from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from common.database import Base
-from modules.indexers.models import IndexerModel
+from modules.indexer_accounts.models import IndexerAccountModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
     from modules.torrent_files.models import TorrentFileModel
 
 
-class PersistedTorrentModel(Base):
-    __tablename__ = "persisted_torrents"
+class TorrentModel(Base):
+    __tablename__ = "torrents"
     __table_args__ = (
         sa.ForeignKeyConstraint(
             ["indexer_id", "torrent_id"],
             ["torrent_files.indexer_id", "torrent_files.torrent_id"],
-            name="fk_persisted_torrents_torrent_files",
+            name="fk_torrents_torrent_files",
             ondelete="RESTRICT",
         ),
     )
@@ -27,12 +27,13 @@ class PersistedTorrentModel(Base):
     )
 
     indexer_id: Mapped[str] = mapped_column(
-        sa.ForeignKey("indexers.id", ondelete="RESTRICT"),
+        sa.ForeignKey("indexer_accounts.indexer_id", ondelete="RESTRICT"),
         primary_key=True,
     )
 
-    indexer: Mapped["IndexerModel"] = relationship(
-        "IndexerModel",
+    indexer_account: Mapped["IndexerAccountModel"] = relationship(
+        "IndexerAccountModel",
+        back_populates="torrents",
         uselist=False,
         init=False,
     )
@@ -71,7 +72,7 @@ class PersistedTorrentModel(Base):
 
     torrent_file: Mapped["TorrentFileModel"] = relationship(
         "TorrentFileModel",
-        back_populates="persisted_torrent",
+        back_populates="torrent",
         init=False,
-        overlaps="indexer",
+        overlaps="indexer_account,torrents",
     )

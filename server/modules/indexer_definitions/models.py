@@ -9,9 +9,20 @@ class IndexerDefinitionModel(Base):
     __tablename__ = "indexer_definitions"
 
     id: Mapped[str] = mapped_column(sa.String, primary_key=True)
-    name: Mapped[str] = mapped_column(sa.String, nullable=False)
-    url: Mapped[str] = mapped_column(sa.String, nullable=False)
-    details_path: Mapped[str] = mapped_column(sa.String, nullable=False)
+
+    name: Mapped[str] = mapped_column(
+        sa.String,
+    )
+
+    url: Mapped[str] = mapped_column(
+        sa.String,
+    )
+
+    details_path: Mapped[str] = mapped_column(
+        sa.String,
+    )
+
     requires_full_download: Mapped[bool] = mapped_column(
-        sa.Boolean, nullable=False, default=False
+        sa.Boolean,
+        default=False,
     )

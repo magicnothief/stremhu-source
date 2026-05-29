@@ -13,15 +13,14 @@ from fastapi.staticfiles import StaticFiles
 from modules.attributes.repository import AttributesRepository
 from modules.attributes.service import AttributesService
 from modules.auth.router import router as auth_router
-from modules.indexers.definitions.service import IndexerDefinitionsService
+from modules.indexer_definitions.service import IndexerDefinitionsService
+from modules.indexers.background_tasks import run_indexers_cleanup
+from modules.indexers.router import router as indexers_router
+from modules.kodi.router import router as kodi_router
 from modules.me.router import router as me_router
 from modules.monitoring.router import router as monitoring_router
 from modules.pairings.background_tasks import run_expired_pairings_cleanup
 from modules.pairings.router import router as pairings_router
-from modules.persisted_torrents.background_tasks import (
-    register_persisted_torrents_callbacks,
-)
-from modules.persisted_torrents.router import router as torrents_router
 from modules.preferences.service import PreferencesService
 from modules.relay.background_tasks import alert_loop, resume_save_loop
 from modules.relay.dependencies import get_relay_service
@@ -33,6 +32,10 @@ from modules.stream.router import router as stream_router
 from modules.stremio.router import router as stremio_router
 from modules.torrent_files.background_tasks import run_torrent_files_retention_cleanup
 from modules.torrent_files.router import router as torrent_files_router
+from modules.torrents.background_tasks import (
+    register_persisted_torrents_callbacks,
+)
+from modules.torrents.router import router as torrents_router
 from modules.users.router import router as users_router
 from setproctitle import setproctitle
 from starlette.middleware.sessions import SessionMiddleware
@@ -99,6 +102,14 @@ async def lifespan(app: FastAPI):
         replace_existing=True,
     )
     scheduler.add_job(
+        run_indexers_cleanup,
+        trigger="cron",
+        hour=4,
+        minute=0,
+        id="indexers_cleanup",
+        replace_existing=True,
+    )
+    scheduler.add_job(
         run_expired_pairings_cleanup,
         trigger="cron",
         hour="*",
@@ -152,6 +163,8 @@ api_router.include_router(torrents_router)
 api_router.include_router(torrent_files_router)
 api_router.include_router(stream_router)
 api_router.include_router(stremio_router)
+api_router.include_router(kodi_router)
+api_router.include_router(indexers_router)
 
 
 app.include_router(api_router)

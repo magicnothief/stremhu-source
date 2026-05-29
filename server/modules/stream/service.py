@@ -3,7 +3,6 @@ import logging
 import libtorrent as libtorrent
 from fastapi import HTTPException
 from modules.indexers.service import IndexersService
-from modules.persisted_torrents.service import TorrentsService
 from modules.relay.entities import File
 from modules.relay.service import RelayService
 from modules.stream.schemas import (
@@ -11,6 +10,7 @@ from modules.stream.schemas import (
 )
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.service import TorrentFilesService
+from modules.torrents.service import TorrentPair, TorrentsService
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +35,12 @@ class StreamService:
         torrent_id: str,
         file_index: int,
     ) -> tuple[ParsedRangeHeader, File]:
-        torrent = self._torrents_service.get_one(
+        torrent_pair: TorrentPair | None = self._torrents_service.get_one(
             indexer_id=indexer_id,
             torrent_id=torrent_id,
         )
 
-        if torrent is None:
+        if torrent_pair is None:
             indexer_torrent = await self._indexers_service.get_torrent_by_torrent_id(
                 indexer_id=indexer_id, torrent_id=torrent_id
             )
@@ -56,12 +56,10 @@ class StreamService:
             )
 
             self._validate_file(torrent_file, file_index)
-            torrent = self._torrents_service.create_from_torrent_file(torrent_file)
-
-        persisted_torrent, _ = torrent
+            torrent_pair = self._torrents_service.create_from_torrent_file(torrent_file)
 
         file = self._relay_service.get_torrent_file(
-            info_hash=persisted_torrent.info_hash,
+            info_hash=torrent_pair.info_hash,
             file_index=file_index,
         )
 

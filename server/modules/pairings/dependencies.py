@@ -5,11 +5,14 @@ from modules.pairings.service import PairingsService
 from sqlalchemy.orm import Session
 
 
-def _get_pairings_repository(db: Session = Depends(get_db)) -> PairingsRepository:
-    return PairingsRepository(db)
+def create_pairings_service(db: Session) -> PairingsService:
+    """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
+    pairings_repository = PairingsRepository(db)
+    return PairingsService(pairings_repository)
 
 
 def get_pairings_service(
-    pairings_repository: PairingsRepository = Depends(_get_pairings_repository),
+    db: Session = Depends(get_db),
 ) -> PairingsService:
-    return PairingsService(pairings_repository)
+    """FastAPI függőség-injektáló provider a PairingsService példányosításához."""
+    return create_pairings_service(db)
