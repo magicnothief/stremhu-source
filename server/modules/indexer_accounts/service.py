@@ -16,7 +16,7 @@ class IndexerAccountsService:
         self._indexer_accounts_repository = indexer_accounts_repository
 
     def create(self, payload: IndexerAccountCreate) -> IndexerAccountModel:
-        indexer_account = self.get_by_id(payload.indexer_definition_id)
+        indexer_account = self.get_by_id(payload.indexer_id)
 
         if indexer_account:
             raise HTTPException(

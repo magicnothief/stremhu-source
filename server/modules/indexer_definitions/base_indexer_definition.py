@@ -41,10 +41,16 @@ class IndexerTransport(httpx.AsyncBaseTransport):
         self._definition = definition
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+
         async with self._definition._semaphore:
             response = await self._transport.handle_async_request(request)
+            response.request = request
 
         await response.aread()
+
+        # Ignore intermediate redirect responses
+        if 300 <= response.status_code < 400:
+            return response
 
         auth_error = self._definition._detect_authentication_error(response)
 
@@ -67,12 +73,13 @@ class IndexerTransport(httpx.AsyncBaseTransport):
 
             async with self._definition._semaphore:
                 response = await self._transport.handle_async_request(request)
+                response.request = request
 
         return response
 
 
 class BaseIndexerDefinition(ABC):
-    def __init__(self, credentials_provider: CredentialsProvider | None):
+    def __init__(self, credentials_provider: CredentialsProvider):
         self.logger = logging.getLogger(self.__class__.__name__)
         self._get_credentials = credentials_provider
 
@@ -178,19 +185,11 @@ class BaseIndexerDefinition(ABC):
         Ha nem adunk meg hitelesítési adatot, a credentials_provider-ből olvassa ki.
         """
         if not credential:
-            if not self._get_credentials:
-                raise CredentialsRequiredException(
-                    f"{self.name} hitelesítési információk nincsenek megadva."
-                )
+            credential = await asyncio.to_thread(self._get_credentials, self.id)
 
-            indexer_account = await asyncio.to_thread(self._get_credentials, self.id)
-            if not indexer_account:
-                raise CredentialsRequiredException(
-                    f"{self.name} hitelesítési információk nincsenek megadva."
-                )
-            credential = IndexerDefinitionLogin(
-                username=indexer_account.username,
-                password=indexer_account.password,
+        if not credential:
+            raise CredentialsRequiredException(
+                f"{self.name} hitelesítési információk nincsenek megadva."
             )
 
         # Sütik törlése új bejelentkezés előtt

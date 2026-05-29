@@ -29,7 +29,7 @@ class IndexerAccountBase(BaseModel):
 
 
 class IndexerAccountCreate(IndexerAccountBase):
-    indexer_definition_id: str
+    indexer_id: str
     password: str
 
 

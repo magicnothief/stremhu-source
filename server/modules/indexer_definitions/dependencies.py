@@ -1,14 +1,25 @@
-from modules.indexer_definitions.protocols import CredentialsProvider
+import functools
+
+from common.database import db_session
+from modules.indexer_accounts.repository import IndexerAccountsRepository
+from modules.indexer_definitions.schemas import IndexerDefinitionLogin
 from modules.indexer_definitions.service import IndexerDefinitionsService
 
 
-def create_indexer_definitions_service(
-    credentials_provider: CredentialsProvider,
-) -> IndexerDefinitionsService:
-    return IndexerDefinitionsService(credentials_provider)
+def global_credentials_provider(
+    indexer_id: str,
+) -> IndexerDefinitionLogin | None:
+    with db_session() as db:
+        repository = IndexerAccountsRepository(db)
+        user = repository.find_by_id(indexer_id)
+        if not user:
+            return None
+        return IndexerDefinitionLogin(
+            username=user.username,
+            password=user.password,
+        )
 
 
-def get_indexer_definitions_service(
-    credentials_provider: CredentialsProvider,
-) -> IndexerDefinitionsService:
-    return create_indexer_definitions_service(credentials_provider)
+@functools.lru_cache(maxsize=1)
+def get_indexer_definitions_service() -> IndexerDefinitionsService:
+    return IndexerDefinitionsService(global_credentials_provider)

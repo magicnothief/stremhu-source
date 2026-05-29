@@ -53,7 +53,7 @@ class IndexersService:
             return await asyncio.to_thread(
                 self._indexer_accounts_service.create,
                 IndexerAccountCreate(
-                    indexer_definition_id=indexer_definition.id,
+                    indexer_id=indexer_definition.id,
                     username=payload.username,
                     password=payload.password,
                     download_full_torrent=indexer_definition.requires_full_download,
@@ -69,7 +69,8 @@ class IndexersService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e),
             )
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Bejelentkezés közben hiba történt, próbáld újra!",

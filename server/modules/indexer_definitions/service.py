@@ -16,7 +16,7 @@ class IndexerDefinitionsService:
     példányosítja őket, és nyilvántartja egy szótárban.
     """
 
-    def __init__(self, credentials_provider: CredentialsProvider | None = None):
+    def __init__(self, credentials_provider: CredentialsProvider):
         self._definitions: dict[str, BaseIndexerDefinition] = {}
 
         for definition_class in discover_indexer_definitions():

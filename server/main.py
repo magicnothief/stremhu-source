@@ -13,7 +13,6 @@ from fastapi.staticfiles import StaticFiles
 from modules.attributes.repository import AttributesRepository
 from modules.attributes.service import AttributesService
 from modules.auth.router import router as auth_router
-from modules.indexer_definitions.service import IndexerDefinitionsService
 from modules.indexers.background_tasks import run_indexers_cleanup
 from modules.indexers.router import router as indexers_router
 from modules.kodi.router import router as kodi_router
@@ -72,7 +71,11 @@ async def lifespan(app: FastAPI):
         attributes_service.sync_to_db()
 
         # 4. Indexer definíciók szinkronizálása
-        indexer_definitions_service = IndexerDefinitionsService()
+        from modules.indexer_definitions.dependencies import (
+            get_indexer_definitions_service,
+        )
+
+        indexer_definitions_service = get_indexer_definitions_service()
         indexer_definitions_service.sync_to_db(db)
 
         repository = SettingsRepository(db)

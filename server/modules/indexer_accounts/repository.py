@@ -9,7 +9,7 @@ class IndexerAccountsRepository:
 
     def create(self, payload: IndexerAccountCreate) -> IndexerAccountModel:
         model = IndexerAccountModel(
-            indexer_definition_id=payload.indexer_definition_id,
+            indexer_id=payload.indexer_id,
             username=payload.username,
             password=payload.password,
             download_full_torrent=payload.download_full_torrent,
@@ -25,11 +25,9 @@ class IndexerAccountsRepository:
     def find_all(self) -> list[IndexerAccountModel]:
         return self.db.query(IndexerAccountModel).all()
 
-    def find_by_id(self, indexer_definition_id: str) -> IndexerAccountModel | None:
+    def find_by_id(self, indexer_id: str) -> IndexerAccountModel | None:
         return (
-            self.db.query(IndexerAccountModel)
-            .filter_by(indexer_definition_id=indexer_definition_id)
-            .first()
+            self.db.query(IndexerAccountModel).filter_by(indexer_id=indexer_id).first()
         )
 
     def update(self, model: IndexerAccountModel) -> IndexerAccountModel:

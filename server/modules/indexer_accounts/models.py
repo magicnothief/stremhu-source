@@ -1,5 +1,4 @@
 import datetime
-from sqlite3 import Date
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -34,13 +33,13 @@ class IndexerAccountModel(Base):
 
     download_full_torrent: Mapped[bool] = mapped_column(sa.Boolean, default=False)
 
-    updated_at: Mapped[Date] = mapped_column(
+    updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
         default_factory=datetime.datetime.now,
         onupdate=datetime.datetime.now,
     )
 
-    created_at: Mapped[Date] = mapped_column(
+    created_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
         default_factory=datetime.datetime.now,
     )
