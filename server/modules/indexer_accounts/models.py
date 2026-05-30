@@ -33,6 +33,8 @@ class IndexerAccountModel(Base):
 
     download_full_torrent: Mapped[bool] = mapped_column(sa.Boolean, default=False)
 
+    cookies: Mapped[dict | None] = mapped_column(sa.JSON, default=None)
+
     updated_at: Mapped[datetime.datetime] = mapped_column(
         sa.DateTime,
         default_factory=datetime.datetime.now,

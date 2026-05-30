@@ -75,7 +75,7 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
                 "mire": imdb_id,
                 "miszerint": "seeders",
                 "hogyan": "DESC",
-                "jsons": "1",
+                "jsons": True,
             },
         )
 

@@ -50,15 +50,18 @@ class IndexersService:
                 )
             )
 
-            return await asyncio.to_thread(
+            indexer_account = await asyncio.to_thread(
                 self._indexer_accounts_service.create,
                 IndexerAccountCreate(
                     indexer_id=indexer_definition.id,
                     username=payload.username,
                     password=payload.password,
                     download_full_torrent=indexer_definition.requires_full_download,
+                    cookies=indexer_definition.cookies,
                 ),
             )
+
+            return indexer_account
         except CredentialsRequiredException as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -31,6 +31,7 @@ class IndexerAccountBase(BaseModel):
 class IndexerAccountCreate(IndexerAccountBase):
     indexer_id: str
     password: str
+    cookies: dict[str, str] | None = None
 
 
 class IndexerAccount(IndexerAccountBase):

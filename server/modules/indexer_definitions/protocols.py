@@ -3,5 +3,11 @@ from typing import Protocol
 from modules.indexer_definitions.schemas import IndexerDefinitionLogin
 
 
-class CredentialsProvider(Protocol):
-    def __call__(self, indexer_id: str) -> IndexerDefinitionLogin | None: ...
+class IndexerAccountStorage(Protocol):
+    def get_credentials(self, indexer_id: str) -> IndexerDefinitionLogin | None:
+        """Lekéri az indexer hitelesítési adatait és a tárolt cookie-kat."""
+        ...
+
+    def save_cookies(self, indexer_id: str, cookies: dict[str, str]) -> None:
+        """Elmenti a frissített session cookie-kat az adatbázisba."""
+        ...

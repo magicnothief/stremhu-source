@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.integrations import discover_indexer_definitions
 from modules.indexer_definitions.models import IndexerDefinitionModel
-from modules.indexer_definitions.protocols import CredentialsProvider
+from modules.indexer_definitions.protocols import IndexerAccountStorage
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,14 @@ class IndexerDefinitionsService:
     példányosítja őket, és nyilvántartja egy szótárban.
     """
 
-    def __init__(self, credentials_provider: CredentialsProvider):
+    def __init__(
+        self,
+        indexer_account_storage: IndexerAccountStorage | None = None,
+    ):
         self._definitions: dict[str, BaseIndexerDefinition] = {}
 
         for definition_class in discover_indexer_definitions():
-            instance = definition_class(credentials_provider)
+            instance = definition_class(indexer_account_storage)
             self._definitions[instance.id] = instance
             logger.debug("Definition registered: %s (%s)", instance.name, instance.id)
 

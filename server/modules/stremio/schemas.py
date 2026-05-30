@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import humanize
 from modules.attributes.models import AttributeModel
 from modules.preferences.enums import PreferenceEnum
 from modules.stremio.enums import (
@@ -142,9 +143,9 @@ class StremioStream(BaseModel):
         cls,
         torrent_stream: TorrentStream,
     ) -> StremioStream:
-        file_size = f"💾 {torrent_stream.file_size}"
+        file_size = f"💾 {humanize.naturalsize(torrent_stream.file_size, binary=True)}"
         seeders = f"👥 {torrent_stream.seeders}"
-        indexer = f"🧲 {torrent_stream.indexer.definition.name}"
+        indexer = f"🧲 {torrent_stream.indexer_account.indexer_definition.name}"
 
         description_first_line = " | ".join(compact([indexer, seeders, file_size]))
 
@@ -208,9 +209,7 @@ class StremioStream(BaseModel):
             compact([readable_resolutions, readable_video_qualities, readable_source])
         )
         description = "\n".join([description_first_line, description_second_line])
-        binge_group = (
-            f"{torrent_stream.indexer.definition.name}-{torrent_stream.torrent_id}"
-        )
+        binge_group = f"{torrent_stream.indexer_account.indexer_definition.id}-{torrent_stream.torrent_id}"
 
         return cls(
             name=name,

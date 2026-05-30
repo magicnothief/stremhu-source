@@ -58,7 +58,7 @@ class TorrentStreamResolver:
         parsed_attributes = parse_attributes.parse()
 
         return TorrentStream(
-            indexer=self._indexer_torrent.indexer,
+            indexer_account=self._indexer_torrent.indexer_account,
             torrent_id=self._torrent_file.torrent_id,
             info_hash=self._torrent_file.info_hash,
             seeders=self._indexer_torrent.seeders,

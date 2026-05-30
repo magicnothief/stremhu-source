@@ -9,7 +9,7 @@ from modules.indexer_definitions.exceptions import (
     CredentialsRequiredException,
     TrackerException,
 )
-from modules.indexer_definitions.protocols import CredentialsProvider
+from modules.indexer_definitions.protocols import IndexerAccountStorage
 from modules.indexer_definitions.schemas import (
     IndexerDefinitionFindTorrentsResult,
     IndexerDefinitionLogin,
@@ -79,9 +79,12 @@ class IndexerTransport(httpx.AsyncBaseTransport):
 
 
 class BaseIndexerDefinition(ABC):
-    def __init__(self, credentials_provider: CredentialsProvider):
+    def __init__(
+        self,
+        indexer_account_storage: IndexerAccountStorage | None = None,
+    ):
         self.logger = logging.getLogger(self.__class__.__name__)
-        self._get_credentials = credentials_provider
+        self._indexer_account_storage = indexer_account_storage
 
         self._semaphore = asyncio.Semaphore(self.max_concurrent)
         self._login_in_progress: asyncio.Future | None = None
@@ -96,6 +99,26 @@ class BaseIndexerDefinition(ABC):
             timeout=20.0,
             transport=interceptor_transport,
         )
+
+        if indexer_account_storage:
+            try:
+                account = indexer_account_storage.get_credentials(self.id)
+                if account and account.cookies:
+                    self._client.cookies.update(account.cookies)
+            except Exception as e:
+                self.logger.error(
+                    "Failed to load persisted cookies for %s: %s", self.name, e
+                )
+
+    @property
+    def cookies(self) -> dict[str, str]:
+        """A kliens jelenlegi session cookie-jai."""
+        return dict(self._client.cookies)
+
+    @property
+    def max_concurrent(self) -> int:
+        """Max egyidejű HTTP kérések száma (a NestJS maxConcurrent megfelelője)."""
+        return 5
 
     # --- Absztrakt tulajdonságok ---
 
@@ -128,11 +151,6 @@ class BaseIndexerDefinition(ABC):
     @abstractmethod
     def requires_full_download(self) -> bool:
         """Szükséges-e a teljes .torrent letöltés a seedeléshez."""
-
-    @property
-    def max_concurrent(self) -> int:
-        """Max egyidejű HTTP kérések száma (a NestJS maxConcurrent megfelelője)."""
-        return 5
 
     # --- Absztrakt üzleti metódusok ---
 
@@ -182,20 +200,38 @@ class BaseIndexerDefinition(ABC):
         """
         A NestJS login() megfelelője.
 
-        Ha nem adunk meg hitelesítési adatot, a credentials_provider-ből olvassa ki.
+        Ha nem adunk meg hitelesítési adatot, az account_storage-ból olvassa ki.
         """
+        is_first_login = credential is not None
         if not credential:
-            credential = await asyncio.to_thread(self._get_credentials, self.id)
+            if not self._indexer_account_storage:
+                raise CredentialsRequiredException(
+                    f"{self.name} hitelesítési információk nincsenek megadva."
+                )
+            credential = await asyncio.to_thread(
+                self._indexer_account_storage.get_credentials, self.id
+            )
 
         if not credential:
             raise CredentialsRequiredException(
                 f"{self.name} hitelesítési információk nincsenek megadva."
             )
 
-        # Sütik törlése új bejelentkezés előtt
         self._client.cookies.clear()
 
         await self._login(credential)
+
+        if not is_first_login and self._indexer_account_storage:
+            try:
+                await asyncio.to_thread(
+                    self._indexer_account_storage.save_cookies,
+                    self.id,
+                    dict(self._client.cookies),
+                )
+            except Exception as e:
+                self.logger.error(
+                    "Failed to save persisted cookies for %s: %s", self.name, e
+                )
 
     async def find_torrents_by_imdb_id(
         self, imdb_id: str
@@ -264,7 +300,7 @@ class BaseIndexerDefinition(ABC):
         """
         Kezeli a párhuzamos újra-bejelentkezések összevonását.
 
-        A NestJS relogin() privát metódus portolása – több egyidejű SESSION_ERROR esetén
+        Több egyidejű SESSION_ERROR esetén
         csak egyszer fut le a bejelentkezés, a többi kérés megvárja azt.
         """
         if self._login_in_progress is not None:

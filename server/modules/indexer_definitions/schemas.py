@@ -20,6 +20,7 @@ class IndexerDefinition(BaseModel):
 class IndexerDefinitionLogin(BaseModel):
     username: str
     password: str
+    cookies: dict[str, str] | None = None
 
 
 class IndexerDefinitionTorrent(BaseModel):

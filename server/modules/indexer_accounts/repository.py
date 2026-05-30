@@ -15,6 +15,7 @@ class IndexerAccountsRepository:
             download_full_torrent=payload.download_full_torrent,
             hit_and_run=payload.hit_and_run,
             keep_seed_seconds=payload.keep_seed_seconds,
+            cookies=payload.cookies,
         )
 
         self.db.add(model)
@@ -38,3 +39,9 @@ class IndexerAccountsRepository:
     def delete(self, model: IndexerAccountModel) -> None:
         self.db.delete(model)
         self.db.flush()
+
+    def update_cookies(self, indexer_id: str, cookies: dict) -> None:
+        model = self.find_by_id(indexer_id)
+        if model:
+            model.cookies = cookies
+            self.db.flush()
