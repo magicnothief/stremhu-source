@@ -1,172 +1,181 @@
-from modules.attributes.enums import (
-    AudioQualityEnum,
-    AudioSpatialEnum,
-    LanguageEnum,
-    ResolutionEnum,
-    SourceEnum,
-    VideoQualityEnum,
-)
+from modules.attributes.constants import AttributeKey
 from modules.attributes.models import AttributeModel
-from modules.preferences.enums import PreferenceEnum
-
-# TODO: Pattern hozzáadása, ami majd a regex-et tárolja
+from modules.preferences.constants import PreferenceKey
 
 DEFAULT_ATTRIBUTES = [
     # Resolutions
     AttributeModel(
-        id=ResolutionEnum.R2160P.value,
+        id=AttributeKey.R2160P,
         name="UHD (4K)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(2160p|4k[-_. ](?:UHD|HEVC|BD)|(?:UHD|HEVC|BD)[-_. ]4k|\b(4k)\b|COMPLETE.UHD|UHD.COMPLETE)",
     ),
     AttributeModel(
-        id=ResolutionEnum.R1080P.value,
+        id=AttributeKey.R1080P,
         name="Full HD (1080p)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(1080(i|p)|1920x1080)(10bit)?",
     ),
     AttributeModel(
-        id=ResolutionEnum.R720P.value,
+        id=AttributeKey.R720P,
         name="HD (720p)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(720(i|p)|1280x720|960p)(10bit)?",
     ),
     AttributeModel(
-        id=ResolutionEnum.R576P.value,
+        id=AttributeKey.R576P,
         name="SD (576p)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(576(i|p))",
     ),
     AttributeModel(
-        id=ResolutionEnum.R540P.value,
+        id=AttributeKey.R540P,
         name="SD (540p)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(540(i|p))",
     ),
     AttributeModel(
-        id=ResolutionEnum.R480P.value,
+        id=AttributeKey.R480P,
         name="SD (480p)",
-        preference_id=PreferenceEnum.RESOLUTION,
+        preference_id=PreferenceKey.RESOLUTION,
+        pattern=r"(480(i|p)|640x480|848x480)",
     ),
-    # Languages
+    # Languages (Ezekhez nem volt minta a kódban, így None marad, vagy később bővíthető)
     AttributeModel(
-        id=LanguageEnum.HU.value,
+        id=AttributeKey.HUN,
         name="magyar",
-        preference_id=PreferenceEnum.LANGUAGE,
+        preference_id=PreferenceKey.LANGUAGE,
+        pattern=r"\b(hun(?:[-_. ]?dub)?|magyar|hungarian)\b",
     ),
     AttributeModel(
-        id=LanguageEnum.EN.value,
+        id=AttributeKey.ENG,
         name="angol",
-        preference_id=PreferenceEnum.LANGUAGE,
+        preference_id=PreferenceKey.LANGUAGE,
+        pattern=r"\b(eng(?:[-_. ]?dub)?|english)\b",
     ),
     # Video Qualities
     AttributeModel(
-        id=VideoQualityEnum.DV.value,
+        id=AttributeKey.DV,
         name="Dolby Vision",
-        preference_id=PreferenceEnum.VIDEO_QUALITY,
+        preference_id=PreferenceKey.VIDEO_QUALITY,
+        pattern=r"\b(dolby[-_. ]?vision|dovi|dv)\b",
     ),
     AttributeModel(
-        id=VideoQualityEnum.HDR10P.value,
+        id=AttributeKey.HDR10P,
         name="HDR10+",
-        preference_id=PreferenceEnum.VIDEO_QUALITY,
+        preference_id=PreferenceKey.VIDEO_QUALITY,
+        pattern=r"\b(hdr10(?:plus|p|\+))\b",
     ),
     AttributeModel(
-        id=VideoQualityEnum.HDR10.value,
+        id=AttributeKey.HDR10,
         name="HDR10",
-        preference_id=PreferenceEnum.VIDEO_QUALITY,
+        preference_id=PreferenceKey.VIDEO_QUALITY,
+        pattern=r"\b(hdr10)\b",
     ),
     AttributeModel(
-        id=VideoQualityEnum.HLG.value,
+        id=AttributeKey.HLG,
         name="HLG",
-        preference_id=PreferenceEnum.VIDEO_QUALITY,
+        preference_id=PreferenceKey.VIDEO_QUALITY,
+        pattern=r"\b(hlg)\b",
     ),
     AttributeModel(
-        id=VideoQualityEnum.SDR.value,
+        id=AttributeKey.SDR,
         name="SDR",
-        preference_id=PreferenceEnum.VIDEO_QUALITY,
+        preference_id=PreferenceKey.VIDEO_QUALITY,
+        pattern=None,  # Az SDR-t jellemzően fallback-ként kezeljük
     ),
     # Sources
     AttributeModel(
-        id=SourceEnum.DISC_REMUX.value,
+        id=AttributeKey.DISC_REMUX,
         name="Lemez (Remux - eredeti minőség)",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(remux)\b",
     ),
     AttributeModel(
-        id=SourceEnum.DISC_RIP.value,
+        id=AttributeKey.DISC_RIP,
         name="Lemez (Rip / újrakódolt)",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(bluray|bdrip|dvdrip)\b",
     ),
     AttributeModel(
-        id=SourceEnum.WEB_DL.value,
+        id=AttributeKey.WEB_DL,
         name="Streaming (WEB-DL - eredeti)",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(web[-_. ]?dl(?:[-_. ]?rip)?)\b",
     ),
     AttributeModel(
-        id=SourceEnum.WEB_RIP.value,
+        id=AttributeKey.WEB_RIP,
         name="Streaming (WEBRip - újrakódolt)",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(webrip)\b",
     ),
     AttributeModel(
-        id=SourceEnum.BROADCAST.value,
+        id=AttributeKey.BROADCAST,
         name="TV (HDTV / közvetített)",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(hdtv|pdtv|dvb|satrip)\b",
     ),
     AttributeModel(
-        id=SourceEnum.THEATRICAL.value,
+        id=AttributeKey.THEATRICAL,
         name="Mozis felvétel (CAM/TS/TC)",
-        preference_id=PreferenceEnum.SOURCE,
-    ),
-    AttributeModel(
-        id=SourceEnum.UNKNOWN.value,
-        name="Egyéb",
-        preference_id=PreferenceEnum.SOURCE,
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(cam|ts|tc)\b",
     ),
     # Audio Qualities
     AttributeModel(
-        id=AudioQualityEnum.TRUEHD.value,
+        id=AttributeKey.TRUEHD,
         name="Dolby TrueHD",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(truehd)\b",
     ),
     AttributeModel(
-        id=AudioQualityEnum.DTS_HD_MA.value,
+        id=AttributeKey.DTS_HD_MA,
         name="DTS-HD Master Audio",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(dts[-_. ]?hd[-_. ]?ma|dtshdma|dts[-_. ]?x(?:[-_. ]?7\.1)?)\b",
     ),
     AttributeModel(
-        id=AudioQualityEnum.DD_PLUS.value,
+        id=AttributeKey.DD_PLUS,
         name="Dolby Digital Plus",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(ddp(?:5\.1|7\.1)?|dd\+(?:5\.1|7\.1)?|eac3)\b",
     ),
     AttributeModel(
-        id=AudioQualityEnum.DTS.value,
+        id=AttributeKey.DTS,
         name="DTS Core",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(dts(?:5\.1)?)\b",
     ),
     AttributeModel(
-        id=AudioQualityEnum.DD.value,
+        id=AttributeKey.DD,
         name="Dolby Digital",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(dd(?:2\.0|5\.1|7\.1)?|ac[-_. ]?3)\b",
     ),
     AttributeModel(
-        id=AudioQualityEnum.AAC.value,
+        id=AttributeKey.AAC,
         name="AAC",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
-    ),
-    AttributeModel(
-        id=AudioQualityEnum.UNKNOWN.value,
-        name="Egyéb",
-        preference_id=PreferenceEnum.AUDIO_QUALITY,
+        preference_id=PreferenceKey.AUDIO_QUALITY,
+        pattern=r"\b(aac(?:2\.0|5\.1)?)\b",
     ),
     # Audio Spatials
     AttributeModel(
-        id=AudioSpatialEnum.DTS_X.value,
+        id=AttributeKey.DTS_X,
         name="DTS:X",
-        preference_id=PreferenceEnum.AUDIO_SPATIAL,
+        preference_id=PreferenceKey.AUDIO_SPATIAL,
+        pattern=r"\b(dts[-_. ]?x(?:[-_. ]?7\.1)?)\b",
     ),
     AttributeModel(
-        id=AudioSpatialEnum.DOLBY_ATMOS.value,
+        id=AttributeKey.DOLBY_ATMOS,
         name="Dolby Atmos",
-        preference_id=PreferenceEnum.AUDIO_SPATIAL,
+        preference_id=PreferenceKey.AUDIO_SPATIAL,
+        pattern=r"\b(atmos)\b",
     ),
     # Others
     AttributeModel(
-        id="3d",
+        id=AttributeKey.THREE_D,
         name="3D",
         preference_id=None,
+        pattern=r"\b(3d|hsbs|hou|half[-_. ]?(?:sbs|ou))\b",
     ),
 ]

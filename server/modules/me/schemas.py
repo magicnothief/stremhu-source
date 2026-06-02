@@ -1,4 +1,3 @@
-from modules.preferences.enums import PreferenceEnum
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -21,7 +20,7 @@ class MePreferenceCreateRequest(BaseModel):
         alias_generator=to_camel,
     )
 
-    preference: PreferenceEnum
+    preference_id: str
     preferred: list[str]
 
 
@@ -40,4 +39,4 @@ class MePreferencesReorderRequest(BaseModel):
         alias_generator=to_camel,
     )
 
-    preferences: list[PreferenceEnum]
+    preference_ids: list[str]

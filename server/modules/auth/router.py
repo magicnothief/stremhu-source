@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from modules.auth.dependencies import SessionGuard, get_auth_service
-from modules.auth.schemas import LoginRequest, RegisterRequest
+from modules.auth.schemas.api import LoginRequest, RegisterRequest
 from modules.auth.service import AuthService
 from modules.roles.enums import UserRole
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
-from modules.users.schemas import User, UserCreateRequest
+from modules.users.schemas.api import UserResponse
+from modules.users.schemas.internal import UserCreate
 from modules.users.service import UsersService
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post(
     "/register",
-    response_model=User,
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def register(
@@ -26,7 +27,7 @@ def register(
             detail="A regisztráció le van tiltva, mert már létezik felhasználó a rendszerben.",
         )
 
-    user_model = UserCreateRequest(
+    user_model = UserCreate(
         username=payload.username,
         password=payload.password,
         role_id=UserRole.ADMIN,
@@ -36,7 +37,7 @@ def register(
 
 @router.post(
     "/login",
-    response_model=User,
+    response_model=UserResponse,
 )
 def login(
     req: Request,

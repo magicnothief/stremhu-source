@@ -2,7 +2,6 @@ from common.logger import logger
 from modules.attributes.models import AttributeModel
 from modules.attributes.repository import AttributesRepository
 from modules.attributes.seeds import DEFAULT_ATTRIBUTES
-from modules.preferences.enums import PreferenceEnum
 
 
 class AttributesService:
@@ -14,9 +13,9 @@ class AttributesService:
         """Fetches all attributes."""
         return self._repository.find_all()
 
-    def get_by_preference(self, preference: PreferenceEnum) -> list[AttributeModel]:
+    def get_by_preference(self, preference_id: str) -> list[AttributeModel]:
         """Fetches all attributes belonging to a specific preference category."""
-        return self._repository.find_by_preference(preference)
+        return self._repository.find_by_preference(preference_id)
 
     def get_all_as_map(self) -> dict[str, AttributeModel]:
         """Fetches all attributes as a dictionary mapping ID to AttributeModel."""
@@ -42,14 +41,17 @@ class AttributesService:
                 if (
                     db_attribute.name != code_attribute.name
                     or db_attribute.preference_id != code_attribute.preference_id
+                    or db_attribute.pattern != code_attribute.pattern
                 ):
                     db_attribute.name = code_attribute.name
                     db_attribute.preference_id = code_attribute.preference_id
+                    db_attribute.pattern = code_attribute.pattern
             else:
                 new_attribute = AttributeModel(
                     id=code_attribute.id,
                     name=code_attribute.name,
                     preference_id=code_attribute.preference_id,
+                    pattern=code_attribute.pattern,
                 )
                 self._repository.add(new_attribute)
 

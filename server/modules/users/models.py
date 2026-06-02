@@ -3,20 +3,22 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from common.database import Base, UTCDateTime
-from modules.preferences.models import UserPreferenceModel
 from modules.roles.enums import UserRole
 from modules.roles.models import RoleModel
+from modules.user_preference_definitions.models import UserPreferenceDefinitionModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class UserModel(Base):
     __tablename__ = "users"
 
-    preferences: Mapped[list["UserPreferenceModel"]] = relationship(
-        "UserPreferenceModel",
-        back_populates="user",
-        cascade="all, delete-orphan",
-        init=False,
+    preference_definitions: Mapped[list["UserPreferenceDefinitionModel"]] = (
+        relationship(
+            "UserPreferenceDefinitionModel",
+            back_populates="user",
+            cascade="all, delete-orphan",
+            init=False,
+        )
     )
 
     username: Mapped[str] = mapped_column(

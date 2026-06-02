@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 
 import humanize
 from modules.attributes.models import AttributeModel
-from modules.preferences.enums import PreferenceEnum
+from modules.preferences.constants import PreferenceKey
+from modules.stremio.constants import ADDON_APP_PREFIX_ID
 from modules.stremio.enums import (
     ContentType,
     ExtraName,
@@ -13,6 +14,7 @@ from modules.stremio.enums import (
     ShortManifestResource,
     StreamIdType,
 )
+from modules.torrent_files.models import TorrentFileModel
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 from pydash import compact
@@ -150,7 +152,7 @@ class StremioStream(BaseModel):
         description_first_line = " | ".join(compact([indexer, seeders, file_size]))
 
         resolutions = cls._attributes_parser(
-            preference=PreferenceEnum.RESOLUTION,
+            preference_id=PreferenceKey.RESOLUTION,
             attributes=torrent_stream.attributes,
         )
 
@@ -159,7 +161,7 @@ class StremioStream(BaseModel):
         )
 
         audio_qualities = cls._attributes_parser(
-            preference=PreferenceEnum.AUDIO_QUALITY,
+            preference_id=PreferenceKey.AUDIO_QUALITY,
             attributes=torrent_stream.attributes,
         )
 
@@ -168,7 +170,7 @@ class StremioStream(BaseModel):
         )
 
         video_qualities = cls._attributes_parser(
-            preference=PreferenceEnum.VIDEO_QUALITY,
+            preference_id=PreferenceKey.VIDEO_QUALITY,
             attributes=torrent_stream.attributes,
         )
 
@@ -177,7 +179,7 @@ class StremioStream(BaseModel):
         )
 
         audio_spatials = cls._attributes_parser(
-            preference=PreferenceEnum.AUDIO_SPATIAL,
+            preference_id=PreferenceKey.AUDIO_SPATIAL,
             attributes=torrent_stream.attributes,
         )
 
@@ -186,14 +188,14 @@ class StremioStream(BaseModel):
         )
 
         language = cls._attributes_parser(
-            preference=PreferenceEnum.LANGUAGE,
+            preference_id=PreferenceKey.LANGUAGE,
             attributes=torrent_stream.attributes,
         )
 
         readable_language = ", ".join([language.name for language in language])
 
         sources = cls._attributes_parser(
-            preference=PreferenceEnum.SOURCE,
+            preference_id=PreferenceKey.SOURCE,
             attributes=torrent_stream.attributes,
         )
 
@@ -224,13 +226,13 @@ class StremioStream(BaseModel):
     @classmethod
     def _attributes_parser(
         cls,
-        preference: PreferenceEnum,
+        preference_id: str,
         attributes: list[AttributeModel],
     ) -> list[AttributeModel]:
         return [
             attribute
             for attribute in attributes
-            if attribute.preference_id == preference
+            if attribute.preference_id == preference_id
         ]
 
 
@@ -286,7 +288,7 @@ class MetaVideo(BaseModel):
     overview: str | None = None
 
 
-class MetaPreview(BaseModel):
+class BaseMeta(BaseModel):
     model_config = ConfigDict(
         validate_by_name=True,
         alias_generator=to_camel,
@@ -297,7 +299,7 @@ class MetaPreview(BaseModel):
     type: ContentType
     name: str
     poster: str | None = None
-    poster_shape: PosterShape | None = None
+    poster_shape: PosterShape = PosterShape.REGULAR
     background: str | None = None
     logo: str | None = None
     description: str | None = None
@@ -308,18 +310,28 @@ class MetaPreview(BaseModel):
     director: list[str] | None = None
     links: list[MetaLink] | None = None
 
-
-class MetaDetailBehaviorHints(BaseModel):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-    default_video_id: str | None = None
-    has_scheduled_videos: bool | None = None
+    @staticmethod
+    def build_meta_id(indexer_id: str, torrent_id: str) -> str:
+        return f"{ADDON_APP_PREFIX_ID}{indexer_id}:{torrent_id}"
 
 
-class MetaDetail(MetaPreview):
+class MetaPreview(BaseMeta):
+    @classmethod
+    def from_torrent_file(
+        cls,
+        torrent_file: TorrentFileModel,
+    ) -> MetaPreview:
+        return cls(
+            id=cls.build_meta_id(
+                torrent_file.indexer_id,
+                torrent_file.torrent_id,
+            ),
+            type=ContentType.MOVIE,
+            name=torrent_file.info.name,
+        )
+
+
+class MetaDetail(BaseMeta):
     released: str | None = None
     year: str | None = None
     trailers: list[MetaTrailer] | None = None
@@ -331,6 +343,30 @@ class MetaDetail(MetaPreview):
     website: str | None = None
     behavior_hints: MetaDetailBehaviorHints | None = None
     writer: list[str] | None = None
+
+    @classmethod
+    def from_torrent_file(
+        cls,
+        torrent_file: TorrentFileModel,
+    ) -> MetaDetail:
+        return cls(
+            id=cls.build_meta_id(
+                torrent_file.indexer_id,
+                torrent_file.torrent_id,
+            ),
+            type=ContentType.MOVIE,
+            name=torrent_file.info.name,
+        )
+
+
+class MetaDetailBehaviorHints(BaseModel):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+    default_video_id: str | None = None
+    has_scheduled_videos: bool | None = None
 
 
 class StremioCatalogResponse(BaseModel):

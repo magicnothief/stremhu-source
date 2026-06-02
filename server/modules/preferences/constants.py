@@ -1,7 +1,4 @@
-from enum import Enum
-
-
-class PreferenceEnum(str, Enum):
+class PreferenceKey:
     SITE = "site"
     LANGUAGE = "language"
     RESOLUTION = "resolution"

@@ -1,12 +1,5 @@
-from enum import Enum
-
-
-class LanguageEnum(str, Enum):
-    HU = "hu"
-    EN = "en"
-
-
-class ResolutionEnum(str, Enum):
+class AttributeKey:
+    # Resolution
     R2160P = "2160p"
     R1080P = "1080p"
     R720P = "720p"
@@ -14,35 +7,36 @@ class ResolutionEnum(str, Enum):
     R540P = "540p"
     R480P = "480p"
 
+    # Language
+    HUN = "hun"
+    ENG = "eng"
 
-class VideoQualityEnum(str, Enum):
+    # Video Quality
     DV = "dolby-vision"
-    HDR10P = "hdr10plus"
+    HDR10P = "hdr10p"
     HDR10 = "hdr10"
     HLG = "hlg"
     SDR = "sdr"
 
-
-class SourceEnum(str, Enum):
+    # Source
     DISC_REMUX = "disc-remux"
     DISC_RIP = "disc-rip"
     WEB_DL = "web-dl"
     WEB_RIP = "web-rip"
     BROADCAST = "broadcast"
     THEATRICAL = "theatrical"
-    UNKNOWN = "source-unknown"
 
-
-class AudioQualityEnum(str, Enum):
+    # Audio Quality
     TRUEHD = "truehd"
     DTS_HD_MA = "dts-hd-ma"
-    DD_PLUS = "ddp"
+    DD_PLUS = "dd-plus"
     DTS = "dts"
     DD = "dd"
     AAC = "aac"
-    UNKNOWN = "audio-unknown"
 
-
-class AudioSpatialEnum(str, Enum):
-    DOLBY_ATMOS = "dolby-atmos"
+    # Audio Spatial
     DTS_X = "dts-x"
+    DOLBY_ATMOS = "dolby-atmos"
+
+    # Other
+    THREE_D = "3d"

@@ -4,7 +4,7 @@ from argon2 import PasswordHasher
 from fastapi import HTTPException, status
 from modules.users.models import UserModel
 from modules.users.repository import UsersRepository
-from modules.users.schemas import UserCreateRequest, UserUpdateRequest
+from modules.users.schemas.internal import UserCreate, UserUpdate
 
 
 class UsersService:
@@ -12,11 +12,11 @@ class UsersService:
         self._users_repository = users_repository
 
     def get_list(self) -> list[UserModel]:
-        return self._users_repository.find()
+        return self._users_repository.find_list()
 
     def create(
         self,
-        payload: UserCreateRequest,
+        payload: UserCreate,
     ) -> UserModel:
         self._check_exist_username(payload.username)
 
@@ -44,11 +44,11 @@ class UsersService:
 
         return self._users_repository.create(user)
 
-    def get_by_id(self, id: str) -> UserModel | None:
+    def find_by_id(self, id: str) -> UserModel | None:
         return self._users_repository.find_by_id(id)
 
-    def get_by_id_or_raise(self, id: str) -> UserModel:
-        user = self.get_by_id(id)
+    def get_by_id(self, id: str) -> UserModel:
+        user = self.find_by_id(id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -56,10 +56,10 @@ class UsersService:
             )
         return user
 
-    def get_by_username(self, username: str) -> UserModel | None:
+    def find_by_username(self, username: str) -> UserModel | None:
         return self._users_repository.find_by_username(username)
 
-    def get_by_token(self, token: str) -> UserModel | None:
+    def find_by_token(self, token: str) -> UserModel | None:
         return self._users_repository.find_by_token(token)
 
     def count(self) -> int:
@@ -68,9 +68,9 @@ class UsersService:
     def update(
         self,
         user_id: str,
-        payload: UserUpdateRequest,
+        payload: UserUpdate,
     ) -> UserModel:
-        user = self.get_by_id_or_raise(user_id)
+        user = self.get_by_id(user_id)
 
         update_data = payload.model_dump(exclude_unset=True)
 
@@ -90,7 +90,7 @@ class UsersService:
         return self._users_repository.create(user)
 
     def regenerate_token(self, user_id: str) -> UserModel:
-        user = self.get_by_id_or_raise(user_id)
+        user = self.get_by_id(user_id)
         user.token = str(uuid.uuid4())
         return self._users_repository.create(user)
 
@@ -101,7 +101,7 @@ class UsersService:
                 detail="Saját fiókod törlésére nincs lehetőség!",
             )
 
-        self.get_by_id_or_raise(user_id)
+        self.get_by_id(user_id)
         self._users_repository.delete(user_id)
 
     def _check_exist_username(self, username: str) -> None:

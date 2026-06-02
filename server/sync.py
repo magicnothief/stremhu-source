@@ -4,7 +4,7 @@ from modules.attributes.dependencies import create_attributes_service
 from modules.indexer_definitions.dependencies import (
     get_indexer_definitions_service,
 )
-from modules.preferences.service import PreferencesService
+from modules.preferences.dependencies import create_preferences_service
 from modules.relay_settings.dependencies import create_relay_settings_service
 from modules.roles.dependencies import create_roles_service
 
@@ -21,7 +21,7 @@ def sync_database_and_settings() -> None:
             roles_service.sync_to_db()
 
             # 2. Preferenciák szinkronizálása (az attribútumok hivatkoznak rájuk)
-            preferences_service = PreferencesService(db)
+            preferences_service = create_preferences_service(db)
             preferences_service.sync_to_db()
 
             # 3. Attribútumok szinkronizálása

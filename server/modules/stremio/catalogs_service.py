@@ -9,8 +9,8 @@ from modules.stremio.enums import (
     MediaType,
 )
 from modules.stremio.schemas import (
+    MetaDetail,
     MetaPreview,
-    MetaResponse,
     ParsedExtra,
     StremioCatalogResponse,
 )
@@ -60,12 +60,15 @@ class StremioCatalogsService:
     async def get_metas(self, torrent_id: str) -> list[MetaPreview]:
         (
             torrent_sources,
-            indexer_errors,
+            _,
         ) = await self._torrent_source_provider_service.find_by_torrent_id(torrent_id)
 
-        return []
+        return [
+            MetaPreview.from_torrent_file(torrent_source.torrent_file)
+            for torrent_source in torrent_sources
+        ]
 
-    async def get_meta(self, indexer_id: str, torrent_id: str) -> MetaResponse:
+    async def get_meta(self, indexer_id: str, torrent_id: str) -> MetaDetail | None:
         torrent_file = self._torrent_files_service.get_one(
             indexer_id=indexer_id,
             torrent_id=torrent_id,
@@ -83,6 +86,6 @@ class StremioCatalogsService:
                 torrent_file = torrent_source.torrent_file
 
         if not torrent_file:
-            return MetaResponse(meta={})
+            return None
 
-        return MetaResponse(meta={})
+        return MetaDetail.from_torrent_file(torrent_file)

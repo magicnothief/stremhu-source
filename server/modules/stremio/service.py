@@ -17,8 +17,6 @@ from modules.stremio.schemas import (
     ManifestBehaviorHints,
     ManifestCatalog,
     ManifestExtra,
-    MetaPreview,
-    MetaResponse,
     ParsedExtra,
     ParsedStreamId,
     ParsedTorrentStreamId,
@@ -89,20 +87,16 @@ class StremioService:
     ) -> list[StremioStream]:
         """Lekéri a lejátszható streameket az adatbázisból vagy indexerekből."""
         if isinstance(parsed_id, ParsedTorrentStreamId):
-            torrent_stream = await self._torrent_streams_service.find_one_by_torrent_id(
+            torrent_streams = await self._torrent_streams_service.find_by_torrent_id(
                 indexer_id=parsed_id.indexer_id,
                 torrent_id=parsed_id.torrent_id,
                 user=user,
             )
 
-            stremio_streams = []
-            if torrent_stream:
-                stremio_streams.append(
-                    StremioStream.from_torrent_stream(
-                        torrent_stream=torrent_stream,
-                    )
-                )
-            return stremio_streams
+            return [
+                StremioStream.from_torrent_stream(torrent_stream=torrent_stream)
+                for torrent_stream in torrent_streams
+            ]
 
         # IMDb alapú stream lekérdezés kereséssel és feloldással
         torrent_streams, errors = await self._torrent_streams_service.find_by_imdb(
@@ -140,15 +134,3 @@ class StremioService:
             meta_previews = []
 
         return StremioCatalogResponse(metas=meta_previews)
-
-    async def get_metas(self, torrent_id: str) -> list[MetaPreview]:
-        torrent_streams = await self._torrent_streams_service.find_by_torrent_ids(
-            indexer_id="",
-            torrent_id=torrent_id,
-            user=user,
-        )
-
-        return []
-
-    async def get_meta(self, tracker_id: str, torrent_id: str) -> MetaResponse:
-        pass

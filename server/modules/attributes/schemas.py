@@ -10,4 +10,5 @@ class Attribute(BaseModel):
     )
 
     id: str
+
     name: str

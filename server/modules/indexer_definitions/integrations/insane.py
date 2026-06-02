@@ -6,7 +6,7 @@
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
-from modules.attributes.enums import LanguageEnum, ResolutionEnum
+from modules.attributes.constants import AttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
 from modules.indexer_definitions.schemas import (
@@ -190,16 +190,16 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
     # --- Segédfüggvények ---
 
-    def _resolve_resolution(self, category: str) -> ResolutionEnum:
+    def _resolve_resolution(self, category: str) -> str:
         cat_type = _CATEGORY_MAP.get(category, "none")
         if "uhd" in cat_type:
-            return ResolutionEnum.R2160P
+            return AttributeKey.R2160P
         if "hd" in cat_type:
-            return ResolutionEnum.R720P
-        return ResolutionEnum.R480P
+            return AttributeKey.R720P
+        return AttributeKey.R480P
 
-    def _resolve_language(self, category: str) -> LanguageEnum:
+    def _resolve_language(self, category: str) -> str:
         cat_type = _CATEGORY_MAP.get(category, "none")
         if "hun" in cat_type:
-            return LanguageEnum.HU
-        return LanguageEnum.EN
+            return AttributeKey.HUN
+        return AttributeKey.ENG

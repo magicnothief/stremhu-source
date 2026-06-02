@@ -1,188 +1,71 @@
 import re
-from typing import TypedDict
+from collections import defaultdict
 
-from modules.attributes.enums import (
-    AudioQualityEnum,
-    AudioSpatialEnum,
-    LanguageEnum,
-    ResolutionEnum,
-    SourceEnum,
-    VideoQualityEnum,
-)
 from modules.attributes.models import AttributeModel
-from modules.preferences.enums import PreferenceEnum
-
-
-class ParsedTorrentMetadata(TypedDict):
-    language: LanguageEnum
-    resolution: ResolutionEnum
-    video_quality: list[VideoQualityEnum]
-    audio_quality: AudioQualityEnum
-    audio_spatial: AudioSpatialEnum | None
-    source: SourceEnum
-
-
-# --- RENDSZEREZETT REGEX MINTÁK ---
-
-RESOLUTION_PATTERNS = {
-    ResolutionEnum.R2160P: re.compile(
-        r"(2160p|4k[-_. ](?:UHD|HEVC|BD)|(?:UHD|HEVC|BD)[-_. ]4k|\b(4k)\b|COMPLETE.UHD|UHD.COMPLETE)",
-        re.IGNORECASE,
-    ),
-    ResolutionEnum.R1080P: re.compile(r"(1080(i|p)|1920x1080)(10bit)?", re.IGNORECASE),
-    ResolutionEnum.R720P: re.compile(
-        r"(720(i|p)|1280x720|960p)(10bit)?", re.IGNORECASE
-    ),
-    ResolutionEnum.R576P: re.compile(r"(576(i|p))", re.IGNORECASE),
-    ResolutionEnum.R540P: re.compile(r"(540(i|p))", re.IGNORECASE),
-    ResolutionEnum.R480P: re.compile(r"(480(i|p)|640x480|848x480)", re.IGNORECASE),
-}
-
-# --- SUBSTRING ALAPÚ MINTÁK (NestJS alapján) ---
-
-VIDEO_QUALITY_PATTERNS = {
-    VideoQualityEnum.DV: [".dolby.vision.", ".dovi.", ".dovi-", "-dovi.", ".dv."],
-    VideoQualityEnum.HDR10: [
-        ".hdr.",
-        "-hdr.",
-        ".hdr-",
-        ".hdr10.",
-        "-hdr10.",
-        ".hdr10-",
-    ],
-    VideoQualityEnum.HDR10P: [
-        ".hdr10plus.",
-        "-hdr10plus.",
-        ".hdr10plus-",
-        ".hdr10+.",
-        "-hdr10+.",
-        ".hdr10+-",
-        ".hdr10p.",
-        "-hdr10p.",
-        ".hdr10p-",
-    ],
-    VideoQualityEnum.HLG: [".hlg."],
-}
-
-AUDIO_QUALITY_PATTERNS = {
-    AudioQualityEnum.TRUEHD: [".truehd."],
-    AudioQualityEnum.DTS_HD_MA: [
-        ".dts-hd.ma.",
-        ".dtshdma.",
-        ".dts-hdma.",
-        ".dtsx.",
-        ".dtsx.7.1.",
-        ".dts.x.",
-        ".dts.x7.1.",
-        ".dts.x.7.1.",
-    ],
-    AudioQualityEnum.DD_PLUS: [
-        ".ddp.",
-        ".ddp5.1.",
-        ".ddp7.1.",
-        ".dd+.",
-        ".dd+5.1.",
-        ".dd+7.1.",
-        ".eac3.",
-    ],
-    AudioQualityEnum.DTS: [".dts.", ".dts5.1."],
-    AudioQualityEnum.DD: [
-        ".dd.",
-        ".dd2.0.",
-        ".dd5.1.",
-        ".dd7.1.",
-        ".ac3.",
-        ".ac-3.",
-    ],
-    AudioQualityEnum.AAC: [".aac.", ".aac2.0.", ".aac5.1."],
-}
-
-AUDIO_SPATIAL_PATTERNS = {
-    AudioSpatialEnum.DTS_X: [
-        ".dtsx.",
-        ".dtsx.7.1.",
-        ".dts.x.",
-        ".dts.x7.1.",
-        ".dts.x.7.1.",
-    ],
-    AudioSpatialEnum.DOLBY_ATMOS: [".atmos."],
-}
-
-SOURCE_PATTERNS = {
-    SourceEnum.DISC_REMUX: [".remux."],
-    SourceEnum.DISC_RIP: [".bluray.", ".bdrip.", ".dvdrip."],
-    SourceEnum.WEB_DL: [".web-dl.", ".web_dl.", ".web-dl-rip."],
-    SourceEnum.WEB_RIP: [".webrip."],
-    SourceEnum.BROADCAST: [".hdtv.", ".pdtv.", ".dvb.", ".satrip."],
-    SourceEnum.THEATRICAL: [".cam.", ".ts.", ".tc."],
-}
+from modules.preferences.models import PreferenceModel
 
 
 class TorrentMetadataParser:
     def __init__(
         self,
         name: str,
-        attributes_map: dict[str, AttributeModel],
-        fallback_attributes: list[AttributeModel],
+        attributes: list[AttributeModel],
+        preferences: list[PreferenceModel],
     ):
         self._name = name.lower()
-        self._attribute_map = attributes_map
-        self._fallback_attributes = fallback_attributes
 
-    def parse_resolution(self) -> ResolutionEnum | None:
-        for res_enum, pattern in RESOLUTION_PATTERNS.items():
-            if pattern.search(self._name):
-                return res_enum
-        for fallback_attribute in self._fallback_attributes:
-            if fallback_attribute.preference_id == PreferenceEnum.RESOLUTION:
-                return ResolutionEnum(fallback_attribute.id)
-        return None
+        # 1. Preferenciák viselkedésének (multiple) kigyűjtése (string kulcsokkal)
+        self._preference_multiple_map: dict[str, bool] = {
+            pref.id: pref.multiple for pref in preferences
+        }
 
-    def parse_video_quality(self) -> list[VideoQualityEnum]:
-        matched = []
-        for quality_enum, patterns in VIDEO_QUALITY_PATTERNS.items():
-            if any(p in self._name for p in patterns):
-                matched.append(quality_enum)
-        return matched if matched else [VideoQualityEnum.SDR]
+        # 2. Attribútumok szétválogatása: Regexes keresendők vs. Fallback értékek
+        self._grouped_attributes: dict[str | None, list[AttributeModel]] = defaultdict(
+            list
+        )
+        self._fallbacks: dict[str | None, AttributeModel] = {}
 
-    def parse_audio_quality(self) -> AudioQualityEnum:
-        for audio_enum, patterns in AUDIO_QUALITY_PATTERNS.items():
-            if any(p in self._name for p in patterns):
-                return audio_enum
-        return AudioQualityEnum.UNKNOWN
-
-    def parse_audio_spatial(self) -> AudioSpatialEnum | None:
-        for spatial_enum, patterns in AUDIO_SPATIAL_PATTERNS.items():
-            if any(p in self._name for p in patterns):
-                return spatial_enum
-        return None
-
-    def parse_source(self) -> SourceEnum:
-        for source_enum, patterns in SOURCE_PATTERNS.items():
-            if any(p in self._name for p in patterns):
-                return source_enum
-        return SourceEnum.UNKNOWN
+        for attr in attributes:
+            # Type narrowing: Ha biztosan string, mehet a keresendők közé
+            if isinstance(attr.pattern, str) and attr.pattern.strip():
+                self._grouped_attributes[attr.preference_id].append(attr)
+            else:
+                self._fallbacks[attr.preference_id] = attr
 
     def parse(self) -> list[AttributeModel]:
-        row_attribute_ids: list[str | None] = [
-            self.parse_resolution(),
-            *self.parse_video_quality(),
-            self.parse_audio_quality(),
-            *(self.parse_audio_spatial() or []),
-            self.parse_source(),
-        ]
+        matched_attributes: list[AttributeModel] = []
 
-        attribute_ids: list[str] = [
-            row_attribute_id
-            for row_attribute_id in row_attribute_ids
-            if row_attribute_id is not None
-        ]
+        # Az összes létező kategória azonosítója (stringek és a None)
+        all_pref_ids = set(self._grouped_attributes.keys()) | set(
+            self._fallbacks.keys()
+        )
 
-        attributes: list[AttributeModel] = []
-        for attribute_id in attribute_ids:
-            attribute = self._attribute_map.get(attribute_id)
-            if attribute is None:
-                continue
-            attributes.append(attribute)
+        for pref_id in all_pref_ids:
+            category_matched = False
 
-        return attributes
+            # Ha nincs preference_id (pl. egyedi tagek, mint a 3D), ott több találatot is engedünk
+            is_multiple = (
+                self._preference_multiple_map.get(pref_id, False) if pref_id else True
+            )
+
+            for attr in self._grouped_attributes.get(pref_id, []):
+                # Biztonsági ellenőrzés a típusellenőrző megnyugtatására a cikluson belül is
+                if not isinstance(attr.pattern, str):
+                    continue
+
+                # Jelenleg itt történik a fordítás minden alkalommal
+                pattern = re.compile(attr.pattern, re.IGNORECASE)
+
+                if pattern.search(self._name):
+                    matched_attributes.append(attr)
+                    category_matched = True
+
+                    # EARLY EXIT
+                    if not is_multiple:
+                        break
+
+            # Fallback kezelés, ha semmi nem illeszkedett az adott kategóriában
+            if not category_matched and pref_id in self._fallbacks:
+                matched_attributes.append(self._fallbacks[pref_id])
+
+        return matched_attributes

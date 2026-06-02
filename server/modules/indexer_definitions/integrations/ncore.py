@@ -6,7 +6,7 @@
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
-from modules.attributes.enums import LanguageEnum, ResolutionEnum
+from modules.attributes.constants import AttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
 from modules.indexer_definitions.schemas import (
@@ -164,12 +164,12 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
         return ids
 
-    def _resolve_resolution(self, category: str) -> ResolutionEnum:
+    def _resolve_resolution(self, category: str) -> str:
         if "hd" in category:
-            return ResolutionEnum.R720P
-        return ResolutionEnum.R480P
+            return AttributeKey.R720P
+        return AttributeKey.R480P
 
-    def _resolve_language(self, category: str) -> LanguageEnum:
+    def _resolve_language(self, category: str) -> str:
         if "hun" in category:
-            return LanguageEnum.HU
-        return LanguageEnum.EN
+            return AttributeKey.HUN
+        return AttributeKey.ENG

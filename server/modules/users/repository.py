@@ -6,7 +6,7 @@ class UsersRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find(self) -> list[UserModel]:
+    def find_list(self) -> list[UserModel]:
         return self.db.query(UserModel).all()
 
     def find_by_id(self, id: str) -> UserModel | None:

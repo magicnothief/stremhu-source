@@ -3,7 +3,6 @@ import asyncio
 import humanize
 from modules.attributes.service import AttributesService
 from modules.network.service import NetworkService
-from modules.preferences.enums import PreferenceEnum
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_source_provider.service import (
     TorrentSourceProviderService,
@@ -126,7 +125,7 @@ class TorrentStreamsService:
             user.preferences, key=lambda preference: preference.order
         )
 
-        preference_rank_maps: list[tuple[PreferenceEnum, dict[str, int], int]] = []
+        preference_rank_maps: list[tuple[str, dict[str, int], int]] = []
         for sorted_preference in sorted_preferences:
             definition_attributes = sorted(
                 sorted_preference.definition.definition_attributes,

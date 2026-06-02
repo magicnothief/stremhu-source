@@ -1,5 +1,4 @@
 from modules.attributes.models import AttributeModel
-from modules.preferences.enums import PreferenceEnum
 from sqlalchemy.orm import Session
 
 
@@ -11,11 +10,11 @@ class AttributesRepository:
         """Fetches all attributes from the database."""
         return self.db.query(AttributeModel).all()
 
-    def find_by_preference(self, preference: PreferenceEnum) -> list[AttributeModel]:
+    def find_by_preference(self, preference_id: str) -> list[AttributeModel]:
         """Fetches all attributes belonging to a specific preference category."""
         return (
             self.db.query(AttributeModel)
-            .filter(AttributeModel.preference_id == preference)
+            .filter(AttributeModel.preference_id == preference_id)
             .all()
         )
 

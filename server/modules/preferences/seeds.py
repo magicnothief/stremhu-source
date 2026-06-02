@@ -1,40 +1,42 @@
-from modules.preferences.enums import PreferenceEnum
+from modules.preferences.constants import PreferenceKey
 from modules.preferences.models import PreferenceModel
 
 DEFAULT_PREFERENCES = [
     PreferenceModel(
-        id=PreferenceEnum.SITE,
-        name="torrent oldal",
-        description="A torrent oldal, ahonnan a torrentet keressük.",
+        id=PreferenceKey.SITE,
+        name="Torrent oldal",
+        description="Az oldal, ahonnan a torrenteket keressük.",
     ),
     PreferenceModel(
-        id=PreferenceEnum.LANGUAGE,
-        name="nyelv",
+        id=PreferenceKey.LANGUAGE,
+        name="Nyelv",
         description="A tartalom nyelve hang alapján.",
     ),
     PreferenceModel(
-        id=PreferenceEnum.RESOLUTION,
-        name="felbontás",
+        id=PreferenceKey.RESOLUTION,
+        name="Felbontás",
         description="A videó képmérete, felbontása.",
     ),
     PreferenceModel(
-        id=PreferenceEnum.SOURCE,
-        name="forrás",
+        id=PreferenceKey.SOURCE,
+        name="Forrás",
         description="A kiadás forrástípusa / eredete.",
     ),
     PreferenceModel(
-        id=PreferenceEnum.VIDEO_QUALITY,
-        name="képminőség",
+        id=PreferenceKey.VIDEO_QUALITY,
+        name="Képminőség",
         description="A videó képi minőségi formátuma.",
+        multiple=True,
     ),
     PreferenceModel(
-        id=PreferenceEnum.AUDIO_QUALITY,
-        name="hangminőség",
+        id=PreferenceKey.AUDIO_QUALITY,
+        name="Hangminőség",
         description="A hangsáv formátuma / minősége",
+        multiple=True,
     ),
     PreferenceModel(
-        id=PreferenceEnum.AUDIO_SPATIAL,
-        name="térhangzás",
+        id=PreferenceKey.AUDIO_SPATIAL,
+        name="Térhangzás",
         description="Objektumalapú surround hangzás",
     ),
 ]
