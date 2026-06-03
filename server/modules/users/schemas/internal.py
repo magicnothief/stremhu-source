@@ -1,7 +1,4 @@
-from datetime import datetime
-
 from modules.roles.enums import UserRole
-from modules.roles.schemas import Role
 from pydantic import BaseModel
 
 
@@ -12,7 +9,7 @@ class BaseUser(BaseModel):
 
 
 class UserCreate(BaseUser):
-    password: str
+    password: str | None = None
     role_id: UserRole = UserRole.USER
 
 
@@ -22,14 +19,6 @@ class UserUpdate(BaseModel):
     role_id: UserRole | None = None
     torrent_seed: int | None = None
     only_best_torrent: bool | None = None
-
-
-class User(BaseUser):
-    id: str
-    role: Role
-    api_key: str
-    updated_at: datetime
-    created_at: datetime
 
 
 class UserPreferenceCreate(BaseModel):

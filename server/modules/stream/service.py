@@ -31,13 +31,13 @@ class StreamService:
         torrent_id: str,
         file_index: int,
     ) -> tuple[ParsedRangeHeader, File]:
-        torrent_pair: TorrentPair | None = self._torrents_service.get_one(
+        torrent_pair: TorrentPair | None = self._torrents_service.find_by_id(
             indexer_id=indexer_id,
             torrent_id=torrent_id,
         )
 
         if torrent_pair is None:
-            torrent_file = self._torrent_files_service.get_one(
+            torrent_file = self._torrent_files_service.find_by_id(
                 indexer_id=indexer_id,
                 torrent_id=torrent_id,
             )

@@ -40,7 +40,7 @@ DEFAULT_ATTRIBUTES = [
         preference_id=PreferenceKey.RESOLUTION,
         pattern=r"(480(i|p)|640x480|848x480)",
     ),
-    # Languages (Ezekhez nem volt minta a kódban, így None marad, vagy később bővíthető)
+    # Languages
     AttributeModel(
         id=AttributeKey.HUN,
         name="magyar",

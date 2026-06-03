@@ -122,7 +122,7 @@ class TorrentStreamsService:
         for stream in torrent_streams:
             stream.is_persisted_torrent = stream.info_hash in active_hashes
         sorted_preferences = sorted(
-            user.preferences, key=lambda preference: preference.order
+            user.preference_definitions, key=lambda preference: preference.order
         )
 
         preference_rank_maps: list[tuple[str, dict[str, int], int]] = []

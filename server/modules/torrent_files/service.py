@@ -80,7 +80,10 @@ class TorrentFilesService:
                     f"Hiba történt a(z) {indexer_id} - {torrent_id} rekord törlése során: {e}"
                 )
 
-    def delete_all_by_indexer_id(self, indexer_id: str) -> None:
+    def delete_by_indexer_id(
+        self,
+        indexer_id: str,
+    ) -> None:
         """Törli az indexer összes inaktív .torrent rekordját az adatbázisból."""
         torrent_files = self._torrent_files_repository.find_list(
             TorrentFilesFilter(

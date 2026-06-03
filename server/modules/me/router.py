@@ -6,7 +6,7 @@ from modules.me.schemas import (
     MePreferenceUpdateRequest,
     MeUpdateRequest,
 )
-from modules.preferences.schemas import Preference
+from modules.preferences.schemas.api import PreferenceResponse
 from modules.user_preference_definitions.dependencies import (
     get_user_preference_definitions_service,
 )
@@ -57,28 +57,37 @@ def regenerate_api_key(
     return users_service.regenerate_api_key(current_user.id)
 
 
-@router.get("/preferences", response_model=list[Preference])
+@router.get(
+    "/preferences",
+    response_model=list[PreferenceResponse],
+)
 def get_preferences(
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     current_user: UserModel = Depends(SessionGuard()),
-) -> list[Preference]:
+) -> list[PreferenceResponse]:
     """
     Lists all of the current user's preference settings.
     """
     models = user_preference_definitions_service.find_list(current_user.id)
-    return [Preference.from_model(model) for model in models]
+    return [
+        PreferenceResponse.from_user_preference_definition_model(model)
+        for model in models
+    ]
 
 
-@router.post("/preferences", response_model=Preference)
+@router.post(
+    "/preferences",
+    response_model=PreferenceResponse,
+)
 def create_preference(
     payload: MePreferenceCreateRequest,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     current_user: UserModel = Depends(SessionGuard()),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Adds/creates a preference setting with ordered preferred attributes.
     """
@@ -87,17 +96,20 @@ def create_preference(
         payload.preference_id,
         payload.preferred,
     )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.get("/preferences/{preference_id}", response_model=Preference)
+@router.get(
+    "/preferences/{preference_id}",
+    response_model=PreferenceResponse,
+)
 def get_preference(
     preference_id: str,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     current_user: UserModel = Depends(SessionGuard()),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Retrieves a specific preference setting for the current user.
     """
@@ -109,27 +121,36 @@ def get_preference(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"A(z) '{preference_id}' preferencia nem található.",
         )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.post("/preferences/reorder", response_model=list[Preference])
+@router.post(
+    "/preferences/reorder",
+    response_model=list[PreferenceResponse],
+)
 def reorder_preferences(
     payload: MePreferencesReorderRequest,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     current_user: UserModel = Depends(SessionGuard()),
-) -> list[Preference]:
+) -> list[PreferenceResponse]:
     """
     Reorders the priority of preference categories.
     """
     models = user_preference_definitions_service.reorder(
         current_user.id, payload.preference_ids
     )
-    return [Preference.from_model(model) for model in models]
+    return [
+        PreferenceResponse.from_user_preference_definition_model(model)
+        for model in models
+    ]
 
 
-@router.put("/preferences/{preference_id}", response_model=Preference)
+@router.put(
+    "/preferences/{preference_id}",
+    response_model=PreferenceResponse,
+)
 def update_preference(
     preference_id: str,
     payload: MePreferenceUpdateRequest,
@@ -137,7 +158,7 @@ def update_preference(
         get_user_preference_definitions_service
     ),
     current_user: UserModel = Depends(SessionGuard()),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Updates preferred attributes within an existing preference setting category.
     """
@@ -146,10 +167,13 @@ def update_preference(
         preference_id,
         payload.preferred,
     )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.delete("/preferences/{preference_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/preferences/{preference_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_preference(
     preference_id: str,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(

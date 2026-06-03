@@ -73,7 +73,7 @@ class PairingsService:
             if pairing.user:
                 return {
                     "status": PairingStatusEnum.LINKED,
-                    "token": pairing.user.token,
+                    "token": pairing.user.api_key,
                 }
 
         return {

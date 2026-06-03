@@ -1,12 +1,10 @@
-from pydantic import BaseModel, ConfigDict
+from modules.roles.schemas.internal import Role
+from pydantic import ConfigDict
 from pydantic.alias_generators import to_camel
 
 
-class Role(BaseModel):
+class RoleResponse(Role):
     model_config = ConfigDict(
         validate_by_name=True,
         alias_generator=to_camel,
     )
-
-    id: str
-    name: str

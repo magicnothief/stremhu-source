@@ -26,3 +26,14 @@ unfixable = []
 combine-as-imports = true
 # Group imports nicely (standard library, third-party, local modules)
 order-by-type = true
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".conda"
+extraPaths = ["server"]
+exclude = [
+    "**/.conda",
+    "**/__pycache__",
+]
+

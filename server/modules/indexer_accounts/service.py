@@ -50,3 +50,9 @@ class IndexerAccountsService:
             indexer_account.download_full_torrent = payload.download_full_torrent
 
         self._indexer_accounts_repository.update(indexer_account)
+
+    def delete(
+        self,
+        indexer_id: str,
+    ) -> None:
+        self._indexer_accounts_repository.delete(indexer_id)

@@ -23,7 +23,7 @@ def get_settings(
     settings_service: SettingsService = Depends(get_settings_service),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> SystemSettings:
-    return settings_service.get_system_or_raise()
+    return settings_service.get_system()
 
 
 @router.put(

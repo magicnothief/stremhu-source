@@ -4,7 +4,7 @@ import PTN
 from common.torrent_info import TorrentFileInfo, TorrentInfo
 from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
-from modules.indexers.schemas import IndexerTorrent
+from modules.indexers.schemas.internal import IndexerTorrent
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_streams.utils.metadata_parser import TorrentMetadataParser
@@ -53,7 +53,7 @@ class TorrentStream(BaseModel):
                 file_name=file.name,
                 file_size=file.size,
                 file_index=file.index,
-                play_url=f"{app_url}/api/{user.token}/stream/{indexer_torrent.indexer_account.indexer_id}/{torrent_file.torrent_id}/{file.index}/{uuid.uuid4().hex}",
+                play_url=f"{app_url}/api/{user.api_key}/stream/{indexer_torrent.indexer_account.indexer_id}/{torrent_file.torrent_id}/{file.index}/{uuid.uuid4().hex}",
                 seeders=indexer_torrent.seeders,
                 attributes=[],
                 is_persisted_torrent=False,
@@ -106,7 +106,7 @@ class TorrentStream(BaseModel):
             file_name=torrent_info.name,
             file_size=torrent_info.size,
             file_index=file_index,
-            play_url=f"{app_url}/api/{user.token}/stream/{indexer_id}/{torrent_id}/{file_index}/{session_id}",
+            play_url=f"{app_url}/api/{user.api_key}/stream/{indexer_id}/{torrent_id}/{file_index}/{session_id}",
             is_persisted_torrent=False,
         )
 

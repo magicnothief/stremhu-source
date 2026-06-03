@@ -2,6 +2,7 @@ import uuid
 
 from argon2 import PasswordHasher
 from fastapi import HTTPException, status
+from modules.roles.enums import UserRole
 from modules.users.models import UserModel
 from modules.users.repository import UsersRepository
 from modules.users.schemas.internal import UserCreate, UserUpdate
@@ -20,18 +21,14 @@ class UsersService:
     ) -> UserModel:
         self._check_exist_username(payload.username)
 
-        password_hash = self._hash_password(payload.password)
-
-        user = UserModel(
-            username=payload.username,
-            password_hash=password_hash,
-            role_id=payload.role_id,
-            api_key=str(uuid.uuid4()),
-            torrent_seed=payload.torrent_seed,
-            only_best_torrent=payload.only_best_torrent,
-        )
-
-        password_hash = self._hash_password(payload.password)
+        password_hash = None
+        if payload.password is not None:
+            password_hash = self._hash_password(payload.password)
+        elif payload.role_id != UserRole.USER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Jelszó nélkül csak sima felhasználó hozható létre!",
+            )
 
         user = UserModel(
             username=payload.username,

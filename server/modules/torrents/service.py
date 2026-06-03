@@ -128,11 +128,11 @@ class TorrentsService:
         self._torrent_repository.delete(info_hash=info_hash)
         self._relay_service.delete_torrent(info_hash=info_hash)
 
-    def delete_all_by_indexer_id(self, indexer_id: str) -> None:
+    def delete_by_indexer_id(self, indexer_id: str) -> None:
         torrents = self._torrent_repository.find_by_indexer_id(indexer_id)
         for torrent in torrents:
             self.delete(torrent.info_hash)
-        self._torrent_files_service.delete_all_by_indexer_id(indexer_id)
+        self._torrent_files_service.delete_by_indexer_id(indexer_id)
 
     def cleanup_tracker_torrents(
         self,

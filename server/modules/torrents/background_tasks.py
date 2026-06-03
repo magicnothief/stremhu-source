@@ -1,9 +1,9 @@
-from common.logger import logger
-
 from common.database import db_session
+from common.logger import logger
 from modules.relay.dependencies import get_relay_service
 from modules.torrents.dependencies import create_torrents_service
 from modules.torrents.service import TorrentsService
+
 
 def handle_save_resume_data(info_hash: str, resume_bytes: bytes) -> None:
     try:

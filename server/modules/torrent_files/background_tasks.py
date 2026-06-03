@@ -1,7 +1,7 @@
-from common.logger import logger
-
 from common.database import db_session
+from common.logger import logger
 from modules.torrent_files.dependencies import create_torrent_files_service
+
 
 def run_torrent_files_retention_cleanup():
     """Tisztító feladat az elavult és inaktív torrent gyorsítótár rekordokhoz (APScheduler-hez)."""

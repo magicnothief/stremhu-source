@@ -1,4 +1,4 @@
-from modules.indexers.schemas import IndexerTorrent
+from modules.indexers.schemas.internal import IndexerTorrent
 from modules.torrent_files.models import TorrentFileModel
 from pydantic import BaseModel
 

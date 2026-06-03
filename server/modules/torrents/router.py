@@ -34,7 +34,7 @@ def get_one(
     torrents_service: TorrentsService = Depends(get_torrents_service),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ):
-    torrent_pair = torrents_service.get_or_raise(info_hash)
+    torrent_pair = torrents_service.get_by_info_hash(info_hash)
     return Torrent.from_torrent_pair(torrent_pair)
 
 

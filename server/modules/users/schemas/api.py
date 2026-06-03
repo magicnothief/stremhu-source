@@ -1,5 +1,8 @@
+from datetime import datetime
+
+from modules.roles.schemas.api import RoleResponse
 from modules.users.schemas.internal import (
-    User,
+    BaseUser,
     UserCreate,
     UserPreferenceCreate,
     UserPreferencesReorder,
@@ -24,11 +27,17 @@ class UserUpdateRequest(UserUpdate):
     )
 
 
-class UserResponse(User):
+class UserResponse(BaseUser):
     model_config = ConfigDict(
         validate_by_name=True,
         alias_generator=to_camel,
     )
+
+    id: str
+    role: RoleResponse
+    api_key: str
+    updated_at: datetime
+    created_at: datetime
 
 
 class UserPreferenceCreateRequest(UserPreferenceCreate):

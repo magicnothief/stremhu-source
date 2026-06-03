@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Awaitable
 from typing import overload
 
-from modules.indexers.schemas import DownloadedTorrentFile, IndexerTorrent
+from modules.indexers.schemas.internal import DownloadedTorrentFile, IndexerTorrent
 from modules.indexers.service import IndexersService
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.schemas import TorrentFileIdentifier, TorrentFilesFilter
@@ -85,7 +85,7 @@ class TorrentSourceProviderService:
         ]
 
         current_torrent_files = await asyncio.to_thread(
-            self._torrent_files_service.get_list,
+            self._torrent_files_service.find_list,
             filter=TorrentFilesFilter(identifiers=torrent_file_ids),
         )
 

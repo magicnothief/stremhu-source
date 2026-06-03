@@ -15,7 +15,7 @@ class RelaySettingsService:
         self._relay_service = relay_service
 
     def get_settings(self) -> RelaySettings:
-        return self._settings_service.get_relay_or_raise()
+        return self._settings_service.get_relay()
 
     def update_settings(self, payload: RelaySettingsUpdate) -> RelaySettings:
         settings = self._settings_service.save_relay(payload)

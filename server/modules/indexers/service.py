@@ -35,12 +35,16 @@ class IndexersService:
         self._torrents_service = torrents_service
         self._settings_service = settings_service
 
-    async def login(self, payload: IndexerLogin) -> IndexerAccountModel:
+    async def login(
+        self,
+        payload: IndexerLogin,
+    ) -> IndexerAccountModel:
         indexer_definition = self._indexer_definitions_service.get_by_id(
             payload.indexer_id
         )
         indexer_account = await asyncio.to_thread(
-            self._indexer_accounts_service.get_by_id, indexer_definition.id
+            self._indexer_accounts_service.get_by_id,
+            indexer_definition.id,
         )
 
         if indexer_account:
@@ -112,8 +116,12 @@ class IndexersService:
 
         self._indexer_accounts_service.update(indexer_id, payload)
 
-    async def delete(self, indexer_id: str) -> None:
-        pass
+    async def delete(
+        self,
+        indexer_id: str,
+    ) -> None:
+        self._torrents_service.delete_by_indexer_id(indexer_id)
+        self._indexer_accounts_service.delete(indexer_id)
 
     async def get_torrents_by_torrent_id(
         self,
@@ -248,9 +256,7 @@ class IndexersService:
         indexer_accounts = await asyncio.to_thread(
             self._indexer_accounts_service.find_list
         )
-        system_settings = await asyncio.to_thread(
-            self._settings_service.get_system_or_raise
-        )
+        system_settings = await asyncio.to_thread(self._settings_service.get_system)
 
         tasks = [
             self.cleanup_torrent_by_rules(indexer_account, system_settings)
@@ -266,7 +272,7 @@ class IndexersService:
         try:
             if system_settings is None:
                 system_settings = await asyncio.to_thread(
-                    self._settings_service.get_system_or_raise
+                    self._settings_service.get_system
                 )
 
             indexer_definition = self._indexer_definitions_service.get_by_id(

@@ -11,8 +11,7 @@ class AuthService:
         self.ph = PasswordHasher()
 
     def validate(self, username: str, password: str) -> UserModel:
-        """Validálja a felhasználónevet és jelszót a UsersService segítségével, visszaadva a felhasználót."""
-        user = self.users_service.get_by_username(username)
+        user = self.users_service.find_by_username(username)
         if not user or not user.password_hash:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from modules.attributes.dependencies import get_attributes_service
-from modules.attributes.models import AttributeModel
-from modules.attributes.schemas import Attribute
+from modules.attributes.schemas.api import AttributeResponse
 from modules.attributes.service import AttributesService
 
 router = APIRouter(
@@ -12,9 +11,9 @@ router = APIRouter(
 
 @router.get(
     "/",
-    response_model=list[Attribute],
+    response_model=list[AttributeResponse],
 )
 def find_list(
     attributes_service: AttributesService = Depends(get_attributes_service),
-) -> list[AttributeModel]:
+):
     return attributes_service.find_list()

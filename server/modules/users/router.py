@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from modules.auth.dependencies import SessionGuard
-from modules.preferences.schemas import Preference
+from modules.preferences.schemas.api import PreferenceResponse
 from modules.roles.enums import UserRole
 from modules.user_preference_definitions.dependencies import (
     get_user_preference_definitions_service,
@@ -10,11 +10,11 @@ from modules.user_preference_definitions.service import UserPreferenceDefinition
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
 from modules.users.schemas.api import (
-    User,
     UserCreateRequest,
     UserPreferenceCreateRequest,
     UserPreferencesReorderRequest,
     UserPreferenceUpdateRequest,
+    UserResponse,
     UserUpdateRequest,
 )
 from modules.users.service import UsersService
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 @router.get(
     "/",
-    response_model=list[User],
+    response_model=list[UserResponse],
 )
 def get_list(
     users_service: UsersService = Depends(get_users_service),
@@ -33,21 +33,9 @@ def get_list(
     return users_service.get_list()
 
 
-@router.get(
-    "/{user_id}",
-    response_model=User,
-)
-def get(
-    user_id: str,
-    users_service: UsersService = Depends(get_users_service),
-    _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> UserModel:
-    return users_service.get_by_id(user_id)
-
-
 @router.post(
     "/",
-    response_model=User,
+    response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
 def create(
@@ -58,9 +46,21 @@ def create(
     return users_service.create(payload)
 
 
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+)
+def get(
+    user_id: str,
+    users_service: UsersService = Depends(get_users_service),
+    _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
+) -> UserModel:
+    return users_service.get_by_id(user_id)
+
+
 @router.put(
     "/{user_id}",
-    response_model=User,
+    response_model=UserResponse,
 )
 def update(
     user_id: str,
@@ -69,18 +69,6 @@ def update(
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ) -> UserModel:
     return users_service.update(user_id, payload)
-
-
-@router.put(
-    "/{user_id}/api_key/regenerate",
-    response_model=User,
-)
-def regenerate_api_key(
-    user_id: str,
-    users_service: UsersService = Depends(get_users_service),
-    _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> UserModel:
-    return users_service.regenerate_api_key(user_id)
 
 
 @router.delete(
@@ -95,7 +83,19 @@ def delete(
     users_service.delete(user_id, current_user)
 
 
-@router.get("/{user_id}/preferences", response_model=list[Preference])
+@router.put(
+    "/{user_id}/api_key/regenerate",
+    response_model=UserResponse,
+)
+def regenerate_api_key(
+    user_id: str,
+    users_service: UsersService = Depends(get_users_service),
+    _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
+) -> UserModel:
+    return users_service.regenerate_api_key(user_id)
+
+
+@router.get("/{user_id}/preferences", response_model=list[PreferenceResponse])
 def get_preferences(
     user_id: str,
     users_service: UsersService = Depends(get_users_service),
@@ -111,7 +111,7 @@ def get_preferences(
     return user_preference_definitions_service.find_list(user_id)
 
 
-@router.post("/{user_id}/preferences", response_model=Preference)
+@router.post("/{user_id}/preferences", response_model=PreferenceResponse)
 def create_preference(
     user_id: str,
     payload: UserPreferenceCreateRequest,
@@ -120,7 +120,7 @@ def create_preference(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Creates/adds a preference setting for a specific user.
     """
@@ -130,10 +130,10 @@ def create_preference(
         payload.preference_id,
         payload.attribute_ids,
     )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.post("/{user_id}/preferences/reorder", response_model=list[Preference])
+@router.post("/{user_id}/preferences/reorder", response_model=list[PreferenceResponse])
 def reorder_preferences(
     user_id: str,
     payload: UserPreferencesReorderRequest,
@@ -142,7 +142,7 @@ def reorder_preferences(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> list[Preference]:
+) -> list[PreferenceResponse]:
     """
     Reorders the priority of preference categories for a specific user.
     """
@@ -150,10 +150,13 @@ def reorder_preferences(
     models = user_preference_definitions_service.reorder(
         user_id, payload.preference_ids
     )
-    return [Preference.from_model(model) for model in models]
+    return [
+        PreferenceResponse.from_user_preference_definition_model(model)
+        for model in models
+    ]
 
 
-@router.get("/{user_id}/preferences/{preference_id}", response_model=Preference)
+@router.get("/{user_id}/preferences/{preference_id}", response_model=PreferenceResponse)
 def get_preference(
     user_id: str,
     preference_id: str,
@@ -162,7 +165,7 @@ def get_preference(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Retrieves a specific preference setting for a specific user.
     """
@@ -173,10 +176,10 @@ def get_preference(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"A(z) '{preference_id}' preferenciája nem található.",
         )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.put("/{user_id}/preferences/{preference_id}", response_model=Preference)
+@router.put("/{user_id}/preferences/{preference_id}", response_model=PreferenceResponse)
 def update_preference(
     user_id: str,
     preference_id: str,
@@ -186,7 +189,7 @@ def update_preference(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
-) -> Preference:
+) -> PreferenceResponse:
     """
     Updates preferred attributes within an existing preference setting category for a specific user.
     """
@@ -196,7 +199,7 @@ def update_preference(
         preference_id,
         payload.attribute_ids,
     )
-    return Preference.from_model(model)
+    return PreferenceResponse.from_user_preference_definition_model(model)
 
 
 @router.delete(

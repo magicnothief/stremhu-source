@@ -35,7 +35,7 @@ class NetworkService:
         self._in_progress = False
 
     def get_app_url(self) -> str:
-        network_settings = self._settings_service.get_network_or_raise()
+        network_settings = self._settings_service.get_network()
         if (
             network_settings.mode == NetworkModeEnum.MANUAL
             and network_settings.reverse_proxy
@@ -93,7 +93,7 @@ class NetworkService:
         try:
             self._in_progress = True
 
-            current_network = self._settings_service.get_network_or_raise()
+            current_network = self._settings_service.get_network()
 
             if payload.mode == NetworkModeEnum.MANUAL:
                 manual_network_settings = NetworkManualSettings(
@@ -199,7 +199,7 @@ class NetworkService:
     async def sync_ip(self):
         """Cron feladat: Ellenőrzi és szinkronizálja az IP cím változásokat és az SSL lejáratot."""
         try:
-            network_settings = self._settings_service.get_network_or_raise()
+            network_settings = self._settings_service.get_network()
 
             if network_settings.mode != NetworkModeEnum.AUTO:
                 return
