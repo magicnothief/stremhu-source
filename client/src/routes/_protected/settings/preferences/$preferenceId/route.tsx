@@ -5,23 +5,23 @@ import * as z from 'zod'
 import { getMePreference } from '@/shared/queries/me'
 
 const preferenceParamsSchema = z.object({
-  preference: z.string(),
+  preferenceId: z.string(),
 })
 
 const RouteComponent = () => <Outlet />
 
 export const Route = createFileRoute(
-  '/_protected/settings/preferences/$preference',
+  '/_protected/settings/preferences/$preferenceId',
 )({
   component: RouteComponent,
   params: {
     parse: (rawParams) => preferenceParamsSchema.parse(rawParams),
   },
   beforeLoad: async ({ context, params }) => {
-    const { preference } = params
+    const { preferenceId } = params
 
     const mePreference = await context.queryClient.ensureQueryData(
-      getMePreference(preference),
+      getMePreference(preferenceId),
     )
 
     return {

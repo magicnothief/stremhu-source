@@ -53,7 +53,7 @@ export function AddIndexerDialog(dialog: OpenedDialog & AddIndexerDialog) {
 
   const form = useAppForm({
     defaultValues: {
-      indexerId: '',
+      indexerId: inactiveTrackers[0].id,
       username: '',
       password: '',
     },

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from modules.auth.dependencies import SessionGuard
 from modules.preferences.schemas.api import (
     PreferenceCreateRequest,
@@ -10,7 +10,6 @@ from modules.roles.constants import UserRoleKey
 from modules.user_preference_definitions.dependencies import (
     get_user_preference_definitions_service,
 )
-from modules.user_preference_definitions.models import UserPreferenceDefinitionModel
 from modules.user_preference_definitions.service import UserPreferenceDefinitionsService
 from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
@@ -103,17 +102,16 @@ def regenerate_api_key(
 )
 def get_preferences(
     user_id: str,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
-) -> list[UserPreferenceDefinitionModel]:
-    """
-    Lists all preferences for a specific user.
-    """
-    users_service.get_by_id(user_id)
-    return user_preference_definitions_service.find_list(user_id)
+):
+    models = user_preference_definitions_service.find_list(user_id)
+    return [
+        PreferenceResponse.from_user_preference_definition_model(model)
+        for model in models
+    ]
 
 
 @router.post(
@@ -123,16 +121,11 @@ def get_preferences(
 def create_preference(
     user_id: str,
     payload: PreferenceCreateRequest,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ) -> PreferenceResponse:
-    """
-    Creates/adds a preference setting for a specific user.
-    """
-    users_service.get_by_id(user_id)
     model = user_preference_definitions_service.create(
         user_id,
         payload,
@@ -147,16 +140,11 @@ def create_preference(
 def reorder_preferences(
     user_id: str,
     payload: PreferencesReorderRequest,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ) -> list[PreferenceResponse]:
-    """
-    Reorders the priority of preference categories for a specific user.
-    """
-    users_service.get_by_id(user_id)
     models = user_preference_definitions_service.reorder(
         user_id, payload.preference_ids
     )
@@ -173,22 +161,12 @@ def reorder_preferences(
 def get_preference(
     user_id: str,
     preference_id: str,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ) -> PreferenceResponse:
-    """
-    Retrieves a specific preference setting for a specific user.
-    """
-    users_service.get_by_id(user_id)
-    model = user_preference_definitions_service.find_by_id(user_id, preference_id)
-    if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"A(z) '{preference_id}' preferenciája nem található.",
-        )
+    model = user_preference_definitions_service.get_by_id(user_id, preference_id)
     return PreferenceResponse.from_user_preference_definition_model(model)
 
 
@@ -200,16 +178,11 @@ def update_preference(
     user_id: str,
     preference_id: str,
     payload: PreferenceUpdateRequest,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ) -> PreferenceResponse:
-    """
-    Updates preferred attributes within an existing preference setting category for a specific user.
-    """
-    users_service.get_by_id(user_id)
     model = user_preference_definitions_service.update(
         user_id,
         preference_id,
@@ -224,14 +197,9 @@ def update_preference(
 def delete_preference(
     user_id: str,
     preference_id: str,
-    users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ) -> None:
-    """
-    Deletes a specific preference category setting for a specific user.
-    """
-    users_service.get_by_id(user_id)
     user_preference_definitions_service.delete(user_id, preference_id)

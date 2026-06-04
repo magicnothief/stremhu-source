@@ -4,13 +4,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Preference } from '@/features/preferences/preference'
 import { PreferencesSection } from '@/features/preferences/preferences-section'
 import { Separator } from '@/shared/components/ui/separator'
+import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { assertExists } from '@/shared/lib/utils'
 import {
   getMePreferences,
   useDeleteMePreference,
   useReorderMePreference,
 } from '@/shared/queries/me'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
 
 import { OtherPreferences } from './-features/other-preferences'
 
@@ -31,8 +31,8 @@ function RouteComponent() {
     })
   }
 
-  const handleDelete = async (preference: PreferenceDto) => {
-    await deleteMePreference(preference.preference)
+  const handleDelete = async (preference: PreferenceResponse) => {
+    await deleteMePreference(preference.id)
   }
 
   return (

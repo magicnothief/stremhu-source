@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { isEmpty } from 'lodash'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -23,17 +23,15 @@ const schema = z.object({
 })
 
 export function Port() {
-  const queryClient = useQueryClient()
-
-  const relay = queryClient.getQueryData(getRelaySettings.queryKey)
-  assertExists(relay)
+  const { data: relaySettings } = useQuery(getRelaySettings)
+  assertExists(relaySettings)
 
   const { mutateAsync: updateSetting } = useUpdateRelaySetting()
 
   const form = useForm({
     defaultValues: {
-      port: relay.port.toString(),
-      enableUpnpAndNatpmp: relay.enableUpnpAndNatpmp,
+      port: relaySettings.port.toString(),
+      enableUpnpAndNatpmp: relaySettings.enableUpnpAndNatpmp,
     },
     validators: {
       onChange: schema,
@@ -72,7 +70,6 @@ export function Port() {
               <FieldLabel>Port a bejövő kapcsolatokhoz</FieldLabel>
               <InputGroup>
                 <InputGroupInput
-                  disabled
                   placeholder="Nincs limitálva"
                   inputMode="numeric"
                   id={field.name}

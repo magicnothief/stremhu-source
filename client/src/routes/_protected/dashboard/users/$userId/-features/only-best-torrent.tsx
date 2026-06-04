@@ -11,7 +11,7 @@ import {
 } from '@/shared/components/ui/card'
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
-import type { UserDto } from '@/shared/lib/source/source-client'
+import type { UserResponse } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
 import { useUserUpdate } from '@/shared/queries/users'
 import { onlyBestTorrentSchema } from '@/shared/schemas'
@@ -21,7 +21,7 @@ const validatorSchema = z.object({
 })
 
 type OnlyBestTorrent = {
-  user: UserDto
+  user: UserResponse
 }
 
 export function OnlyBestTorrent(props: OnlyBestTorrent) {

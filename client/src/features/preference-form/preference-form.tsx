@@ -40,9 +40,8 @@ export const PreferenceForm = withForm({
       <div className="grid gap-8">
         <form.Subscribe selector={(state) => state.values}>
           {(values) => {
-            const availablePreferenceItems = preference.attributes.filter(
-              (preferenceItem) =>
-                !values.attributeIds.includes(preferenceItem.id),
+            const availableAttributes = preference.attributes.filter(
+              (attribute) => !values.attributeIds.includes(attribute.id),
             )
 
             return (
@@ -54,20 +53,23 @@ export const PreferenceForm = withForm({
                   </ItemDescription>
                 </div>
                 <div className="grid gap-3">
-                  {availablePreferenceItems.map((item) => {
+                  {availableAttributes.map((attribute) => {
                     const handleAddPreferred: MouseEventHandler<
                       HTMLButtonElement
                     > = (event) => {
                       event.preventDefault()
 
-                      const attributeIds = [...values.attributeIds, item.id]
+                      const attributeIds = [
+                        ...values.attributeIds,
+                        attribute.id,
+                      ]
                       form.setFieldValue('attributeIds', attributeIds)
                     }
 
                     return (
                       <PreferenceItem
-                        key={item.id}
-                        attribute={item}
+                        key={attribute.id}
+                        attribute={attribute}
                         actions={[
                           <Button
                             size="icon-sm"
@@ -80,7 +82,7 @@ export const PreferenceForm = withForm({
                       />
                     )
                   })}
-                  {availablePreferenceItems.length === 0 && (
+                  {availableAttributes.length === 0 && (
                     <Alert>
                       <SearchIcon />
                       <AlertTitle>Nincs több elérhető tulajdonság.</AlertTitle>

@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueries } from '@tanstack/react-query'
+import { useSuspenseQueries } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { capitalize } from 'lodash'
 import {
@@ -40,6 +40,7 @@ import {
 import type { UserResponse } from '@/shared/lib/source/source-client'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
 import { getMe } from '@/shared/queries/me'
+import { getSystemRoles } from '@/shared/queries/system'
 import { useUserDelete, useUserUpdate } from '@/shared/queries/users'
 
 type UserProfileProps = {
@@ -53,8 +54,8 @@ const schema = z.object({
 export function UserProfile(props: UserProfileProps) {
   const { user } = props
 
-  const [{ data: me }] = useQueries({
-    queries: [getMe()],
+  const [{ data: me }, { data: roles }] = useSuspenseQueries({
+    queries: [getMe(), getSystemRoles],
   })
   assertExists(me)
 
@@ -191,13 +192,13 @@ export function UserProfile(props: UserProfileProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[].map((userRole) => (
+                  {roles.map((userRole) => (
                     <SelectItem
-                      key={userRole.value}
-                      value={userRole.value}
+                      key={userRole.id}
+                      value={userRole.id}
                       className="first-letter:capitalize"
                     >
-                      {capitalize(userRole.label)}
+                      {capitalize(userRole.name)}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -7,6 +7,7 @@ import {
 import type { SystemSettingsUpdateRequest } from '../lib/source/source-client'
 import {
   systemCleanup,
+  systemGetRoles,
   systemGetSettings,
   systemGetStatus,
   systemUpdateSettings,
@@ -18,6 +19,14 @@ export const getSystemStatus = queryOptions({
   gcTime: Infinity,
   queryFn: async () => {
     const response = await systemGetStatus()
+    return response
+  },
+})
+
+export const getSystemRoles = queryOptions({
+  queryKey: ['system', 'roles'],
+  queryFn: async () => {
+    const response = await systemGetRoles()
     return response
   },
 })

@@ -24,19 +24,19 @@ import { getMePreference, useUpdateMePreference } from '@/shared/queries/me'
 import { PreferenceForm } from '../../../../../features/preference-form/preference-form'
 
 export const Route = createFileRoute(
-  '/_protected/settings/preferences/$preference/',
+  '/_protected/settings/preferences/$preferenceId/',
 )({
   component: RouteComponent,
 })
 
 function RouteComponent() {
   const navigate = useNavigate()
-  const { preference } = useParams({
-    from: '/_protected/settings/preferences/$preference/',
+  const { preferenceId } = useParams({
+    from: '/_protected/settings/preferences/$preferenceId/',
   })
 
   const [{ data: mePreference }] = useQueries({
-    queries: [getMePreference(preference)],
+    queries: [getMePreference(preferenceId)],
   })
   assertExists(mePreference)
 

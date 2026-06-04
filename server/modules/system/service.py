@@ -4,6 +4,8 @@ import sys
 
 from common.logger import logger
 from config import config
+from modules.roles.models import RoleModel
+from modules.roles.service import RolesService
 from modules.settings.service import SettingsService
 from modules.system.schemas.internal import SystemStatus
 from modules.users.service import UsersService
@@ -14,9 +16,14 @@ class SystemService:
         self,
         users_service: UsersService,
         settings_service: SettingsService,
+        roles_service: RolesService,
     ):
         self._users_service = users_service
         self._settings_service = settings_service
+        self._roles_service = roles_service
+
+    def get_roles(self) -> list[RoleModel]:
+        return self._roles_service.find_list()
 
     def status(self) -> SystemStatus:
         has_user = self._users_service.count() > 0

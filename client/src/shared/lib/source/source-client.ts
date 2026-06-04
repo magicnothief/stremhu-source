@@ -385,12 +385,12 @@ export interface RegisterRequest {
 }
 
 export interface RelaySettingsResponse {
-  port?: number
-  downloadLimit?: number
-  uploadLimit?: number
-  connectionsLimit?: number
-  torrentConnectionsLimit?: number
-  enableUpnpAndNatpmp?: boolean
+  port: number
+  downloadLimit: number
+  uploadLimit: number
+  connectionsLimit: number
+  torrentConnectionsLimit: number
+  enableUpnpAndNatpmp: boolean
 }
 
 export interface RelaySettingsUpdateRequest {
@@ -971,6 +971,18 @@ export const meReorderPreferences = (
 }
 
 /**
+ * @summary Get Roles
+ */
+export const systemGetRoles = (
+  options?: SecondParameter<typeof sourceClientInstance<RoleResponse[]>>,
+) => {
+  return sourceClientInstance<RoleResponse[]>(
+    { url: `/api/system/roles`, method: 'GET' },
+    options,
+  )
+}
+
+/**
  * @summary Get Status
  */
 export const systemGetStatus = (
@@ -1504,6 +1516,9 @@ export type MeDeletePreferenceResult = NonNullable<
 >
 export type MeReorderPreferencesResult = NonNullable<
   Awaited<ReturnType<typeof meReorderPreferences>>
+>
+export type SystemGetRolesResult = NonNullable<
+  Awaited<ReturnType<typeof systemGetRoles>>
 >
 export type SystemGetStatusResult = NonNullable<
   Awaited<ReturnType<typeof systemGetStatus>>

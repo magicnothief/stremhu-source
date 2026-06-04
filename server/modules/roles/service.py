@@ -8,6 +8,9 @@ class RolesService:
     def __init__(self, db: Session):
         self.db = db
 
+    def find_list(self) -> list[RoleModel]:
+        return self.db.query(RoleModel).all()
+
     def sync_to_db(self) -> None:
         """Szinkronizálja a kódbázisban definiált szerepköröket az adatbázissal.
 

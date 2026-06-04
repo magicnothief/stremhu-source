@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from modules.auth.dependencies import SessionGuard
 from modules.roles.constants import UserRoleKey
+from modules.roles.schemas.api import RoleResponse
 from modules.settings.dependencies import get_settings_service
 from modules.settings.schemas.api import (
     SystemSettingsResponse,
@@ -18,6 +19,16 @@ router = APIRouter(
     prefix="/system",
     tags=["System"],
 )
+
+
+@router.get(
+    "/roles",
+    response_model=list[RoleResponse],
+)
+def get_roles(
+    system_service: SystemService = Depends(get_system_service),
+):
+    return system_service.get_roles()
 
 
 @router.get(

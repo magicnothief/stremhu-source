@@ -4,7 +4,6 @@ from modules.settings.schemas.internal import (
     NetworkAutoSettings,
     NetworkLocalSettings,
     NetworkManualSettings,
-    RelaySettings,
     RelaySettingsUpdate,
     SystemSettingsUpdate,
 )
@@ -30,11 +29,18 @@ class SystemSettingsUpdateRequest(SystemSettingsUpdate):
     )
 
 
-class RelaySettingsResponse(RelaySettings):
+class RelaySettingsResponse(BaseModel):
     model_config = ConfigDict(
         validate_by_name=True,
         alias_generator=to_camel,
     )
+
+    port: int
+    download_limit: int
+    upload_limit: int
+    connections_limit: int
+    torrent_connections_limit: int
+    enable_upnp_and_natpmp: bool
 
 
 class RelaySettingsUpdateRequest(RelaySettingsUpdate):
