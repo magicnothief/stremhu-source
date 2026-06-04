@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from modules.indexer_definitions.schemas import IndexerDefinition
+from modules.indexer_definitions.schemas.api import IndexerDefinitionResponse
 from modules.torrents.schemas.internal import TorrentUpdate, TorrentWithRelay
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -13,7 +13,7 @@ class TorrentResponse(BaseModel):
     )
 
     info_hash: str
-    indexer_definition: IndexerDefinition
+    indexer_definition: IndexerDefinitionResponse
     torrent_id: str
     name: str
     download_speed: int
@@ -28,13 +28,13 @@ class TorrentResponse(BaseModel):
     created_at: datetime
 
     @classmethod
-    def from_torrent_pair(
+    def from_torrent_with_relay(
         cls,
         torrent_with_relay: TorrentWithRelay,
     ) -> "TorrentResponse":
         return cls(
             info_hash=torrent_with_relay.info_hash,
-            indexer_definition=IndexerDefinition.model_validate(
+            indexer_definition=IndexerDefinitionResponse.model_validate(
                 torrent_with_relay.torrent.indexer_account.indexer_definition
             ),
             torrent_id=torrent_with_relay.torrent.torrent_id,

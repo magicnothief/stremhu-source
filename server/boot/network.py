@@ -29,11 +29,9 @@ def get_network_settings() -> NetworkSettings:
 
 def write_certs_to_disk(fullchain: str, privkey: str) -> tuple[Path, Path]:
     """Lementi a tanúsítványokat a system/certs könyvtárba, és visszaadja a fájlok elérési útját."""
-    certs_dir = config.system_dir / "certs"
-    certs_dir.mkdir(parents=True, exist_ok=True)
 
-    cert_path = certs_dir / "fullchain.pem"
-    key_path = certs_dir / "privkey.pem"
+    cert_path = config.generated_certificates_dir / "fullchain.pem"
+    key_path = config.generated_certificates_dir / "privkey.pem"
 
     cert_path.write_text(fullchain, encoding="utf-8")
     key_path.write_text(privkey, encoding="utf-8")
@@ -57,9 +55,8 @@ def _ensure_db_network_settings(host_ip: str) -> NetworkSettings:
             and network_settings.mode == NetworkModeEnum.MANUAL
             and not network_settings.reverse_proxy
         ):
-            custom_dir = config.system_dir / "certs" / "custom"
-            cert_path = custom_dir / "fullchain.pem"
-            key_path = custom_dir / "privkey.pem"
+            cert_path = config.generated_certificates_dir / "fullchain.pem"
+            key_path = config.generated_certificates_dir / "privkey.pem"
 
             if not cert_path.exists() or not key_path.exists():
                 print(
@@ -134,9 +131,8 @@ def ensure_network_settings() -> BootNetworkConfig:
         network_settings.mode == NetworkModeEnum.MANUAL
         and not network_settings.reverse_proxy
     ):
-        custom_dir = config.system_dir / "certs" / "custom"
-        cert_path = custom_dir / "fullchain.pem"
-        key_path = custom_dir / "privkey.pem"
+        cert_path = config.own_certificates_dir / "fullchain.pem"
+        key_path = config.own_certificates_dir / "privkey.pem"
 
         if cert_path.exists() and key_path.exists():
             cert_path_str = str(cert_path)

@@ -25,7 +25,7 @@ export const getIndexers = queryOptions({
   },
 })
 
-export function useLoginTracker() {
+export function useIndexerLogin() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: IndexerLoginRequest) => {
@@ -37,7 +37,7 @@ export function useLoginTracker() {
   })
 }
 
-export function useUpdateIndexer(indexerId: string) {
+export function useIndexerUpdate(indexerId: string) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (payload: IndexerUpdateRequest) => {
@@ -49,7 +49,7 @@ export function useUpdateIndexer(indexerId: string) {
   })
 }
 
-export function useDeleteIndexer() {
+export function useIndexerDelete() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (indexerId: string) => {

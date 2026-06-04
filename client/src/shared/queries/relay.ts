@@ -4,16 +4,16 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
-import type { UpdateRelaySettingsDto } from '../lib/source/source-client'
+import type { RelaySettingsUpdateRequest } from '../lib/source/source-client'
 import {
-  relaySettingsInternalGet,
-  relaySettingsInternalUpdate,
+  relayGetSettings,
+  relayUpdateSettings,
 } from '../lib/source/source-client'
 
 export const getRelaySettings = queryOptions({
-  queryKey: ['relay-settings'],
+  queryKey: ['relay', 'settings'],
   queryFn: async () => {
-    const settings = await relaySettingsInternalGet()
+    const settings = await relayGetSettings()
     return settings
   },
 })
@@ -21,8 +21,8 @@ export const getRelaySettings = queryOptions({
 export function useUpdateRelaySetting() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (payload: UpdateRelaySettingsDto) => {
-      const setting = await relaySettingsInternalUpdate(payload)
+    mutationFn: async (payload: RelaySettingsUpdateRequest) => {
+      const setting = await relayUpdateSettings(payload)
       return setting
     },
     onSuccess: async () => {

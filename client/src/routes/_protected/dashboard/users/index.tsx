@@ -26,7 +26,7 @@ export const Route = createFileRoute('/_protected/dashboard/users/')({
 
 function RouteComponent() {
   const [{ data: users }, { data: me }] = useQueries({
-    queries: [getUsers, getMe],
+    queries: [getUsers, getMe()],
   })
   assertExists(users)
   assertExists(me)

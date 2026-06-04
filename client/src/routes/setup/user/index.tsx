@@ -1,5 +1,4 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
-import { upperFirst } from 'lodash'
 import type { SubmitEventHandler } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -13,19 +12,16 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card'
 import { useAppForm } from '@/shared/contexts/form-context'
-import { useMetadata } from '@/shared/hooks/use-metadata'
-import { UserRoleEnum } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
 import { useRegistration } from '@/shared/queries/auth'
-import { getSettingsStatus } from '@/shared/queries/settings-setup'
+import { getSystemStatus } from '@/shared/queries/system'
 
 export const Route = createFileRoute('/setup/user/')({
   beforeLoad: async ({ context }) => {
     const queryClient = context.queryClient
-    const { hasAdminUser } =
-      await queryClient.ensureQueryData(getSettingsStatus)
+    const { configured } = await queryClient.ensureQueryData(getSystemStatus)
 
-    if (hasAdminUser) {
+    if (configured) {
       throw redirect({ to: '/' })
     }
   },
@@ -40,7 +36,6 @@ const schema = z.object({
 function SetupUserRoute() {
   const navigate = useNavigate({ from: '/setup/user/' })
 
-  const { getUserRoleLabel } = useMetadata()
   const { mutateAsync: registration } = useRegistration()
 
   const form = useAppForm({
@@ -77,16 +72,11 @@ function SetupUserRoute() {
       >
         <Card className="w-sm">
           <CardHeader>
-            <CardTitle>
-              {upperFirst(getUserRoleLabel(UserRoleEnum.admin))} fiók
-              létrehozása
-            </CardTitle>
+            <CardTitle>Adminisztrátor fiók létrehozása</CardTitle>
             <CardDescription>
               Kezdjük a beállítást! Hozd létre az első fiókot, ami{' '}
-              <span className="font-bold">
-                {getUserRoleLabel(UserRoleEnum.admin)}
-              </span>{' '}
-              jogosultsággal fog rendelkezni.
+              <span className="font-bold">Adminisztrátor</span> jogosultsággal
+              fog rendelkezni.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">

@@ -1,4 +1,5 @@
-from modules.settings.enums import SettingsKeyEnum
+from config import config
+from modules.settings.enums import NetworkModeEnum, SettingsKeyEnum
 from modules.settings.repository import SettingsRepository
 from modules.settings.schemas.internal import (
     NetworkSettings,
@@ -86,3 +87,13 @@ class SettingsService:
         if not network_settings:
             raise ValueError("Nincs beállítva hálózati elérés")
         return network_settings
+
+    def get_app_url(self) -> str:
+        network_settings = self.get_network()
+        if (
+            network_settings.mode == NetworkModeEnum.MANUAL
+            and network_settings.reverse_proxy
+        ):
+            return f"https://{network_settings.host}"
+
+        return f"https://{network_settings.host}:{config.port}"

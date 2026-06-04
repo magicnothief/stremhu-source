@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 
-import { getUserPreferences } from '@/shared/queries/user-preferences'
+import { getUserPreferences } from '@/shared/queries/users'
 
 const RouteComponent = () => <Outlet />
 

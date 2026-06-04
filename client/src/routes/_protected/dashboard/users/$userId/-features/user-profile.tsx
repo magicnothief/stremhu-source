@@ -37,40 +37,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/components/ui/select'
-import type { UserDto } from '@/shared/lib/source/source-client'
-import { UserRoleEnum } from '@/shared/lib/source/source-client'
-import { parseApiError } from '@/shared/lib/utils'
+import type { UserResponse } from '@/shared/lib/source/source-client'
+import { assertExists, parseApiError } from '@/shared/lib/utils'
 import { getMe } from '@/shared/queries/me'
-import { getMetadata } from '@/shared/queries/metadata'
-import { useDeleteUser, useUpdateUser } from '@/shared/queries/users'
+import { useUserDelete, useUserUpdate } from '@/shared/queries/users'
 
-type UserProfile = {
-  user: UserDto
+type UserProfileProps = {
+  user: UserResponse
 }
 
 const schema = z.object({
-  userRole: z.enum(UserRoleEnum),
+  userRole: z.string(),
 })
 
-export function UserProfile(props: UserProfile) {
+export function UserProfile(props: UserProfileProps) {
   const { user } = props
 
-  const [{ data: metadata }, { data: me }] = useQueries({
-    queries: [getMetadata, getMe],
+  const [{ data: me }] = useQueries({
+    queries: [getMe()],
   })
-  if (!metadata) throw new Error(`Nincs "metadata" a cache-ben`)
-  if (!me) throw new Error(`Nincs "me" a cache-ben`)
+  assertExists(me)
 
   const navigate = useNavigate()
   const confirmDialog = useConfirmDialog()
   const dialogs = useDialogs()
 
-  const { mutateAsync: updateUser } = useUpdateUser()
-  const { mutateAsync: deleteUser } = useDeleteUser()
+  const { mutateAsync: updateUser } = useUserUpdate()
+  const { mutateAsync: deleteUser } = useUserDelete()
 
   const form = useForm({
     defaultValues: {
-      userRole: user.userRole,
+      userRole: user.role.id,
     },
     validators: {
       onChange: schema,
@@ -85,7 +82,12 @@ export function UserProfile(props: UserProfile) {
     },
     onSubmit: async ({ value, formApi }) => {
       try {
-        await updateUser({ userId: user.id, payload: value })
+        await updateUser({
+          userId: user.id,
+          payload: {
+            roleId: value.userRole,
+          },
+        })
       } catch (error) {
         formApi.reset()
         const message = parseApiError(error)
@@ -183,15 +185,13 @@ export function UserProfile(props: UserProfile) {
                 value={field.state.value}
                 name={field.name}
                 disabled={me.id === user.id}
-                onValueChange={(value: UserRoleEnum) =>
-                  field.handleChange(value)
-                }
+                onValueChange={(value) => field.handleChange(value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {metadata.userRoles.map((userRole) => (
+                  {[].map((userRole) => (
                     <SelectItem
                       key={userRole.value}
                       value={userRole.value}

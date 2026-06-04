@@ -66,17 +66,20 @@ export interface HTTPValidationError {
   detail?: ValidationError[]
 }
 
-export interface Health {
-  ok?: boolean
-  startTime: number
-}
-
 export interface IndexerDefinition {
   id: string
   name: string
   url: string
   details_path: string
   requires_full_download: boolean
+}
+
+export interface IndexerDefinitionResponse {
+  id: string
+  name: string
+  url: string
+  detailsPath: string
+  requiresFullDownload: boolean
 }
 
 export type IndexerLoginRequestCookies = { [key: string]: string } | null
@@ -89,7 +92,8 @@ export interface IndexerLoginRequest {
 }
 
 export interface IndexerResponse {
-  id: string
+  indexerId: string
+  indexerDefinition: IndexerDefinitionResponse
   username: string
   downloadFullTorrent: boolean
   hitAndRun?: boolean | null
@@ -183,19 +187,6 @@ export interface Manifest {
   logo?: string | null
   contactEmail?: string | null
   behaviorHints?: ManifestBehaviorHints | null
-}
-
-export interface MePreferenceCreateRequest {
-  preferenceId: string
-  preferred: string[]
-}
-
-export interface MePreferenceUpdateRequest {
-  preferred: string[]
-}
-
-export interface MePreferencesReorderRequest {
-  preferenceIds: string[]
 }
 
 export interface MeUpdateRequest {
@@ -309,7 +300,21 @@ export const NetworkConnectionEnum = {
   public: 'public',
 } as const
 
-export interface NetworkAutoSetup {
+export interface NetworkAutoSettingsResponse {
+  mode: 'auto'
+  host: string
+  token: string
+  email: string
+  connection: NetworkConnectionEnum
+  provider: string
+  ip: string
+  accountKey: string
+  fullchain: string
+  privkey: string
+  expiresAt: number
+}
+
+export interface NetworkAutoSetupRequest {
   mode: 'auto'
   host: string
   connection: NetworkConnectionEnum
@@ -318,7 +323,22 @@ export interface NetworkAutoSetup {
   email: string
 }
 
-export interface NetworkManualSetup {
+export interface NetworkLocalSettingsResponse {
+  mode: 'local'
+  host: string
+  ip: string
+  fullchain: string
+  privkey: string
+  expiresAt: number
+}
+
+export interface NetworkManualSettingsResponse {
+  mode: 'manual'
+  host: string
+  reverseProxy: boolean
+}
+
+export interface NetworkManualSetupRequest {
   mode: 'manual'
   host: string
   reverseProxy: boolean
@@ -339,11 +359,24 @@ export interface PairVerifyRequest {
   userCode: string
 }
 
+export interface PreferenceCreateRequest {
+  preferenceId: string
+  attributeIds: string[]
+}
+
 export interface PreferenceResponse {
   id: string
   name: string
   description: string
   attributes: AttributeResponse[]
+}
+
+export interface PreferenceUpdateRequest {
+  attributeIds: string[]
+}
+
+export interface PreferencesReorderRequest {
+  preferenceIds: string[]
 }
 
 export interface RegisterRequest {
@@ -395,21 +428,26 @@ export interface SuccessResponse {
 }
 
 export interface SystemSettingsResponse {
-  hitAndRun?: boolean
-  keepSeedSeconds?: number
-  cacheRetentionSeconds?: number
+  hitAndRun: boolean
+  keepSeedSeconds: number
+  cacheRetentionSeconds: number
 }
 
 export interface SystemSettingsUpdateRequest {
   hitAndRun?: boolean | null
   keepSeedSeconds?: number | null
   cacheRetentionSeconds?: number | null
-  catalogToken?: string | null
+}
+
+export interface SystemStatusResponse {
+  configured: boolean
+  appUrl: string
+  version: string
 }
 
 export interface TorrentResponse {
   infoHash: string
-  indexerDefinition: IndexerDefinition
+  indexerDefinition: IndexerDefinitionResponse
   torrentId: string
   name: string
   downloadSpeed: number
@@ -442,19 +480,6 @@ export interface UserCreateRequest {
   onlyBestTorrent?: boolean
   password?: string | null
   roleId?: UserRole
-}
-
-export interface UserPreferenceCreateRequest {
-  preferenceId: string
-  attributeIds: string[]
-}
-
-export interface UserPreferenceUpdateRequest {
-  attributeIds: string[]
-}
-
-export interface UserPreferencesReorderRequest {
-  preferenceIds: string[]
 }
 
 export interface UserResponse {
@@ -511,9 +536,9 @@ export const preferencesGetAll = (
  * @summary Health
  */
 export const monitoringHealth = (
-  options?: SecondParameter<typeof sourceClientInstance<Health>>,
+  options?: SecondParameter<typeof sourceClientInstance<SuccessResponse>>,
 ) => {
-  return sourceClientInstance<Health>(
+  return sourceClientInstance<SuccessResponse>(
     { url: `/api/health`, method: 'GET' },
     options,
   )
@@ -721,7 +746,7 @@ export const usersGetPreferences = (
  */
 export const usersCreatePreference = (
   userId: string,
-  userPreferenceCreateRequest: UserPreferenceCreateRequest,
+  preferenceCreateRequest: PreferenceCreateRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
 ) => {
   return sourceClientInstance<PreferenceResponse>(
@@ -729,7 +754,7 @@ export const usersCreatePreference = (
       url: `/api/users/${userId}/preferences`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: userPreferenceCreateRequest,
+      data: preferenceCreateRequest,
     },
     options,
   )
@@ -741,7 +766,7 @@ export const usersCreatePreference = (
  */
 export const usersReorderPreferences = (
   userId: string,
-  userPreferencesReorderRequest: UserPreferencesReorderRequest,
+  preferencesReorderRequest: PreferencesReorderRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse[]>>,
 ) => {
   return sourceClientInstance<PreferenceResponse[]>(
@@ -749,7 +774,7 @@ export const usersReorderPreferences = (
       url: `/api/users/${userId}/preferences/reorder`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: userPreferencesReorderRequest,
+      data: preferencesReorderRequest,
     },
     options,
   )
@@ -777,7 +802,7 @@ export const usersGetPreference = (
 export const usersUpdatePreference = (
   userId: string,
   preferenceId: string,
-  userPreferenceUpdateRequest: UserPreferenceUpdateRequest,
+  preferenceUpdateRequest: PreferenceUpdateRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
 ) => {
   return sourceClientInstance<PreferenceResponse>(
@@ -785,7 +810,7 @@ export const usersUpdatePreference = (
       url: `/api/users/${userId}/preferences/${preferenceId}`,
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      data: userPreferenceUpdateRequest,
+      data: preferenceUpdateRequest,
     },
     options,
   )
@@ -871,7 +896,7 @@ export const meGetPreferences = (
  * @summary Create Preference
  */
 export const meCreatePreference = (
-  mePreferenceCreateRequest: MePreferenceCreateRequest,
+  preferenceCreateRequest: PreferenceCreateRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
 ) => {
   return sourceClientInstance<PreferenceResponse>(
@@ -879,7 +904,7 @@ export const meCreatePreference = (
       url: `/api/me/preferences`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: mePreferenceCreateRequest,
+      data: preferenceCreateRequest,
     },
     options,
   )
@@ -905,7 +930,7 @@ export const meGetPreference = (
  */
 export const meUpdatePreference = (
   preferenceId: string,
-  mePreferenceUpdateRequest: MePreferenceUpdateRequest,
+  preferenceUpdateRequest: PreferenceUpdateRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
 ) => {
   return sourceClientInstance<PreferenceResponse>(
@@ -913,7 +938,7 @@ export const meUpdatePreference = (
       url: `/api/me/preferences/${preferenceId}`,
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      data: mePreferenceUpdateRequest,
+      data: preferenceUpdateRequest,
     },
     options,
   )
@@ -938,7 +963,7 @@ export const meDeletePreference = (
  * @summary Reorder Preferences
  */
 export const meReorderPreferences = (
-  mePreferencesReorderRequest: MePreferencesReorderRequest,
+  preferencesReorderRequest: PreferencesReorderRequest,
   options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse[]>>,
 ) => {
   return sourceClientInstance<PreferenceResponse[]>(
@@ -946,8 +971,20 @@ export const meReorderPreferences = (
       url: `/api/me/preferences/reorder`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: mePreferencesReorderRequest,
+      data: preferencesReorderRequest,
     },
+    options,
+  )
+}
+
+/**
+ * @summary Get Status
+ */
+export const systemGetStatus = (
+  options?: SecondParameter<typeof sourceClientInstance<SystemStatusResponse>>,
+) => {
+  return sourceClientInstance<SystemStatusResponse>(
+    { url: `/api/system/status`, method: 'GET' },
     options,
   )
 }
@@ -987,6 +1024,18 @@ export const systemUpdateSettings = (
 }
 
 /**
+ * @summary Cleanup
+ */
+export const systemCleanup = (
+  options?: SecondParameter<typeof sourceClientInstance<unknown>>,
+) => {
+  return sourceClientInstance<unknown>(
+    { url: `/api/system/cleanup`, method: 'POST' },
+    options,
+  )
+}
+
+/**
  * @summary Get Settings
  */
 export const relayGetSettings = (
@@ -1017,18 +1066,39 @@ export const relayUpdateSettings = (
 }
 
 /**
- * @summary Config
+ * @summary Get Settings
  */
-export const networkConfig = (
-  networkAutoSetupNetworkManualSetup: NetworkAutoSetup | NetworkManualSetup,
+export const networkGetSettings = (
+  options?: SecondParameter<
+    typeof sourceClientInstance<
+      | NetworkLocalSettingsResponse
+      | NetworkAutoSettingsResponse
+      | NetworkManualSettingsResponse
+    >
+  >,
+) => {
+  return sourceClientInstance<
+    | NetworkLocalSettingsResponse
+    | NetworkAutoSettingsResponse
+    | NetworkManualSettingsResponse
+  >({ url: `/api/network/settings`, method: 'GET' }, options)
+}
+
+/**
+ * @summary Setup
+ */
+export const networkSetup = (
+  networkAutoSetupRequestNetworkManualSetupRequest:
+    | NetworkAutoSetupRequest
+    | NetworkManualSetupRequest,
   options?: SecondParameter<typeof sourceClientInstance<unknown>>,
 ) => {
   return sourceClientInstance<unknown>(
     {
-      url: `/api/network/config`,
+      url: `/api/network/setup`,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      data: networkAutoSetupNetworkManualSetup,
+      data: networkAutoSetupRequestNetworkManualSetupRequest,
     },
     options,
   )
@@ -1099,19 +1169,6 @@ export const torrentsDelete = (
 ) => {
   return sourceClientInstance<void>(
     { url: `/api/torrents/${infoHash}`, method: 'DELETE' },
-    options,
-  )
-}
-
-/**
- * Elindítja az elavult és inaktív torrent fájlok manuális törlését (Retention Cleanup).
- * @summary Cleanup
- */
-export const torrentFilesCleanup = (
-  options?: SecondParameter<typeof sourceClientInstance<unknown>>,
-) => {
-  return sourceClientInstance<unknown>(
-    { url: `/api/torrent-files/cleanup`, method: 'POST' },
     options,
   )
 }
@@ -1440,11 +1497,17 @@ export type MeDeletePreferenceResult = NonNullable<
 export type MeReorderPreferencesResult = NonNullable<
   Awaited<ReturnType<typeof meReorderPreferences>>
 >
+export type SystemGetStatusResult = NonNullable<
+  Awaited<ReturnType<typeof systemGetStatus>>
+>
 export type SystemGetSettingsResult = NonNullable<
   Awaited<ReturnType<typeof systemGetSettings>>
 >
 export type SystemUpdateSettingsResult = NonNullable<
   Awaited<ReturnType<typeof systemUpdateSettings>>
+>
+export type SystemCleanupResult = NonNullable<
+  Awaited<ReturnType<typeof systemCleanup>>
 >
 export type RelayGetSettingsResult = NonNullable<
   Awaited<ReturnType<typeof relayGetSettings>>
@@ -1452,8 +1515,11 @@ export type RelayGetSettingsResult = NonNullable<
 export type RelayUpdateSettingsResult = NonNullable<
   Awaited<ReturnType<typeof relayUpdateSettings>>
 >
-export type NetworkConfigResult = NonNullable<
-  Awaited<ReturnType<typeof networkConfig>>
+export type NetworkGetSettingsResult = NonNullable<
+  Awaited<ReturnType<typeof networkGetSettings>>
+>
+export type NetworkSetupResult = NonNullable<
+  Awaited<ReturnType<typeof networkSetup>>
 >
 export type NetworkResetResult = NonNullable<
   Awaited<ReturnType<typeof networkReset>>
@@ -1469,9 +1535,6 @@ export type TorrentsUpdateResult = NonNullable<
 >
 export type TorrentsDeleteResult = NonNullable<
   Awaited<ReturnType<typeof torrentsDelete>>
->
-export type TorrentFilesCleanupResult = NonNullable<
-  Awaited<ReturnType<typeof torrentFilesCleanup>>
 >
 export type StreamHeadStreamResult = NonNullable<
   Awaited<ReturnType<typeof streamHeadStream>>

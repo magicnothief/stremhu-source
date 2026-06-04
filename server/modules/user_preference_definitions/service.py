@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from modules.attributes.service import AttributesService
 from modules.preference_definitions.service import PreferenceDefinitionsService
+from modules.preferences.schemas.internal import PreferenceCreate, PreferenceUpdate
 from modules.user_preference_definitions.models import UserPreferenceDefinitionModel
 from modules.user_preference_definitions.repository import (
     UserPreferenceDefinitionsRepository,
@@ -50,21 +51,17 @@ class UserPreferenceDefinitionsService:
     def create(
         self,
         user_id: str,
-        preference_id: str,
-        preferred_attribute_ids: list[str],
+        payload: PreferenceCreate,
     ) -> UserPreferenceDefinitionModel:
         """Creates a user's preference overrides, building the definition and attributes."""
-        existing_preference_definition = self.find_by_id(user_id, preference_id)
+        existing_preference_definition = self.find_by_id(user_id, payload.preference_id)
         if existing_preference_definition:
             raise HTTPException(
                 status_code=400,
-                detail=f"A(z) '{preference_id}' preferenciája már létezik.",
+                detail=f"A(z) '{payload.preference_id}' preferenciája már létezik.",
             )
 
-        preference_definition = self._preference_definitions_service.create(
-            preference_id,
-            preferred_attribute_ids,
-        )
+        preference_definition = self._preference_definitions_service.create(payload)
 
         user_preference_definitions = self.find_list(user_id)
         next_order = len(user_preference_definitions)
@@ -79,7 +76,7 @@ class UserPreferenceDefinitionsService:
         self,
         user_id: str,
         preference_id: str,
-        attribute_ids: list[str],
+        payload: PreferenceUpdate,
     ) -> UserPreferenceDefinitionModel:
         """Updates the preferred attribute list of an existing user preference category."""
         user_preference_definition = self.get_by_id(
@@ -88,9 +85,8 @@ class UserPreferenceDefinitionsService:
         )
 
         self._preference_definitions_service.update(
-            preference_id,
             user_preference_definition.definition_id,
-            attribute_ids,
+            payload,
         )
 
         return self.get_by_id(user_id, preference_id)

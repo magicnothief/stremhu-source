@@ -20,35 +20,28 @@ import {
   EmptyTitle,
 } from '@/shared/components/ui/empty'
 import { Separator } from '@/shared/components/ui/separator'
-import type { TrackerEnum } from '@/shared/lib/source/source-client'
 import { assertExists } from '@/shared/lib/utils'
-import { getTrackers } from '@/shared/queries/indexers'
-import { getMetadata } from '@/shared/queries/metadata'
+import { getIndexers } from '@/shared/queries/indexers'
 
-import { TrackerItem } from '../-components/tracker-item'
+import { IndexerItem } from '../-components/indexer-item'
 
 export function Trackers() {
-  const [{ data: trackers }, { data: metadata }] = useQueries({
-    queries: [getTrackers, getMetadata],
+  const [{ data: indexers }] = useQueries({
+    queries: [getIndexers],
   })
 
-  assertExists(metadata)
-  assertExists(trackers)
+  assertExists(indexers)
 
   const dialogs = useDialogs()
 
-  const renderTrackerLogin = metadata.trackers.length !== trackers.length
-
-  const activeTrackers: TrackerEnum[] = trackers.map(
-    (tracker) => tracker.tracker,
-  )
+  const renderTrackerLogin = false
 
   const handleTrackerLogin: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault()
     e.stopPropagation()
     dialogs.openDialog({
       type: 'ADD_TRACKER',
-      options: { activeTrackers },
+      options: { activeTrackers: [] },
     })
   }
 
@@ -73,10 +66,10 @@ export function Trackers() {
       </CardHeader>
       <Separator />
       <CardContent className="grid gap-4">
-        {trackers.map((tracker) => (
-          <TrackerItem key={tracker.tracker} tracker={tracker} />
+        {indexers.map((indexer) => (
+          <IndexerItem key={indexer.id} indexer={indexer} />
         ))}
-        {trackers.length === 0 && (
+        {indexers.length === 0 && (
           <Empty className="p-2 md:p-2">
             <EmptyHeader>
               <EmptyTitle>Jelentkezz be!</EmptyTitle>

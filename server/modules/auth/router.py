@@ -18,6 +18,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
     status_code=status.HTTP_201_CREATED,
 )
 def register(
+    req: Request,
     payload: RegisterRequest,
     users_service: UsersService = Depends(get_users_service),
 ) -> UserModel:
@@ -32,7 +33,11 @@ def register(
         password=payload.password,
         role_id=UserRole.ADMIN,
     )
-    return users_service.create(user_model)
+    user = users_service.create(user_model)
+
+    req.session["user_id"] = user.id
+
+    return user
 
 
 @router.post(
@@ -45,7 +50,7 @@ def login(
     auth_service: AuthService = Depends(get_auth_service),
 ) -> UserModel:
     user = auth_service.validate(payload.username, payload.password)
-    req.session["user_id"] = str(user.id)
+    req.session["user_id"] = user.id
     return user
 
 

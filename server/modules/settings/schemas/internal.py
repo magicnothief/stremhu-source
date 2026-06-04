@@ -2,17 +2,11 @@ from typing import Annotated, Literal
 
 from config import config
 from modules.settings.enums import NetworkConnectionEnum, NetworkModeEnum
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import BaseModel, Field
 
 
 class NetworkLocalSettings(BaseModel):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-    mode: Literal[NetworkModeEnum.LOCAL] = NetworkModeEnum.LOCAL
+    mode: Literal[NetworkModeEnum.LOCAL]
     host: str
     ip: str
     fullchain: str
@@ -21,12 +15,7 @@ class NetworkLocalSettings(BaseModel):
 
 
 class NetworkAutoSettings(BaseModel):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-    mode: Literal[NetworkModeEnum.AUTO] = NetworkModeEnum.AUTO
+    mode: Literal[NetworkModeEnum.AUTO]
     host: str
     token: str
     email: str
@@ -40,12 +29,7 @@ class NetworkAutoSettings(BaseModel):
 
 
 class NetworkManualSettings(BaseModel):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-    mode: Literal[NetworkModeEnum.MANUAL] = NetworkModeEnum.MANUAL
+    mode: Literal[NetworkModeEnum.MANUAL]
     host: str
     reverse_proxy: bool
 
@@ -66,7 +50,6 @@ class SystemSettingsUpdate(BaseModel):
     hit_and_run: bool | None = None
     keep_seed_seconds: int | None = None
     cache_retention_seconds: int | None = None
-    catalog_token: str | None = None
 
 
 class RelaySettings(BaseModel):

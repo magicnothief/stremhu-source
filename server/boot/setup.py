@@ -8,12 +8,12 @@ from config import config
 def setup_directories():
     print("🔄 Szükséges könyvtárstruktúra ellenőrzése és létrehozása...")
 
-    config.downloads_dir.mkdir(parents=True, exist_ok=True)
     config.openapi_dir.mkdir(parents=True, exist_ok=True)
     config.client_path.mkdir(parents=True, exist_ok=True)
 
-    # Biztosítjuk a custom certs könyvtár meglétét
-    (config.system_dir / "certs" / "custom").mkdir(parents=True, exist_ok=True)
+    config.downloads_dir.mkdir(parents=True, exist_ok=True)
+    config.generated_certificates_dir.mkdir(parents=True, exist_ok=True)
+    config.own_certificates_dir.mkdir(parents=True, exist_ok=True)
 
 
 def run_migrations():

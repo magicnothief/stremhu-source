@@ -8,7 +8,10 @@ class IndexerDefinitionModel(Base):
 
     __tablename__ = "indexer_definitions"
 
-    id: Mapped[str] = mapped_column(sa.String, primary_key=True)
+    id: Mapped[str] = mapped_column(
+        sa.String,
+        primary_key=True,
+    )
 
     name: Mapped[str] = mapped_column(
         sa.String,

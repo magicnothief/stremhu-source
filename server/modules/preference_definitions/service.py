@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from modules.attributes.service import AttributesService
 from modules.preference_definitions.models import PreferenceDefinitionModel
 from modules.preference_definitions.repository import PreferenceDefinitionRepository
+from modules.preferences.schemas.internal import PreferenceCreate, PreferenceUpdate
 
 
 class PreferenceDefinitionsService:
@@ -16,16 +17,12 @@ class PreferenceDefinitionsService:
 
     def create(
         self,
-        preference_id: str,
-        attribute_ids: list[str],
+        payload: PreferenceCreate,
     ) -> PreferenceDefinitionModel:
 
-        self._validate_attribute_ids(preference_id, attribute_ids)
+        self._validate_attribute_ids(payload.preference_id, payload.attribute_ids)
 
-        return self._repository.create(
-            preference_id=preference_id,
-            attribute_ids=attribute_ids,
-        )
+        return self._repository.create(payload)
 
     def find_by_id(
         self, preference_definition_id: str
@@ -44,25 +41,24 @@ class PreferenceDefinitionsService:
 
     def update(
         self,
-        preference_id: str,
         preference_definition_id: str,
-        attribute_ids: list[str],
+        payload: PreferenceUpdate,
     ) -> PreferenceDefinitionModel:
-        self._validate_attribute_ids(
-            preference_id,
-            attribute_ids,
-        )
-
         preference_definition = self.find_by_id(preference_definition_id)
         if not preference_definition:
             raise HTTPException(
                 status_code=404,
-                detail=f"A(z) '{preference_id}' preferenciája nem található.",
+                detail=f"A(z) '{preference_definition_id}' preferenciája nem található.",
             )
+
+        self._validate_attribute_ids(
+            preference_definition.preference_id,
+            payload.attribute_ids,
+        )
 
         return self._repository.update(
             preference_definition_id,
-            attribute_ids,
+            payload.attribute_ids,
         )
 
     def delete(self, preference_definition_id: str) -> None:

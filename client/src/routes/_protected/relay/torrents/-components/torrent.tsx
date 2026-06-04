@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import {
   ArrowBigDownIcon,
   ArrowBigUpIcon,
@@ -37,15 +36,13 @@ import {
   ItemContent,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { useMetadata } from '@/shared/hooks/use-metadata'
-import type { TorrentDto } from '@/shared/lib/source/source-client'
-import { assertExists, formatDateTime, parseApiError } from '@/shared/lib/utils'
-import { getTrackers } from '@/shared/queries/indexers'
+import type { TorrentResponse } from '@/shared/lib/source/source-client'
+import { formatDateTime, parseApiError } from '@/shared/lib/utils'
 import { useDeleteTorrent, useUpdateTorrent } from '@/shared/queries/torrents'
 import { formatFilesize } from '@/shared/utils/file.util'
 
 interface TorrentProps {
-  torrent: TorrentDto
+  torrent: TorrentResponse
 }
 
 interface TorrentDetailProps {
@@ -67,29 +64,18 @@ function TorrentDetail(props: TorrentDetailProps) {
 export function Torrent(props: TorrentProps) {
   const { torrent } = props
 
-  const { data: trackers } = useQuery(getTrackers)
-  assertExists(trackers)
-
-  const { getTrackerLabel, getTrackerUrl, getTrackerFullDownload } =
-    useMetadata()
-
   const confirmDialog = useConfirmDialog()
 
   const { mutateAsync: updateTorrent } = useUpdateTorrent(torrent.infoHash)
   const { mutateAsync: deleteTorrent } = useDeleteTorrent()
 
-  const tracker = useMemo(
-    () => trackers.find((t) => t.tracker === torrent.tracker)!,
-    [trackers],
-  )
-
   const fullDownload = useMemo(() => {
     if (torrent.fullDownload === null) {
-      return tracker.downloadFullTorrent
+      return torrent.indexerDefinition.requiresFullDownload
     }
 
     return torrent.fullDownload
-  }, [torrent, tracker])
+  }, [torrent])
 
   const handleDelete: MouseEventHandler<HTMLDivElement> = async (e) => {
     e.stopPropagation()
@@ -129,13 +115,11 @@ export function Torrent(props: TorrentProps) {
   const handleOpenDetails: MouseEventHandler<HTMLDivElement> = (e) => {
     e.stopPropagation()
 
-    const trackerUrl = getTrackerUrl(torrent.tracker)
-
-    const detailsPath = trackerUrl.detailsPath.replace(
+    const detailsPath = torrent.indexerDefinition.detailsPath.replace(
       '{torrentId}',
       torrent.torrentId,
     )
-    const url = new URL(detailsPath, trackerUrl.url)
+    const url = new URL(detailsPath, torrent.indexerDefinition.url)
 
     window.open(url.href, '_blank', 'noopener,noreferrer')
   }
@@ -146,7 +130,7 @@ export function Torrent(props: TorrentProps) {
       e.stopPropagation()
 
       try {
-        await updateTorrent({ fullDownload: value })
+        await updateTorrent({ downloadFullTorrent: value })
       } catch (error) {
         const message = parseApiError(error)
         toast.error(message)
@@ -158,7 +142,7 @@ export function Torrent(props: TorrentProps) {
       <Item className="p-0">
         <ItemContent>
           <ItemTitle className="line-clamp-2 break-all">
-            [{getTrackerLabel(torrent.tracker)}] {torrent.name}
+            [{torrent.indexerDefinition.name}] {torrent.name}
           </ItemTitle>
         </ItemContent>
         <ItemActions>
@@ -192,7 +176,7 @@ export function Torrent(props: TorrentProps) {
                 </DropdownMenuItem>
               </DropdownMenuGroup>
 
-              {!getTrackerFullDownload(torrent.tracker) && (
+              {!torrent.indexerDefinition.requiresFullDownload && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>

@@ -6,7 +6,7 @@ from common.logger import logger
 from config import config
 from modules.network.ddns.schemas import DDNSIpUpdate
 from modules.network.ddns.service import DDNSService
-from modules.network.schemas import NetworkSetup
+from modules.network.schemas.internal import NetworkSetup
 from modules.network.ssl.schemas import AcmeCertificateGenerate, SelfSignedCertificate
 from modules.network.ssl.service import SslService
 from modules.settings.schemas.internal import (
@@ -33,16 +33,6 @@ class NetworkService:
         self._ddns_service = ddns_service
         self._system_service = system_service
         self._in_progress = False
-
-    def get_app_url(self) -> str:
-        network_settings = self._settings_service.get_network()
-        if (
-            network_settings.mode == NetworkModeEnum.MANUAL
-            and network_settings.reverse_proxy
-        ):
-            return f"https://{network_settings.host}"
-
-        return f"https://{network_settings.host}:{config.port}"
 
     def setup_local(self) -> tuple[NetworkSettings, SelfSignedCertificate]:
         certs = self._ssl_service.generate_self_signed_certificate(config.host_ip)

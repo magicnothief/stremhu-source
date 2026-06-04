@@ -1,21 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
-import { getMetadata } from '@/shared/queries/metadata'
+import { assertExists } from '../lib/utils'
+import { getSystemStatus } from '../queries/system'
 
-interface UseIntegrationDomainProps {
-  token: string
+type UseIntegrationDomainProps = {
+  apiKey: string
 }
 
 export function useIntegrationDomain(props: UseIntegrationDomainProps) {
-  const { token } = props
+  const { apiKey } = props
 
-  const { data: metadata } = useQuery(getMetadata)
-  if (!metadata) throw new Error(`Nincs "metadata" a cache-ben`)
+  const { data: systemStatus } = useQuery(getSystemStatus)
+  assertExists(systemStatus)
 
   const stremio = useMemo(() => {
-    const endpointHost = new URL(metadata.endpoint).host
-    const endpoint = `${endpointHost}/api/${token}/stremio/manifest.json`
+    const endpointHost = new URL(systemStatus.appUrl).host
+    const endpoint = `${endpointHost}/api/${apiKey}/stremio/manifest.json`
 
     const appEndpoint = `stremio://${endpoint}`
     const urlEndpoint = `https://${endpoint}`
@@ -26,10 +27,10 @@ export function useIntegrationDomain(props: UseIntegrationDomainProps) {
       webEndpoint,
       urlEndpoint,
     }
-  }, [metadata.endpoint])
+  }, [systemStatus.appUrl, apiKey])
 
   return {
     stremio,
-    nuvioUrl: `${metadata.endpoint}/api/${token}/stremio/manifest.json`,
+    nuvioUrl: `${systemStatus.appUrl}/api/${apiKey}/stremio/manifest.json`,
   }
 }

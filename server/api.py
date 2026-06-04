@@ -12,7 +12,6 @@ from modules.relay_settings.router import router as relay_settings_router
 from modules.stream.router import router as stream_router
 from modules.stremio.router import router as stremio_router
 from modules.system.router import router as system_router
-from modules.torrent_files.router import router as torrent_files_router
 from modules.torrents.router import router as torrents_router
 from modules.users.router import router as users_router
 
@@ -30,7 +29,6 @@ api_router.include_router(system_router)
 api_router.include_router(relay_settings_router)
 api_router.include_router(network_router)
 api_router.include_router(torrents_router)
-api_router.include_router(torrent_files_router)
 api_router.include_router(stream_router)
 api_router.include_router(stremio_router)
 api_router.include_router(kodi_router)

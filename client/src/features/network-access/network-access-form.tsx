@@ -1,4 +1,3 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Address4 } from 'ip-address'
 import type { ReactEventHandler, SubmitEventHandler } from 'react'
 import { useState } from 'react'
@@ -7,9 +6,7 @@ import * as z from 'zod'
 
 import { useConfirmDialog } from '@/features/confirm/use-confirm-dialog'
 import { useAppForm } from '@/shared/contexts/form-context'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { getHealth, useBuildLocalUrl } from '@/shared/queries/app'
-import { getSettings, useUpdateSetting } from '@/shared/queries/settings'
+import { parseApiError } from '@/shared/lib/utils'
 
 import { Separator } from '../../shared/components/ui/separator'
 import { networkAccessDefaultValues } from './network-access.defaults'
@@ -92,23 +89,12 @@ export type NetworkAccessProps = {
 export function NetworkAccess(props: NetworkAccessProps) {
   const { onSuccess, onSkip, onValidated } = props
 
-  const { data: setting } = useQuery(getSettings)
-  assertExists(setting)
-
   const [connection, setConnection] = useState<ConnectionType>('idle')
 
   const { confirm } = useConfirmDialog()
 
-  const queryClient = useQueryClient()
-  const { mutateAsync: updateSetting } = useUpdateSetting()
-  const { mutateAsync: buildLocalUrl } = useBuildLocalUrl()
-
   const form = useAppForm({
-    defaultValues: {
-      ...networkAccessDefaultValues,
-      enebledlocalIp: setting.enebledlocalIp,
-      address: setting.address || '',
-    },
+    defaultValues: networkAccessDefaultValues,
     validators: {
       onChange: schema,
     },
@@ -126,15 +112,12 @@ export function NetworkAccess(props: NetworkAccessProps) {
         let appUrl = address
 
         if (enebledlocalIp) {
-          const buildedUrl = await buildLocalUrl(appUrl)
-          appUrl = buildedUrl.localUrl
+          appUrl = ''
         }
 
         try {
           if (onValidated) onValidated(false)
           setConnection('pending')
-          await updateSetting({ enebledlocalIp })
-          await queryClient.fetchQuery(getHealth(appUrl))
           setConnection('success')
           if (onValidated) onValidated(true)
         } catch (error) {
@@ -155,15 +138,13 @@ export function NetworkAccess(props: NetworkAccessProps) {
         let appUrl = address
 
         if (enebledlocalIp) {
-          const buildedUrl = await buildLocalUrl(appUrl)
-          appUrl = buildedUrl.localUrl
+          appUrl = ''
         }
 
         try {
           if (onValidated) onValidated(false)
           setConnection('pending')
-          await updateSetting({ enebledlocalIp })
-          await queryClient.fetchQuery(getHealth(appUrl))
+
           setConnection('success')
           if (onValidated) onValidated(true)
         } catch (error) {
@@ -175,16 +156,12 @@ export function NetworkAccess(props: NetworkAccessProps) {
     },
     onSubmit: async ({ value, formApi }) => {
       try {
-        const updatedSetting = await updateSetting(value)
+        let appUrl = '0.0.0.0'
 
-        let appUrl = updatedSetting.address || '0.0.0.0'
-
-        if (updatedSetting.enebledlocalIp) {
-          const buildedUrl = await buildLocalUrl(appUrl)
-          appUrl = buildedUrl.localUrl
+        if (value.enebledlocalIp) {
+          appUrl = ''
         }
 
-        await queryClient.fetchQuery(getHealth(appUrl))
         if (onSuccess) onSuccess()
       } catch (error) {
         formApi.reset()
@@ -209,10 +186,6 @@ export function NetworkAccess(props: NetworkAccessProps) {
         'A lépés kihagyása után a "Beállítások" menüpont alatt tudod elvégezni a beállítást, addig az addon nem fog működni!',
       onConfirm: async () => {
         try {
-          await updateSetting({
-            address: '0.0.0.0',
-            enebledlocalIp: true,
-          })
           if (onSkip) onSkip()
         } catch (error) {
           const message = parseApiError(error)

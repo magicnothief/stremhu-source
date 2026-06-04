@@ -1,6 +1,7 @@
-import datetime
+from datetime import datetime
 
 from modules.indexer_accounts.schemas import IndexerAccountUpdate
+from modules.indexer_definitions.schemas.api import IndexerDefinitionResponse
 from modules.indexers.schemas.internal import IndexerLogin
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -13,13 +14,14 @@ class IndexerResponse(BaseModel):
         from_attributes=True,
     )
 
-    id: str
+    indexer_id: str
+    indexer_definition: IndexerDefinitionResponse
     username: str
     download_full_torrent: bool
     hit_and_run: bool | None = None
     keep_seed_seconds: int | None = None
-    updated_at: datetime.datetime
-    created_at: datetime.datetime
+    updated_at: datetime
+    created_at: datetime
 
 
 class IndexerLoginRequest(IndexerLogin):

@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { UserRoleEnum } from '../lib/source/source-client'
+import { UserRole } from '../lib/source/source-client'
 import { getMe } from '../queries/me'
 
 export const useIsAdmin = () => {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
 
-  const isAdmin = me?.userRole === UserRoleEnum.admin
+  const isAdmin = me?.role.id === UserRole.admin
 
   return { isAdmin }
 }

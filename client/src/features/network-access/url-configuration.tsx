@@ -8,7 +8,7 @@ import { Input } from '@/shared/components/ui/input'
 import { Spinner } from '@/shared/components/ui/spinner'
 import { withForm } from '@/shared/contexts/form-context'
 import { assertExists } from '@/shared/lib/utils'
-import { getSettings } from '@/shared/queries/settings'
+import { getNetworkSettings } from '@/shared/queries/network'
 
 import {
   Item,
@@ -62,8 +62,8 @@ export const UrlConfiguration = withForm({
   },
   defaultValues: networkAccessDefaultValues,
   render: ({ form, connection }) => {
-    const { data: setting } = useQuery(getSettings)
-    assertExists(setting)
+    const { data: networkSettings } = useQuery(getNetworkSettings)
+    assertExists(networkSettings)
 
     return (
       <form.Subscribe selector={(state) => [state.values.enebledlocalIp]}>

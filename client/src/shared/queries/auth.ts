@@ -12,6 +12,7 @@ import {
   pairingVerify,
 } from '../lib/source/source-client'
 import { getMe } from './me'
+import { getSystemStatus } from './system'
 
 export function useLogin() {
   const queryClient = useQueryClient()
@@ -48,7 +49,10 @@ export function useRegistration() {
       await authRegister(payload)
     },
     onSuccess: async () => {
-      await queryClient.fetchQuery({ ...getMe(), staleTime: 0 })
+      await Promise.all([
+        queryClient.fetchQuery({ ...getSystemStatus, staleTime: 0 }),
+        queryClient.fetchQuery({ ...getMe(), staleTime: 0 }),
+      ])
     },
   })
 }

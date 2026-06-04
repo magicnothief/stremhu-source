@@ -1,15 +1,13 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import _ from 'lodash'
 
-import { getSettingsStatus } from '@/shared/queries/settings-setup'
+import { getSystemStatus } from '@/shared/queries/system'
 
 export const Route = createFileRoute('/setup/')({
   beforeLoad: async ({ context }) => {
     const queryClient = context.queryClient
-    const { hasAdminUser } =
-      await queryClient.ensureQueryData(getSettingsStatus)
+    const { configured } = await queryClient.ensureQueryData(getSystemStatus)
 
-    if (!hasAdminUser) {
+    if (!configured) {
       throw redirect({ to: '/setup/user' })
     }
 

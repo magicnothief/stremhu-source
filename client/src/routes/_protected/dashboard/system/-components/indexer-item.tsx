@@ -22,37 +22,34 @@ import {
   ItemMedia,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { useMetadata } from '@/shared/hooks/use-metadata'
-import type { TrackerDto } from '@/shared/lib/source/source-client'
+import type { IndexerResponse } from '@/shared/lib/source/source-client'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { useDeleteTracker } from '@/shared/queries/indexers'
-import { getSettings } from '@/shared/queries/settings'
+import { useIndexerDelete } from '@/shared/queries/indexers'
+import { getSystemSettings } from '@/shared/queries/system'
 
-type Tracker = {
-  tracker: TrackerDto
+type IndexerItemProps = {
+  indexer: IndexerResponse
 }
 
-export function TrackerItem(props: Tracker) {
-  const { data: setting } = useQuery(getSettings)
-  assertExists(setting)
+export function IndexerItem(props: IndexerItemProps) {
+  const { data: systemSettings } = useQuery(getSystemSettings)
+  assertExists(systemSettings)
 
-  const { tracker } = props
+  const { indexer } = props
 
   const dialogs = useDialogs()
   const confirmDialog = useConfirmDialog()
 
-  const { getTrackerLabel } = useMetadata()
-
-  const { mutateAsync: deleteTracker } = useDeleteTracker()
+  const { mutateAsync: deleteTracker } = useIndexerDelete()
 
   const handleEditTracker: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault()
     e.stopPropagation()
 
     dialogs.openDialog({
-      type: 'EDIT_TRACKER',
+      type: 'EDIT_INDEXER',
       options: {
-        tracker,
+        indexer,
       },
     })
   }
@@ -64,11 +61,11 @@ export function TrackerItem(props: Tracker) {
     e.stopPropagation()
 
     await confirmDialog.confirm({
-      title: `Biztosan törlöd a(z) ${getTrackerLabel(tracker.tracker)}-t?`,
-      description: `A(z) ${getTrackerLabel(tracker.tracker)} törlésével minden aktív torrent törlésre kerül, ami ezen a trackeren fut.`,
+      title: `Biztosan törlöd a(z) ${indexer.id}-t?`,
+      description: `A(z) ${indexer.id} törlésével minden aktív torrent törlésre kerül, ami ezen a trackeren fut.`,
       onConfirm: async () => {
         try {
-          await deleteTracker(tracker.tracker)
+          await deleteTracker(indexer.id)
         } catch (error) {
           const message = parseApiError(error)
           toast.error(message)
@@ -81,20 +78,20 @@ export function TrackerItem(props: Tracker) {
   const tags = useMemo(() => {
     const items: { label: string; icon: JSX.Element }[] = []
 
-    let hitAndRun = setting.hitAndRun
+    let hitAndRun = systemSettings.hitAndRun
 
-    if (tracker.hitAndRun !== null) {
-      hitAndRun = tracker.hitAndRun
+    if (indexer.hitAndRun !== null) {
+      hitAndRun = indexer.hitAndRun
     }
 
     if (hitAndRun) {
       items.push({ label: `Hit'n'Run`, icon: <CircleCheckBigIcon /> })
     }
 
-    let keepSeedSeconds = setting.keepSeedSeconds
+    let keepSeedSeconds = systemSettings.keepSeedSeconds
 
-    if (tracker.keepSeedSeconds !== null) {
-      keepSeedSeconds = tracker.keepSeedSeconds
+    if (indexer.keepSeedSeconds !== null) {
+      keepSeedSeconds = indexer.keepSeedSeconds
     }
 
     if (keepSeedSeconds) {
@@ -102,12 +99,12 @@ export function TrackerItem(props: Tracker) {
       items.push({ label: `${days} nap után`, icon: <TimerIcon /> })
     }
 
-    if (tracker.downloadFullTorrent) {
+    if (indexer.downloadFullTorrent) {
       items.push({ label: `Teljes letöltés`, icon: <DownloadIcon /> })
     }
 
     return items
-  }, [setting, tracker])
+  }, [systemSettings, indexer])
 
   return (
     <Item variant="muted">
@@ -115,9 +112,9 @@ export function TrackerItem(props: Tracker) {
         <CircleCheckBigIcon className="text-green-700" />
       </ItemMedia>
       <ItemContent>
-        <ItemTitle>{getTrackerLabel(tracker.tracker)}</ItemTitle>
+        <ItemTitle>{indexer.indexerDefinition.name}</ItemTitle>
         <ItemDescription>
-          Bejelentkezve <span className="font-bold">{tracker.username}</span>{' '}
+          Bejelentkezve <span className="font-bold">{indexer.username}</span>{' '}
           felhasználóval.
         </ItemDescription>
         {tags.length !== 0 && (

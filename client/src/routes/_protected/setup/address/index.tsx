@@ -10,8 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/components/ui/card'
-import { getSettings } from '@/shared/queries/settings'
-import { getSettingsStatus } from '@/shared/queries/settings-setup'
+import { getSystemStatus } from '@/shared/queries/system'
 
 import {
   NETWORK_ACCESS_FORM_ID,
@@ -21,12 +20,10 @@ import {
 
 export const Route = createFileRoute('/_protected/setup/address/')({
   beforeLoad: async ({ context }) => {
-    const [{ hasAddress }] = await Promise.all([
-      context.queryClient.ensureQueryData(getSettingsStatus),
-      context.queryClient.ensureQueryData(getSettings),
-    ])
+    const systemStatus =
+      await context.queryClient.ensureQueryData(getSystemStatus)
 
-    if (hasAddress) {
+    if (systemStatus.configured) {
       throw redirect({ to: '/' })
     }
   },

@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from modules.indexer_definitions.schemas import IndexerDefinitionLogin
+from modules.indexer_definitions.schemas.internal import IndexerDefinitionLogin
 
 
 class IndexerAccountStorage(Protocol):

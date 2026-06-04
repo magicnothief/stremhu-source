@@ -27,7 +27,7 @@ import {
 import type { PreferenceDto } from '@/shared/type/preference.dto'
 
 export const Route = createFileRoute(
-  '/_protected/dashboard/users/$userId/preferences/$preference/',
+  '/_protected/dashboard/users/$userId/preferences/$preferenceId/',
 )({
   component: RouteComponent,
 })

@@ -5,16 +5,25 @@ import {
 } from '@tanstack/react-query'
 
 import type {
+  PreferenceCreateRequest,
+  PreferenceUpdateRequest,
+  PreferencesReorderRequest,
   UserCreateRequest,
   UserUpdateRequest,
 } from '@/shared/lib/source/source-client'
 import {
   usersCreate,
+  usersCreatePreference,
   usersDelete,
+  usersDeletePreference,
   usersGet,
   usersGetList,
+  usersGetPreference,
+  usersGetPreferences,
   usersRegenerateApiKey,
+  usersReorderPreferences,
   usersUpdate,
+  usersUpdatePreference,
 } from '@/shared/lib/source/source-client'
 
 import { getMe } from './me'
@@ -49,7 +58,7 @@ export function useAddUser() {
   })
 }
 
-export function useDeleteUser() {
+export function useUserDelete() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (userId: string) => {
@@ -79,7 +88,7 @@ export function useRegenerateUserToken() {
   })
 }
 
-export function useUpdateUser() {
+export function useUserUpdate() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (data: {
@@ -96,6 +105,84 @@ export function useUpdateUser() {
         if (!prev) return prev
         const isSelf = prev.id === updated.id
         return isSelf ? updated : prev
+      })
+    },
+  })
+}
+
+export const getUserPreferences = (userId: string) =>
+  queryOptions({
+    queryKey: ['users', userId, 'preferences'],
+    queryFn: async () => {
+      const response = await usersGetPreferences(userId)
+      return response
+    },
+  })
+
+export function useCreateUserPreference(userId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: PreferenceCreateRequest) => {
+      await usersCreatePreference(userId, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['users', userId, 'preferences'],
+      })
+    },
+  })
+}
+
+export const getUserPreference = (userId: string, preference_id: string) =>
+  queryOptions({
+    queryKey: ['users', userId, 'preferences', preference_id],
+    queryFn: async () => {
+      const response = await usersGetPreference(userId, preference_id)
+      return response
+    },
+  })
+
+export function useUpdateUserPreference(userId: string, preference_id: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: PreferenceUpdateRequest) => {
+      await usersUpdatePreference(userId, preference_id, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['users', userId, 'preferences'],
+      })
+    },
+  })
+}
+
+export function useReorderUserPreference(userId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: PreferencesReorderRequest) => {
+      await usersReorderPreferences(userId, payload)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['users', userId, 'preferences'],
+      })
+    },
+  })
+}
+
+export function useDeleteUserPreference(userId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (preference_id: string) => {
+      await usersDeletePreference(userId, preference_id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['users', userId, 'preferences'],
       })
     },
   })

@@ -7,9 +7,8 @@ import type { AddUserDialog } from '@/features/add-user/add-user.types'
 import type { ChangePasswordDialog } from '@/features/change-password/change-password.types'
 import type { ChangeUsernameDialog } from '@/features/change-username/change-username.types'
 import type { ConfirmDialog } from '@/features/confirm/confirm.types'
-import type { EditTrackerDialog } from '@/features/edit-tracker/edit-tracker.type'
+import type { EditIndexerDialog } from '@/features/edit-indexer/edit-indexer.type'
 import type { NetworkAccessDialog } from '@/features/network-access/network-access.types'
-import type { StremhuCatalogDialog } from '@/features/stremhu-catalog/types'
 
 type BaseOpenDialog = {
   onClose?: () => void
@@ -23,8 +22,7 @@ export type OpenDialog = BaseOpenDialog &
     | ChangePasswordDialog
     | AddUserDialog
     | NetworkAccessDialog
-    | StremhuCatalogDialog
-    | EditTrackerDialog
+    | EditIndexerDialog
   )
 
 type BaseDialogContent = {

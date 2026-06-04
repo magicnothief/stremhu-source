@@ -1,19 +1,16 @@
-import time
-
+from common.schemas.api import SuccessResponse
 from fastapi import APIRouter
-from modules.monitoring.schemas import Health
 
 router = APIRouter()
-
-START_TIME = time.time()
 
 
 @router.get(
     "/health",
-    response_model=Health,
+    response_model=SuccessResponse,
     tags=["Monitoring"],
 )
-def health() -> Health:
-    return Health(
-        start_time=START_TIME,
+def health() -> SuccessResponse:
+    return SuccessResponse(
+        success=True,
+        message="🚀 StremHU Source fut! 🚀",
     )

@@ -2,7 +2,7 @@ import functools
 
 from common.database import db_session
 from modules.indexer_accounts.repository import IndexerAccountsRepository
-from modules.indexer_definitions.schemas import IndexerDefinitionLogin
+from modules.indexer_definitions.schemas.internal import IndexerDefinitionLogin
 from modules.indexer_definitions.service import IndexerDefinitionsService
 
 

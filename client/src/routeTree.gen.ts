@@ -43,9 +43,9 @@ import { Route as ProtectedSettingsPreferencesPreferenceIndexRouteImport } from 
 import { Route as ProtectedDashboardUsersUserIdIndexRouteImport } from './routes/_protected/dashboard/users/$userId/index'
 import { Route as ProtectedDashboardUsersUserIdPreferencesRouteRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/route'
 import { Route as ProtectedDashboardUsersUserIdPreferencesIndexRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/index'
-import { Route as ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/$preference/route'
+import { Route as ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/$preferenceId/route'
 import { Route as ProtectedDashboardUsersUserIdPreferencesCreateIndexRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/create/index'
-import { Route as ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/$preference/index'
+import { Route as ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRouteImport } from './routes/_protected/dashboard/users/$userId/preferences/$preferenceId/index'
 
 const LogoutRoute = LogoutRouteImport.update({
   id: '/logout',
@@ -237,10 +237,10 @@ const ProtectedDashboardUsersUserIdPreferencesIndexRoute =
     path: '/',
     getParentRoute: () => ProtectedDashboardUsersUserIdPreferencesRouteRoute,
   } as any)
-const ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute =
-  ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteImport.update({
-    id: '/$preference',
-    path: '/$preference',
+const ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute =
+  ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteImport.update({
+    id: '/$preferenceId',
+    path: '/$preferenceId',
     getParentRoute: () => ProtectedDashboardUsersUserIdPreferencesRouteRoute,
   } as any)
 const ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute =
@@ -249,12 +249,12 @@ const ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute =
     path: '/create/',
     getParentRoute: () => ProtectedDashboardUsersUserIdPreferencesRouteRoute,
   } as any)
-const ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute =
-  ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRouteImport.update({
+const ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute =
+  ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () =>
-      ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute,
+      ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -290,9 +290,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/users/$userId/': typeof ProtectedDashboardUsersUserIdIndexRoute
   '/settings/preferences/$preference/': typeof ProtectedSettingsPreferencesPreferenceIndexRoute
   '/settings/preferences/create/': typeof ProtectedSettingsPreferencesCreateIndexRoute
-  '/dashboard/users/$userId/preferences/$preference': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteWithChildren
+  '/dashboard/users/$userId/preferences/$preferenceId': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteWithChildren
   '/dashboard/users/$userId/preferences/': typeof ProtectedDashboardUsersUserIdPreferencesIndexRoute
-  '/dashboard/users/$userId/preferences/$preference/': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute
+  '/dashboard/users/$userId/preferences/$preferenceId/': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute
   '/dashboard/users/$userId/preferences/create/': typeof ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute
 }
 export interface FileRoutesByTo {
@@ -316,7 +316,7 @@ export interface FileRoutesByTo {
   '/settings/preferences/$preference': typeof ProtectedSettingsPreferencesPreferenceIndexRoute
   '/settings/preferences/create': typeof ProtectedSettingsPreferencesCreateIndexRoute
   '/dashboard/users/$userId/preferences': typeof ProtectedDashboardUsersUserIdPreferencesIndexRoute
-  '/dashboard/users/$userId/preferences/$preference': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute
+  '/dashboard/users/$userId/preferences/$preferenceId': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute
   '/dashboard/users/$userId/preferences/create': typeof ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute
 }
 export interface FileRoutesById {
@@ -354,9 +354,9 @@ export interface FileRoutesById {
   '/_protected/dashboard/users/$userId/': typeof ProtectedDashboardUsersUserIdIndexRoute
   '/_protected/settings/preferences/$preference/': typeof ProtectedSettingsPreferencesPreferenceIndexRoute
   '/_protected/settings/preferences/create/': typeof ProtectedSettingsPreferencesCreateIndexRoute
-  '/_protected/dashboard/users/$userId/preferences/$preference': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteWithChildren
+  '/_protected/dashboard/users/$userId/preferences/$preferenceId': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteWithChildren
   '/_protected/dashboard/users/$userId/preferences/': typeof ProtectedDashboardUsersUserIdPreferencesIndexRoute
-  '/_protected/dashboard/users/$userId/preferences/$preference/': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute
+  '/_protected/dashboard/users/$userId/preferences/$preferenceId/': typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute
   '/_protected/dashboard/users/$userId/preferences/create/': typeof ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute
 }
 export interface FileRouteTypes {
@@ -394,9 +394,9 @@ export interface FileRouteTypes {
     | '/dashboard/users/$userId/'
     | '/settings/preferences/$preference/'
     | '/settings/preferences/create/'
-    | '/dashboard/users/$userId/preferences/$preference'
+    | '/dashboard/users/$userId/preferences/$preferenceId'
     | '/dashboard/users/$userId/preferences/'
-    | '/dashboard/users/$userId/preferences/$preference/'
+    | '/dashboard/users/$userId/preferences/$preferenceId/'
     | '/dashboard/users/$userId/preferences/create/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -420,7 +420,7 @@ export interface FileRouteTypes {
     | '/settings/preferences/$preference'
     | '/settings/preferences/create'
     | '/dashboard/users/$userId/preferences'
-    | '/dashboard/users/$userId/preferences/$preference'
+    | '/dashboard/users/$userId/preferences/$preferenceId'
     | '/dashboard/users/$userId/preferences/create'
   id:
     | '__root__'
@@ -457,9 +457,9 @@ export interface FileRouteTypes {
     | '/_protected/dashboard/users/$userId/'
     | '/_protected/settings/preferences/$preference/'
     | '/_protected/settings/preferences/create/'
-    | '/_protected/dashboard/users/$userId/preferences/$preference'
+    | '/_protected/dashboard/users/$userId/preferences/$preferenceId'
     | '/_protected/dashboard/users/$userId/preferences/'
-    | '/_protected/dashboard/users/$userId/preferences/$preference/'
+    | '/_protected/dashboard/users/$userId/preferences/$preferenceId/'
     | '/_protected/dashboard/users/$userId/preferences/create/'
   fileRoutesById: FileRoutesById
 }
@@ -711,11 +711,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesIndexRouteImport
       parentRoute: typeof ProtectedDashboardUsersUserIdPreferencesRouteRoute
     }
-    '/_protected/dashboard/users/$userId/preferences/$preference': {
-      id: '/_protected/dashboard/users/$userId/preferences/$preference'
-      path: '/$preference'
-      fullPath: '/dashboard/users/$userId/preferences/$preference'
-      preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteImport
+    '/_protected/dashboard/users/$userId/preferences/$preferenceId': {
+      id: '/_protected/dashboard/users/$userId/preferences/$preferenceId'
+      path: '/$preferenceId'
+      fullPath: '/dashboard/users/$userId/preferences/$preferenceId'
+      preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteImport
       parentRoute: typeof ProtectedDashboardUsersUserIdPreferencesRouteRoute
     }
     '/_protected/dashboard/users/$userId/preferences/create/': {
@@ -725,12 +725,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesCreateIndexRouteImport
       parentRoute: typeof ProtectedDashboardUsersUserIdPreferencesRouteRoute
     }
-    '/_protected/dashboard/users/$userId/preferences/$preference/': {
-      id: '/_protected/dashboard/users/$userId/preferences/$preference/'
+    '/_protected/dashboard/users/$userId/preferences/$preferenceId/': {
+      id: '/_protected/dashboard/users/$userId/preferences/$preferenceId/'
       path: '/'
-      fullPath: '/dashboard/users/$userId/preferences/$preference/'
-      preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRouteImport
-      parentRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute
+      fullPath: '/dashboard/users/$userId/preferences/$preferenceId/'
+      preLoaderRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRouteImport
+      parentRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute
     }
   }
 }
@@ -749,31 +749,31 @@ const ProtectedDashboardSystemRouteRouteWithChildren =
     ProtectedDashboardSystemRouteRouteChildren,
   )
 
-interface ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteChildren {
-  ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute
+interface ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteChildren {
+  ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute
 }
 
-const ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteChildren: ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteChildren =
+const ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteChildren: ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteChildren =
   {
-    ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute:
-      ProtectedDashboardUsersUserIdPreferencesPreferenceIndexRoute,
+    ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute:
+      ProtectedDashboardUsersUserIdPreferencesPreferenceIdIndexRoute,
   }
 
-const ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteWithChildren =
-  ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute._addFileChildren(
-    ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteChildren,
+const ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteWithChildren =
+  ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute._addFileChildren(
+    ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteChildren,
   )
 
 interface ProtectedDashboardUsersUserIdPreferencesRouteRouteChildren {
-  ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteWithChildren
+  ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute: typeof ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteWithChildren
   ProtectedDashboardUsersUserIdPreferencesIndexRoute: typeof ProtectedDashboardUsersUserIdPreferencesIndexRoute
   ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute: typeof ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute
 }
 
 const ProtectedDashboardUsersUserIdPreferencesRouteRouteChildren: ProtectedDashboardUsersUserIdPreferencesRouteRouteChildren =
   {
-    ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRoute:
-      ProtectedDashboardUsersUserIdPreferencesPreferenceRouteRouteWithChildren,
+    ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRoute:
+      ProtectedDashboardUsersUserIdPreferencesPreferenceIdRouteRouteWithChildren,
     ProtectedDashboardUsersUserIdPreferencesIndexRoute:
       ProtectedDashboardUsersUserIdPreferencesIndexRoute,
     ProtectedDashboardUsersUserIdPreferencesCreateIndexRoute:

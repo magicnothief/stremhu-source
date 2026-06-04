@@ -1,6 +1,6 @@
 import humanize
 from modules.attributes.schemas.api import AttributeResponse
-from modules.indexer_definitions.schemas import IndexerDefinition
+from modules.indexer_definitions.schemas.internal import IndexerDefinition
 from modules.torrent_streams.schemas import TorrentStream
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel

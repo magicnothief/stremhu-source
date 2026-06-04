@@ -2,7 +2,7 @@ import asyncio
 
 import humanize
 from modules.attributes.service import AttributesService
-from modules.network.service import NetworkService
+from modules.settings.service import SettingsService
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_source_provider.service import (
     TorrentSourceProviderService,
@@ -23,13 +23,13 @@ class TorrentStreamsService:
         torrent_source_provider_service: TorrentSourceProviderService,
         torrents_service: TorrentsService,
         attributes_service: AttributesService,
-        network_service: NetworkService,
+        settings_service: SettingsService,
     ):
         self.db = db
         self._torrent_source_provider_service = torrent_source_provider_service
         self._torrents_service = torrents_service
         self._attributes_service = attributes_service
-        self._network_service = network_service
+        self._settings_service = settings_service
 
     async def find_by_imdb(
         self,
@@ -46,7 +46,7 @@ class TorrentStreamsService:
             self._attributes_service.get_all_as_map
         )
 
-        app_url = await asyncio.to_thread(self._network_service.get_app_url)
+        app_url = await asyncio.to_thread(self._settings_service.get_app_url)
 
         torrent_streams: list[TorrentStream] = []
 
@@ -86,7 +86,7 @@ class TorrentStreamsService:
         if not torrent_source:
             return []
 
-        app_url = await asyncio.to_thread(self._network_service.get_app_url)
+        app_url = await asyncio.to_thread(self._settings_service.get_app_url)
 
         return TorrentStream.from_torrent_id_base(
             indexer_torrent=torrent_source.indexer_torrent,

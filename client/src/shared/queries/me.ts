@@ -5,9 +5,9 @@ import {
 } from '@tanstack/react-query'
 
 import type {
-  MePreferenceUpdateRequest,
-  MePreferencesReorderRequest,
   MeUpdateRequest,
+  PreferenceUpdateRequest,
+  PreferencesReorderRequest,
 } from '../lib/source/source-client'
 import {
   meCreatePreference,
@@ -98,7 +98,7 @@ export function useUpdateMePreference(preferenceId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: MePreferenceUpdateRequest) => {
+    mutationFn: async (payload: PreferenceUpdateRequest) => {
       await meUpdatePreference(preferenceId, payload)
     },
     onSuccess: () => {
@@ -111,7 +111,7 @@ export function useReorderMePreference() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (payload: MePreferencesReorderRequest) => {
+    mutationFn: async (payload: PreferencesReorderRequest) => {
       await meReorderPreferences(payload)
     },
     onSuccess: () => {

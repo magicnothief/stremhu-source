@@ -1,6 +1,6 @@
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 
-import { getTrackers } from '@/shared/queries/indexers'
+import { getIndexers } from '@/shared/queries/indexers'
 import { getRelaySettings } from '@/shared/queries/relay'
 import { getTorrents } from '@/shared/queries/torrents'
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_protected/relay/torrents')({
     await Promise.all([
       context.queryClient.ensureQueryData(getTorrents),
       context.queryClient.ensureQueryData(getRelaySettings),
-      context.queryClient.ensureQueryData(getTrackers),
+      context.queryClient.ensureQueryData(getIndexers),
     ])
   },
   loader: () => {

@@ -4,9 +4,6 @@ from modules.roles.schemas.api import RoleResponse
 from modules.users.schemas.internal import (
     BaseUser,
     UserCreate,
-    UserPreferenceCreate,
-    UserPreferencesReorder,
-    UserPreferenceUpdate,
     UserUpdate,
 )
 from pydantic import ConfigDict
@@ -38,24 +35,3 @@ class UserResponse(BaseUser):
     api_key: str
     updated_at: datetime
     created_at: datetime
-
-
-class UserPreferenceCreateRequest(UserPreferenceCreate):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-
-class UserPreferenceUpdateRequest(UserPreferenceUpdate):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )
-
-
-class UserPreferencesReorderRequest(UserPreferencesReorder):
-    model_config = ConfigDict(
-        validate_by_name=True,
-        alias_generator=to_camel,
-    )

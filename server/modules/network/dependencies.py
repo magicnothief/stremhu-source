@@ -13,7 +13,7 @@ def create_network_service(db: Session) -> NetworkService:
     settings_service = create_settings_service(db)
     ddns_service = create_ddns_service()
     ssl_service = create_ssl_service()
-    system_service = create_system_service()
+    system_service = create_system_service(db)
 
     return NetworkService(
         settings_service=settings_service,

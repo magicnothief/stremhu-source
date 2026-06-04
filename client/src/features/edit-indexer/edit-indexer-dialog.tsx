@@ -32,16 +32,15 @@ import {
 import { Separator } from '@/shared/components/ui/separator'
 import { Switch } from '@/shared/components/ui/switch'
 import { useAppForm } from '@/shared/contexts/form-context'
-import { useMetadata } from '@/shared/hooks/use-metadata'
 import { parseApiError } from '@/shared/lib/utils'
-import { useUpdateTracker } from '@/shared/queries/indexers'
+import { useIndexerUpdate } from '@/shared/queries/indexers'
 
-import { HIT_AND_RUN_OPTIONS } from './edit-tracker.contant'
-import type { EditTrackerDialog } from './edit-tracker.type'
-import { EditTrackerOptionEnum } from './edit-tracker.type'
+import { HIT_AND_RUN_OPTIONS } from './edit-indexer.contant'
+import type { EditIndexerDialog } from './edit-indexer.type'
+import { EditIndexerOptionEnum } from './edit-indexer.type'
 
 const schema = z.object({
-  hitAndRunEnum: z.enum(EditTrackerOptionEnum),
+  hitAndRunEnum: z.enum(EditIndexerOptionEnum),
   keepSeed: z.coerce
     .number<string>('Csak szám adható meg')
     .positive('Csak pozitív szám adható meg.')
@@ -49,41 +48,39 @@ const schema = z.object({
   downloadFullTorrent: z.boolean(),
 })
 
-export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
-  const { tracker } = dialog.options
-
-  const { getTrackerLabel, getTrackerFullDownload } = useMetadata()
+export function EditIndexerDialog(dialog: OpenedDialog & EditIndexerDialog) {
+  const { indexer } = dialog.options
 
   const dialogsStore = useDialogsStore()
 
-  const { mutateAsync: updateTracker } = useUpdateTracker(tracker.tracker)
+  const { mutateAsync: updateIndexer } = useIndexerUpdate(indexer.id)
 
   const hitAndRunEnum = useMemo(() => {
-    if (tracker.hitAndRun === true) {
-      return EditTrackerOptionEnum.ENABLED
+    if (indexer.hitAndRun === true) {
+      return EditIndexerOptionEnum.ENABLED
     }
 
-    if (tracker.hitAndRun === false) {
-      return EditTrackerOptionEnum.DISABLED
+    if (indexer.hitAndRun === false) {
+      return EditIndexerOptionEnum.DISABLED
     }
 
-    return EditTrackerOptionEnum.INHERIT
-  }, [tracker.hitAndRun])
+    return EditIndexerOptionEnum.INHERIT
+  }, [indexer.hitAndRun])
 
   const keepSeed = useMemo(() => {
-    if (tracker.keepSeedSeconds) {
-      const days = tracker.keepSeedSeconds / (24 * 60 * 60)
+    if (indexer.keepSeedSeconds) {
+      const days = indexer.keepSeedSeconds / (24 * 60 * 60)
       return `${days}`
     }
 
     return null
-  }, [tracker.keepSeedSeconds])
+  }, [indexer.keepSeedSeconds])
 
   const form = useAppForm({
     defaultValues: {
       hitAndRunEnum,
       keepSeed,
-      downloadFullTorrent: tracker.downloadFullTorrent,
+      downloadFullTorrent: indexer.downloadFullTorrent,
     },
     validators: {
       onChange: schema,
@@ -92,15 +89,15 @@ export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
       try {
         let hitAndRun = null
 
-        if (value.hitAndRunEnum === EditTrackerOptionEnum.ENABLED) {
+        if (value.hitAndRunEnum === EditIndexerOptionEnum.ENABLED) {
           hitAndRun = true
         }
 
-        if (value.hitAndRunEnum === EditTrackerOptionEnum.DISABLED) {
+        if (value.hitAndRunEnum === EditIndexerOptionEnum.DISABLED) {
           hitAndRun = false
         }
 
-        if (value.hitAndRunEnum === EditTrackerOptionEnum.INHERIT) {
+        if (value.hitAndRunEnum === EditIndexerOptionEnum.INHERIT) {
           hitAndRun = null
         }
 
@@ -110,7 +107,7 @@ export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
           keepSeedSeconds = days * 24 * 60 * 60
         }
 
-        await updateTracker({
+        await updateIndexer({
           ...value,
           hitAndRun,
           keepSeedSeconds,
@@ -143,14 +140,12 @@ export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
         onEscapeKeyDown={() => dialogsStore.closeDialog(dialog.id)}
       >
         <form.AppForm>
-          <form name="add-user" className="grid gap-4" onSubmit={onSubmit}>
+          <form name="edit-indexer" className="grid gap-4" onSubmit={onSubmit}>
             <DialogHeader>
-              <DialogTitle>
-                "{getTrackerLabel(tracker.tracker)}" módosítása
-              </DialogTitle>
+              <DialogTitle>"{indexer.id}" módosítása</DialogTitle>
               <DialogDescription>
-                Állítsd be a tracker-re vonatkozó beállításokat és írd felül a
-                globális beállítások ennél a tracker-nél.
+                Állítsd be az indexer-re vonatkozó beállításokat és írd felül a
+                globális beállítások ennél az indexer-nél.
               </DialogDescription>
             </DialogHeader>
 
@@ -160,7 +155,7 @@ export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
                   <Switch
                     id={field.name}
                     checked={field.state.value}
-                    disabled={getTrackerFullDownload(tracker.tracker)}
+                    disabled={indexer.downloadFullTorrent}
                     onCheckedChange={field.handleChange}
                   />
                   <Label htmlFor="airplane-mode">
@@ -181,7 +176,7 @@ export function EditTrackerDialog(dialog: OpenedDialog & EditTrackerDialog) {
                   <Select
                     value={field.state.value}
                     name={field.name}
-                    onValueChange={(value: EditTrackerOptionEnum) =>
+                    onValueChange={(value: EditIndexerOptionEnum) =>
                       field.handleChange(value)
                     }
                   >

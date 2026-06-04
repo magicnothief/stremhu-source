@@ -2,6 +2,7 @@ from modules.preference_definitions.models import (
     PreferenceDefinitionAttributeModel,
     PreferenceDefinitionModel,
 )
+from modules.preferences.schemas.internal import PreferenceCreate
 from sqlalchemy.orm import Session
 
 
@@ -9,15 +10,13 @@ class PreferenceDefinitionRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(
-        self,
-        preference_id: str,
-        attribute_ids: list[str],
-    ) -> PreferenceDefinitionModel:
-        preference_definition = PreferenceDefinitionModel(preference_id=preference_id)
+    def create(self, payload: PreferenceCreate) -> PreferenceDefinitionModel:
+        preference_definition = PreferenceDefinitionModel(
+            preference_id=payload.preference_id
+        )
         self.db.add(preference_definition)
 
-        for idx, attr_id in enumerate(attribute_ids):
+        for idx, attr_id in enumerate(payload.attribute_ids):
             preference_definition_attribute = PreferenceDefinitionAttributeModel(
                 definition_id=preference_definition.id, attribute_id=attr_id, order=idx
             )

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from modules.auth.dependencies import OptionalSessionGuard, SessionGuard
 from modules.me.schemas import (
-    MePreferenceCreateRequest,
-    MePreferencesReorderRequest,
-    MePreferenceUpdateRequest,
     MeUpdateRequest,
 )
-from modules.preferences.schemas.api import PreferenceResponse
+from modules.preferences.schemas.api import (
+    PreferenceCreateRequest,
+    PreferenceResponse,
+    PreferencesReorderRequest,
+    PreferenceUpdateRequest,
+)
 from modules.user_preference_definitions.dependencies import (
     get_user_preference_definitions_service,
 )
@@ -82,7 +84,7 @@ def get_preferences(
     response_model=PreferenceResponse,
 )
 def create_preference(
-    payload: MePreferenceCreateRequest,
+    payload: PreferenceCreateRequest,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
@@ -93,8 +95,7 @@ def create_preference(
     """
     model = user_preference_definitions_service.create(
         current_user.id,
-        payload.preference_id,
-        payload.preferred,
+        payload,
     )
     return PreferenceResponse.from_user_preference_definition_model(model)
 
@@ -129,7 +130,7 @@ def get_preference(
     response_model=list[PreferenceResponse],
 )
 def reorder_preferences(
-    payload: MePreferencesReorderRequest,
+    payload: PreferencesReorderRequest,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
@@ -153,7 +154,7 @@ def reorder_preferences(
 )
 def update_preference(
     preference_id: str,
-    payload: MePreferenceUpdateRequest,
+    payload: PreferenceUpdateRequest,
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
     ),
@@ -165,7 +166,7 @@ def update_preference(
     model = user_preference_definitions_service.update(
         current_user.id,
         preference_id,
-        payload.preferred,
+        payload,
     )
     return PreferenceResponse.from_user_preference_definition_model(model)
 

@@ -23,7 +23,7 @@ def get_list(
 ):
     torrent_pairs = torrents_service.get_torrents()
     return [
-        TorrentResponse.from_torrent_pair(torrent_pair)
+        TorrentResponse.from_torrent_with_relay(torrent_pair)
         for torrent_pair in torrent_pairs
     ]
 
@@ -38,7 +38,7 @@ def get_one(
     _: UserModel = Depends(SessionGuard([UserRole.ADMIN])),
 ):
     torrent_pair = torrents_service.get_by_info_hash(info_hash)
-    return TorrentResponse.from_torrent_pair(torrent_pair)
+    return TorrentResponse.from_torrent_with_relay(torrent_pair)
 
 
 @router.put(
@@ -55,7 +55,7 @@ def update(
         info_hash=info_hash,
         payload=req,
     )
-    return TorrentResponse.from_torrent_pair(torrent_pair)
+    return TorrentResponse.from_torrent_with_relay(torrent_pair)
 
 
 @router.delete(

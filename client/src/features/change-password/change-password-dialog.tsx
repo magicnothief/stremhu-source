@@ -19,7 +19,7 @@ import type {
 } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
 import { useUpdateMe } from '@/shared/queries/me'
-import { useUpdateUser } from '@/shared/queries/users'
+import { useUserUpdate } from '@/shared/queries/users'
 
 import type { ChangePasswordDialog } from './change-password.types'
 
@@ -34,7 +34,7 @@ export function ChangePasswordDialog(
 
   const dialogsStore = useDialogsStore()
 
-  const { mutateAsync: updateUser } = useUpdateUser()
+  const { mutateAsync: updateUser } = useUserUpdate()
   const { mutateAsync: updateMe } = useUpdateMe()
 
   const dialogConfig = {

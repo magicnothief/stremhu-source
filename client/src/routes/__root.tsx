@@ -6,8 +6,7 @@ import {
 import { Toaster } from 'sonner'
 
 import type { RouterContext } from '@/main'
-import { getMetadata } from '@/shared/queries/metadata'
-import { getSettingsStatus } from '@/shared/queries/settings-setup'
+import { getSystemStatus } from '@/shared/queries/system'
 
 import { Dialogs } from './-features/dialogs/dialogs'
 import { AppLayout } from './-features/layout/app-layout'
@@ -15,18 +14,16 @@ import { AppLayout } from './-features/layout/app-layout'
 export const Route = createRootRouteWithContext<RouterContext>()({
   beforeLoad: async ({ context, location }) => {
     const { queryClient } = context
-    await queryClient.ensureQueryData(getMetadata)
 
-    const { hasAdminUser } =
-      await queryClient.ensureQueryData(getSettingsStatus)
+    const { configured } = await queryClient.ensureQueryData(getSystemStatus)
 
     const onSetup = location.pathname.startsWith('/setup/user')
 
-    if (!hasAdminUser && !onSetup) {
+    if (!configured && !onSetup) {
       throw redirect({ to: '/setup/user' })
     }
 
-    if (hasAdminUser && onSetup) {
+    if (configured && onSetup) {
       throw redirect({ to: '/' })
     }
   },

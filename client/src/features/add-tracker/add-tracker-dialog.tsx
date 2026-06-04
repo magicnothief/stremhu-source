@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import type { MouseEventHandler, SubmitEventHandler } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -22,17 +21,15 @@ import {
   SelectValue,
 } from '@/shared/components/ui/select'
 import { useAppForm } from '@/shared/contexts/form-context'
-import { TrackerEnum } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import { useLoginTracker } from '@/shared/queries/indexers'
-import { getMetadata } from '@/shared/queries/metadata'
+import { useIndexerLogin } from '@/shared/queries/indexers'
 
 import type { AddTrackerDialog } from './add-tracker.types'
 
 const schema = z.object({
-  tracker: z.enum(TrackerEnum),
-  trackerUsn: z.string().trim().nonempty('A felhasználónév kitöltése kötelező'),
-  trackerPwd: z.string().trim().nonempty('A jelszó kitöltése kötelező'),
+  indexerId: z.string(),
+  username: z.string().trim().nonempty('A felhasználónév kitöltése kötelező'),
+  password: z.string().trim().nonempty('A jelszó kitöltése kötelező'),
 })
 
 export function AddTrackerDialog(dialog: OpenedDialog & AddTrackerDialog) {
@@ -40,33 +37,24 @@ export function AddTrackerDialog(dialog: OpenedDialog & AddTrackerDialog) {
 
   const dialogsStore = useDialogsStore()
 
-  const { data: metadata } = useQuery(getMetadata)
-  if (!metadata) throw new Error(`Nincs "metadata" a cache-ben`)
+  const { mutateAsync: loginIndexer } = useIndexerLogin()
 
-  const { mutateAsync: loginTracker } = useLoginTracker()
+  const { indexers } = metadata
 
-  const { trackers } = metadata
-
-  const inactiveTrackers = trackers.filter(
-    (tracker) => !activeTrackers.includes(tracker.value),
-  )
+  const inactiveTrackers = []
 
   const form = useAppForm({
     defaultValues: {
-      tracker: inactiveTrackers[0].value,
-      trackerUsn: '',
-      trackerPwd: '',
+      indexerId: '',
+      username: '',
+      password: '',
     },
     validators: {
       onChange: schema,
     },
     onSubmit: async ({ value }) => {
       try {
-        await loginTracker({
-          tracker: value.tracker,
-          username: value.trackerUsn,
-          password: value.trackerPwd,
-        })
+        await loginIndexer(value)
         dialogsStore.closeDialog(dialog.id)
       } catch (error) {
         const message = parseApiError(error)
@@ -113,17 +101,15 @@ export function AddTrackerDialog(dialog: OpenedDialog & AddTrackerDialog) {
                   <Select
                     value={field.state.value}
                     name={field.name}
-                    onValueChange={(value: TrackerEnum) =>
-                      field.handleChange(value)
-                    }
+                    onValueChange={(value) => field.handleChange(value)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {inactiveTrackers.map((tracker) => (
-                        <SelectItem key={tracker.value} value={tracker.value}>
-                          {tracker.label}
+                      {inactiveTrackers.map((indexer) => (
+                        <SelectItem key={indexer.value} value={indexer.value}>
+                          {indexer.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -132,13 +118,13 @@ export function AddTrackerDialog(dialog: OpenedDialog & AddTrackerDialog) {
               )}
             </form.Field>
             <form.AppField
-              name="trackerUsn"
+              name="username"
               children={(field) => (
                 <field.AppTextField label="Felhasználónév" />
               )}
             />
             <form.AppField
-              name="trackerPwd"
+              name="password"
               children={(field) => (
                 <field.AppTextField label="Jelszó" type="password" />
               )}

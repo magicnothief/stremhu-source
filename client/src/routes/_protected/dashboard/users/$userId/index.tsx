@@ -31,7 +31,7 @@ function UserRoute() {
   assertExists(user)
 
   const { stremio, nuvioUrl } = useIntegrationDomain({
-    token: user.token,
+    apiKey: user.apiKey,
   })
 
   const { handleCopy } = useCopy()

@@ -23,7 +23,7 @@ import { assertExists } from '@/shared/lib/utils'
 import { getMe } from '@/shared/queries/me'
 
 export function LoginAndSecurity() {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
   assertExists(me)
 
   const { getUserRoleLabel } = useMetadata()

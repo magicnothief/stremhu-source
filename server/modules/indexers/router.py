@@ -45,15 +45,7 @@ async def login(
     """Bejelentkezés egy új indexerre."""
     indexer_account = await indexers_service.login(payload)
 
-    return IndexerResponse(
-        id=indexer_account.indexer_id,
-        username=indexer_account.username,
-        download_full_torrent=indexer_account.download_full_torrent,
-        hit_and_run=indexer_account.hit_and_run,
-        keep_seed_seconds=indexer_account.keep_seed_seconds,
-        updated_at=indexer_account.updated_at,
-        created_at=indexer_account.created_at,
-    )
+    return indexer_account
 
 
 @router.post(

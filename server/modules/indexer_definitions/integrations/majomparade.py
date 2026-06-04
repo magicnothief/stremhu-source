@@ -4,7 +4,7 @@ import httpx
 from modules.attributes.constants import AttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
-from modules.indexer_definitions.schemas import (
+from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionFindTorrentsResult,
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,

@@ -10,22 +10,20 @@ import {
   ItemContent,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { useMetadata } from '@/shared/hooks/use-metadata'
-import type { UserDto } from '@/shared/lib/source/source-client'
-import { useDeleteUser } from '@/shared/queries/users'
+import type { UserResponse } from '@/shared/lib/source/source-client'
+import { useUserDelete } from '@/shared/queries/users'
 
-type UserItem = {
-  user: UserDto
+type UserItemProps = {
+  user: UserResponse
   deleteDisabled: boolean
 }
 
-export function UserItem(props: UserItem) {
+export function UserItem(props: UserItemProps) {
   const { user, deleteDisabled } = props
 
   const confirmDialog = useConfirmDialog()
 
-  const { getUserRoleLabel } = useMetadata()
-  const { mutateAsync: deleteUser } = useDeleteUser()
+  const { mutateAsync: deleteUser } = useUserDelete()
 
   const handleDeleteUser = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -51,7 +49,7 @@ export function UserItem(props: UserItem) {
           <ItemTitle>
             {user.username}
             <span className="text-xs text-muted-foreground">
-              ({getUserRoleLabel(user.userRole)})
+              ({user.role.name})
             </span>
           </ItemTitle>
         </ItemContent>

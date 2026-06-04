@@ -31,8 +31,11 @@ import {
   ItemTitle,
 } from '@/shared/components/ui/item'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { getSettings, useUpdateSetting } from '@/shared/queries/settings'
-import { useCleanupTorrentsCache } from '@/shared/queries/torrents-cache'
+import {
+  getSystemSettings,
+  useSystemCleanup,
+  useSystemSettingsUpdate,
+} from '@/shared/queries/system'
 
 const schema = z.object({
   cacheRetention: z.coerce
@@ -42,22 +45,22 @@ const schema = z.object({
 })
 
 export function TorrentFilesCache() {
-  const { data: setting } = useQuery(getSettings)
-  assertExists(setting)
+  const { data: systemSettings } = useQuery(getSystemSettings)
+  assertExists(systemSettings)
 
   const confirmDialog = useConfirmDialog()
 
-  const { mutateAsync: updateSetting } = useUpdateSetting()
-  const { mutateAsync: cleanupTorrentsCache } = useCleanupTorrentsCache()
+  const { mutateAsync: updateSetting } = useSystemSettingsUpdate()
+  const { mutateAsync: cleanupTorrentsCache } = useSystemCleanup()
 
   const cacheRetentionDays = useMemo(() => {
-    if (setting.cacheRetentionSeconds > 0) {
-      const days = setting.cacheRetentionSeconds / (24 * 60 * 60)
+    if (systemSettings.cacheRetentionSeconds > 0) {
+      const days = systemSettings.cacheRetentionSeconds / (24 * 60 * 60)
       return `${days}`
     }
 
     return null
-  }, [setting.cacheRetentionSeconds])
+  }, [systemSettings.cacheRetentionSeconds])
 
   const form = useForm({
     defaultValues: {

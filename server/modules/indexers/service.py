@@ -9,7 +9,7 @@ from modules.indexer_definitions.exceptions import (
     AuthenticationException,
     CredentialsRequiredException,
 )
-from modules.indexer_definitions.schemas import IndexerDefinitionLogin
+from modules.indexer_definitions.schemas.internal import IndexerDefinitionLogin
 from modules.indexer_definitions.service import IndexerDefinitionsService
 from modules.indexers.schemas.internal import (
     DownloadedTorrentFile,

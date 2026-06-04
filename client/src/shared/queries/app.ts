@@ -13,6 +13,7 @@ export function getHealth(appUrl: string) {
       const response = await monitoringHealth({
         baseURL: appUrl,
         timeout: 5_000,
+        withCredentials: false,
       })
       return response
     },

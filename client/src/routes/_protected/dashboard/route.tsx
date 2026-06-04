@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_protected/dashboard')({
 })
 
 function SettingsLayout() {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
   assertExists(me)
 
   return (

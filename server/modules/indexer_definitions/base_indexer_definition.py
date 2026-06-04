@@ -10,7 +10,7 @@ from modules.indexer_definitions.exceptions import (
     TrackerException,
 )
 from modules.indexer_definitions.protocols import IndexerAccountStorage
-from modules.indexer_definitions.schemas import (
+from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionFindTorrentsResult,
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,

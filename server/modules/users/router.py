@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from modules.auth.dependencies import SessionGuard
-from modules.preferences.schemas.api import PreferenceResponse
+from modules.preferences.schemas.api import (
+    PreferenceCreateRequest,
+    PreferenceResponse,
+    PreferencesReorderRequest,
+    PreferenceUpdateRequest,
+)
 from modules.roles.enums import UserRole
 from modules.user_preference_definitions.dependencies import (
     get_user_preference_definitions_service,
@@ -11,9 +16,6 @@ from modules.users.dependencies import get_users_service
 from modules.users.models import UserModel
 from modules.users.schemas.api import (
     UserCreateRequest,
-    UserPreferenceCreateRequest,
-    UserPreferencesReorderRequest,
-    UserPreferenceUpdateRequest,
     UserResponse,
     UserUpdateRequest,
 )
@@ -95,7 +97,10 @@ def regenerate_api_key(
     return users_service.regenerate_api_key(user_id)
 
 
-@router.get("/{user_id}/preferences", response_model=list[PreferenceResponse])
+@router.get(
+    "/{user_id}/preferences",
+    response_model=list[PreferenceResponse],
+)
 def get_preferences(
     user_id: str,
     users_service: UsersService = Depends(get_users_service),
@@ -111,10 +116,13 @@ def get_preferences(
     return user_preference_definitions_service.find_list(user_id)
 
 
-@router.post("/{user_id}/preferences", response_model=PreferenceResponse)
+@router.post(
+    "/{user_id}/preferences",
+    response_model=PreferenceResponse,
+)
 def create_preference(
     user_id: str,
-    payload: UserPreferenceCreateRequest,
+    payload: PreferenceCreateRequest,
     users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
@@ -127,16 +135,18 @@ def create_preference(
     users_service.get_by_id(user_id)
     model = user_preference_definitions_service.create(
         user_id,
-        payload.preference_id,
-        payload.attribute_ids,
+        payload,
     )
     return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.post("/{user_id}/preferences/reorder", response_model=list[PreferenceResponse])
+@router.post(
+    "/{user_id}/preferences/reorder",
+    response_model=list[PreferenceResponse],
+)
 def reorder_preferences(
     user_id: str,
-    payload: UserPreferencesReorderRequest,
+    payload: PreferencesReorderRequest,
     users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
@@ -156,7 +166,10 @@ def reorder_preferences(
     ]
 
 
-@router.get("/{user_id}/preferences/{preference_id}", response_model=PreferenceResponse)
+@router.get(
+    "/{user_id}/preferences/{preference_id}",
+    response_model=PreferenceResponse,
+)
 def get_preference(
     user_id: str,
     preference_id: str,
@@ -179,11 +192,14 @@ def get_preference(
     return PreferenceResponse.from_user_preference_definition_model(model)
 
 
-@router.put("/{user_id}/preferences/{preference_id}", response_model=PreferenceResponse)
+@router.put(
+    "/{user_id}/preferences/{preference_id}",
+    response_model=PreferenceResponse,
+)
 def update_preference(
     user_id: str,
     preference_id: str,
-    payload: UserPreferenceUpdateRequest,
+    payload: PreferenceUpdateRequest,
     users_service: UsersService = Depends(get_users_service),
     user_preference_definitions_service: UserPreferenceDefinitionsService = Depends(
         get_user_preference_definitions_service
@@ -197,7 +213,7 @@ def update_preference(
     model = user_preference_definitions_service.update(
         user_id,
         preference_id,
-        payload.attribute_ids,
+        payload,
     )
     return PreferenceResponse.from_user_preference_definition_model(model)
 

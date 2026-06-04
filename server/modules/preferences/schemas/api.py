@@ -1,11 +1,20 @@
 from modules.attributes.schemas.api import AttributeResponse
+from modules.preferences.schemas.internal import (
+    PreferenceCreate,
+    PreferencesReorder,
+    PreferenceUpdate,
+)
 from modules.system_preference_definitions.models import SystemPreferenceDefinitionModel
 from modules.user_preference_definitions.models import UserPreferenceDefinitionModel
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 
 
 class PreferenceResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
 
     id: str
     name: str
@@ -47,3 +56,24 @@ class PreferenceResponse(BaseModel):
                 for definition_attribute in system_preference_definition_model.definition.definition_attributes
             ],
         )
+
+
+class PreferenceCreateRequest(PreferenceCreate):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+
+class PreferenceUpdateRequest(PreferenceUpdate):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )
+
+
+class PreferencesReorderRequest(PreferencesReorder):
+    model_config = ConfigDict(
+        validate_by_name=True,
+        alias_generator=to_camel,
+    )

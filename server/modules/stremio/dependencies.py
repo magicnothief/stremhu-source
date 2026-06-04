@@ -1,6 +1,6 @@
 from common.database import get_db
 from fastapi import Depends, Path
-from modules.network.dependencies import create_network_service
+from modules.settings.dependencies import create_settings_service
 from modules.stremio.schemas import ParsedCatalogId, ParsedExtra, ParsedStreamId
 from modules.stremio.service import StremioService
 from modules.stremio.utils import parse_catalog_id, parse_extra, parse_stream_id
@@ -11,10 +11,11 @@ from sqlalchemy.orm import Session
 def create_stremio_service(db: Session) -> StremioService:
     """Hozzárendeli a szervizt egy háttérfeladat vagy HTTP kérés adatbázis munkamenetéhez."""
     torrent_streams_service = create_torrent_streams_service(db)
-    network_service = create_network_service(db)
+    settings_service = create_settings_service(db)
+
     return StremioService(
         torrent_streams_service=torrent_streams_service,
-        network_service=network_service,
+        settings_service=settings_service,
     )
 
 

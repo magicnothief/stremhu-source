@@ -1,7 +1,7 @@
 from venv import logger
 
 from config import NodeEnv, config
-from modules.network.service import NetworkService
+from modules.settings.service import SettingsService
 from modules.stremio.constants import (
     ADDON_APP_PREFIX_ID,
     SEARCH_ID,
@@ -31,13 +31,13 @@ class StremioService:
     def __init__(
         self,
         torrent_streams_service: TorrentStreamsService,
-        network_service: NetworkService,
+        settings_service: SettingsService,
     ):
         self._torrent_streams_service = torrent_streams_service
-        self._network_service = network_service
+        self._settings_service = settings_service
 
     def manifest(self, user: UserModel) -> Manifest:
-        app_url = self._network_service.get_app_url()
+        app_url = self._settings_service.get_app_url()
 
         addon_id = "hu.stremhu-source.addon"
         name = "StremHU Source"

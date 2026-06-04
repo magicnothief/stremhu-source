@@ -1,5 +1,5 @@
 from modules.indexer_accounts.models import IndexerAccountModel
-from modules.indexer_definitions.schemas import (
+from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )

@@ -45,6 +45,14 @@ class Config(BaseSettings):
         return self.base_data_dir / "system"
 
     @property
+    def generated_certificates_dir(self) -> Path:
+        return self.system_dir / "generated-certificates"
+
+    @property
+    def own_certificates_dir(self) -> Path:
+        return self.system_dir / "own-certificates"
+
+    @property
     def database_url(self) -> str:
         return f"sqlite:///{self.system_dir}/stremhu.db"
 

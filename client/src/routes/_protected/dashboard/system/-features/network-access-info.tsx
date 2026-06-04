@@ -19,7 +19,7 @@ import {
 } from '@/shared/components/ui/item'
 import { assertExists } from '@/shared/lib/utils'
 import { getHealth } from '@/shared/queries/app'
-import { getMetadata } from '@/shared/queries/metadata'
+import { getSystemStatus } from '@/shared/queries/system'
 
 const networkCheckMap = {
   idle: {
@@ -39,10 +39,10 @@ const networkCheckMap = {
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const { data: metadata } = useQuery(getMetadata)
-  assertExists(metadata)
+  const { data: systemStatus } = useQuery(getSystemStatus)
+  assertExists(systemStatus)
 
-  const { status: healthStatus } = useQuery(getHealth(metadata.endpoint))
+  const { status: healthStatus } = useQuery(getHealth(systemStatus.appUrl))
 
   return (
     <Card>
@@ -58,7 +58,7 @@ export function NetworkAccessInfo() {
           <ItemContent>
             <ItemTitle>{networkCheckMap[healthStatus].title}</ItemTitle>
             <ItemDescription className="font-bold font-mono break-all">
-              {metadata.endpoint}
+              {systemStatus.appUrl}
             </ItemDescription>
           </ItemContent>
           <ItemActions>

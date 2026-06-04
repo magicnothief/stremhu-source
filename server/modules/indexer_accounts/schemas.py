@@ -1,6 +1,6 @@
 import datetime
 
-from modules.indexer_definitions.schemas import IndexerDefinition
+from modules.indexer_definitions.schemas.internal import IndexerDefinition
 from pydantic import BaseModel
 
 

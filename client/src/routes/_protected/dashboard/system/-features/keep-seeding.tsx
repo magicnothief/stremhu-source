@@ -21,7 +21,10 @@ import {
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { getSettings, useUpdateSetting } from '@/shared/queries/settings'
+import {
+  getSystemSettings,
+  useSystemSettingsUpdate,
+} from '@/shared/queries/system'
 
 const schema = z.object({
   hitAndRun: z.boolean(),
@@ -32,23 +35,23 @@ const schema = z.object({
 })
 
 export function KeepSeeding() {
-  const { data: setting } = useQuery(getSettings)
-  assertExists(setting)
+  const { data: systemSetting } = useQuery(getSystemSettings)
+  assertExists(systemSetting)
 
-  const { mutateAsync: updateSetting } = useUpdateSetting()
+  const { mutateAsync: updateSetting } = useSystemSettingsUpdate()
 
   const keepSeedDays = useMemo(() => {
-    if (setting.keepSeedSeconds > 0) {
-      const days = setting.keepSeedSeconds / (24 * 60 * 60)
+    if (systemSetting.keepSeedSeconds > 0) {
+      const days = systemSetting.keepSeedSeconds / (24 * 60 * 60)
       return `${days}`
     }
 
     return null
-  }, [setting.keepSeedSeconds])
+  }, [systemSetting.keepSeedSeconds])
 
   const form = useForm({
     defaultValues: {
-      hitAndRun: setting.hitAndRun,
+      hitAndRun: systemSetting.hitAndRun,
       keepSeed: keepSeedDays,
     },
     validators: {
