@@ -15,14 +15,12 @@ import {
 } from '@/shared/components/ui/item'
 import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
-
 import { BadgesSection } from './badges-section'
 
 interface PreferenceProps {
   preference: PreferenceResponse
   toEditLink: LinkProps
-  onDelete: (preference: PreferenceDto) => Promise<void>
+  onDelete: (preference: PreferenceResponse) => Promise<void>
 }
 
 export function Preference(props: PreferenceProps) {

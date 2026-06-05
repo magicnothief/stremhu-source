@@ -1,16 +1,21 @@
-import { Address4 } from 'ip-address'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import type { ReactEventHandler, SubmitEventHandler } from 'react'
-import { useState } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { useConfirmDialog } from '@/features/confirm/use-confirm-dialog'
 import { useAppForm } from '@/shared/contexts/form-context'
+import type {
+  NetworkAutoSetupRequest,
+  NetworkManualSetupRequest,
+} from '@/shared/lib/source/source-client'
+import { NetworkConnectionEnum } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
+import { getNetworkSettings, useNetworkConfig } from '@/shared/queries/network'
 
 import { Separator } from '../../shared/components/ui/separator'
 import { networkAccessDefaultValues } from './network-access.defaults'
-import type { ConnectionType } from './network-access.types'
+import type { NetworkAccessFormValues } from './network-access.types'
 import { NetworkSelector } from './network-selector'
 import { UrlConfiguration } from './url-configuration'
 
@@ -23,62 +28,20 @@ export const NETWORK_ACCESS_HEADER = {
     'Bizonyos kliensek (Stremio web) csak biztonságos (HTTPS) kapcsolaton keresztül tudnak addont telepíteni. Itt adhatod meg, milyen címen érje el a StremHU Source-ot.',
 }
 
-const schema = z
-  .object({
-    enebledlocalIp: z.boolean(),
-    address: z.string().trim(),
-  })
-  .superRefine(({ address, enebledlocalIp }, ctx) => {
-    if (enebledlocalIp) {
-      try {
-        new Address4(address)
-        if (
-          address.includes('/') ||
-          address.includes(':') ||
-          address === '127.0.0.1'
-        ) {
-          throw new Error()
-        }
-      } catch (error) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['address'],
-          message:
-            'Csak IPv4 cím adható meg (protokoll/subnet/port nélkül) a 127.0.0.1 nem használható',
-        })
-      }
-
-      return
-    }
-
-    const httpsUrl = z.url({
-      protocol: /^https$/,
-      error: 'Csak HTTPS engedélyezett',
-    })
-
-    const parsedUrl = httpsUrl.safeParse(address)
-
-    if (!parsedUrl.success) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['address'],
-        message: 'Érvénytelen HTTPS URL',
-      })
-      return
-    }
-
-    const parseUrl = new URL(parsedUrl.data)
-    const lastCharacter = address.substring(address.length - 1)
-    const noPath = parseUrl.pathname === '/' && lastCharacter !== '/'
-
-    if (!noPath || parseUrl.search || parseUrl.hash) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['address'],
-        message: 'Nem tartalmazhat elérési utat, query-t vagy fragmentet',
-      })
-    }
-  })
+const schema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.enum(['duckdns', 'myaddr']),
+    host: z.string().min(1, 'A host megadása kötelező'),
+    token: z.string().min(1, 'A token megadása kötelező'),
+    email: z.string().email('Érvénytelen e-mail cím'),
+    connection: z.nativeEnum(NetworkConnectionEnum),
+  }),
+  z.object({
+    mode: z.literal('manual'),
+    host: z.string().min(1, 'A host megadása kötelező'),
+    reverseProxy: z.boolean(),
+  }),
+])
 
 export type NetworkAccessProps = {
   onSuccess?: () => void
@@ -89,82 +52,89 @@ export type NetworkAccessProps = {
 export function NetworkAccess(props: NetworkAccessProps) {
   const { onSuccess, onSkip, onValidated } = props
 
-  const [connection, setConnection] = useState<ConnectionType>('idle')
-
   const { confirm } = useConfirmDialog()
+  const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
+  const { mutateAsync: configNetwork } = useNetworkConfig()
+
+  let defaultValues: NetworkAccessFormValues = { ...networkAccessDefaultValues }
+
+  if (networkSettings.mode === 'auto') {
+    defaultValues = {
+      mode: networkSettings.provider as 'duckdns' | 'myaddr',
+      host: networkSettings.host,
+      token: networkSettings.token,
+      email: networkSettings.email,
+      connection: networkSettings.connection,
+    }
+  } else if (networkSettings.mode === 'manual') {
+    defaultValues = {
+      mode: 'manual',
+      host: networkSettings.host,
+      reverseProxy: networkSettings.reverseProxy,
+    }
+  }
 
   const form = useAppForm({
-    defaultValues: networkAccessDefaultValues,
+    defaultValues,
     validators: {
       onChange: schema,
     },
     listeners: {
       onBlur: async ({ formApi }) => {
-        const { isValid, values } = formApi.state
-
-        if (!isValid) {
-          if (onValidated) onValidated(false)
-          return
-        }
-
-        const { enebledlocalIp, address } = values
-
-        let appUrl = address
-
-        if (enebledlocalIp) {
-          appUrl = ''
-        }
-
-        try {
-          if (onValidated) onValidated(false)
-          setConnection('pending')
-          setConnection('success')
-          if (onValidated) onValidated(true)
-        } catch (error) {
-          setConnection('error')
-          if (onValidated) onValidated(false)
-        }
+        if (onValidated) onValidated(formApi.state.isValid)
       },
       onChange: async ({ formApi }) => {
-        const { isValid, values } = formApi.state
-
-        if (!isValid) {
-          if (onValidated) onValidated(false)
-          return
-        }
-
-        const { enebledlocalIp, address } = values
-
-        let appUrl = address
-
-        if (enebledlocalIp) {
-          appUrl = ''
-        }
-
-        try {
-          if (onValidated) onValidated(false)
-          setConnection('pending')
-
-          setConnection('success')
-          if (onValidated) onValidated(true)
-        } catch (error) {
-          setConnection('error')
-          if (onValidated) onValidated(false)
-        }
+        if (onValidated) onValidated(formApi.state.isValid)
       },
       onChangeDebounceMs: 500,
     },
-    onSubmit: async ({ value, formApi }) => {
+    onSubmit: async ({ value }) => {
       try {
-        let appUrl = '0.0.0.0'
+        let payload: NetworkAutoSetupRequest | NetworkManualSetupRequest
 
-        if (value.enebledlocalIp) {
-          appUrl = ''
+        if (value.mode === 'manual') {
+          payload = {
+            mode: 'manual',
+            host: value.host,
+            reverseProxy: value.reverseProxy,
+          }
+        } else {
+          payload = {
+            mode: 'auto',
+            provider: value.mode,
+            host: value.host,
+            token: value.token,
+            email: value.email,
+            connection: value.connection,
+          }
         }
+
+        await configNetwork(payload)
+
+        const appUrl = `https://${value.host}`
+
+        toast.success(
+          <div className="flex flex-col gap-1">
+            <p>Hálózati beállítások sikeresen elmentve! A szerver újraindul.</p>
+            <p>
+              Az új elérhetőség:{' '}
+              <a
+                href={appUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="underline font-bold"
+              >
+                {appUrl}
+              </a>
+            </p>
+          </div>,
+          {
+            duration: Infinity,
+          },
+        )
 
         if (onSuccess) onSuccess()
       } catch (error) {
-        formApi.reset()
         const message = parseApiError(error)
         toast.error(message)
       }
@@ -206,7 +176,7 @@ export function NetworkAccess(props: NetworkAccessProps) {
       >
         <NetworkSelector form={form} />
         <Separator />
-        <UrlConfiguration form={form} connection={connection} />
+        <UrlConfiguration form={form} />
       </form>
     </form.AppForm>
   )

@@ -14,8 +14,8 @@ import {
 } from '@/shared/components/ui/dialog'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type {
-  UpdateMeDto,
-  UpdateUserDto,
+  MeUpdateRequest,
+  UserUpdateRequest,
 } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
 import { useUpdateMe } from '@/shared/queries/me'
@@ -41,14 +41,14 @@ export function ChangeUsernameDialog(
     title: 'Felhasználónév módosítása',
     description:
       'Felhasználóneved módosítása után már ezzel tudsz majd újra bejelentkezni.',
-    mutate: (payload: UpdateMeDto) => updateMe(payload),
+    mutate: (payload: MeUpdateRequest) => updateMe(payload),
   }
 
   if (user) {
     dialogConfig.title = `${user.username} felhasználónevének módosítása`
     dialogConfig.description =
       'A felhasználónév módosítása után ezzel tud újra bejelentkezni.'
-    dialogConfig.mutate = (payload: UpdateUserDto) =>
+    dialogConfig.mutate = (payload: UserUpdateRequest) =>
       updateUser({ userId: user.id, payload })
   }
 

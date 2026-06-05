@@ -63,7 +63,7 @@ function SetupAddressRoute() {
             form={NETWORK_ACCESS_FORM_ID}
             disabled={!isValid}
           >
-            Mentés
+            Konfigurálás
           </Button>
         </CardFooter>
       </Card>

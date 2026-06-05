@@ -6,41 +6,49 @@ import { networkAccessDefaultValues } from './network-access.defaults'
 
 const accessOptions = [
   {
-    label: 'Hozzáférés otthoni hálózaton',
+    label: 'DuckDNS',
     description: (
       <>
-        Csak a helyi hálózaton használod. A StremHU Source egy biztonságos HTTPS
-        címet generál a helyi IP-dhez a{' '}
-        <a
-          className="link-primary"
-          href="https://local-ip.medicmobile.org"
-          target="_blank"
-        >
-          https://local-ip.medicmobile.org
-        </a>{' '}
-        segítségével.
-      </>
-    ),
-    value: 'true',
-  },
-  {
-    label: 'Távoli elérés saját domainnel',
-    description: (
-      <>
-        Használd ezt, ha az internetről is el szeretnéd érni a StremHU
-        Source-ot. Adj meg egy olyan domaint (pl. DDNS-szolgáltatóval, mint a{' '}
+        Ingyenes DDNS szolgáltatás. Regisztrálj a{' '}
         <a
           className="link-primary"
           href="https://www.duckdns.org"
           target="_blank"
+          rel="noreferrer"
         >
-          https://www.duckdns.org
-        </a>
-        ), amely a StremHU Source-ot futtató eszközre mutat, és biztosítja a
-        HTTPS-kapcsolatot.
+          duckdns.org
+        </a>{' '}
+        oldalon, majd add meg a választott domaint és a tokenedet.
       </>
     ),
-    value: 'false',
+    value: 'duckdns',
+  },
+  {
+    label: 'MyAddr',
+    description: (
+      <>
+        Ingyenes DDNS szolgáltatás. Regisztrálj a{' '}
+        <a
+          className="link-primary"
+          href="https://myaddr.tools"
+          target="_blank"
+          rel="noreferrer"
+        >
+          myaddr.tools
+        </a>{' '}
+        oldalon, majd add meg a domaint és a tokenedet.
+      </>
+    ),
+    value: 'myaddr',
+  },
+  {
+    label: 'Kézi beállítás (Manual)',
+    description: (
+      <>
+        Saját domain, egyedi proxy beállítása. Csak haladóknak!
+      </>
+    ),
+    value: 'manual',
   },
 ]
 
@@ -48,14 +56,11 @@ export const NetworkSelector = withForm({
   defaultValues: networkAccessDefaultValues,
   render: ({ form }) => {
     return (
-      <form.Field name="enebledlocalIp">
+      <form.Field name="mode">
         {(field) => (
           <RadioGroup
-            value={field.state.value.toString()}
-            onValueChange={(value) => {
-              const booleanValue = value === 'true'
-              field.handleChange(booleanValue)
-            }}
+            value={field.state.value}
+            onValueChange={(val) => field.handleChange(val as any)}
           >
             {accessOptions.map((accessOption) => (
               <div key={accessOption.value} className="flex items-start gap-3">
@@ -63,7 +68,7 @@ export const NetworkSelector = withForm({
                   value={accessOption.value}
                   id={accessOption.value}
                 />
-                <div className="grid gap-2">
+                <div className="grid gap-2 mt-[-2px]">
                   <Label htmlFor={accessOption.value}>
                     {accessOption.label}
                   </Label>

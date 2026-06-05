@@ -1,119 +1,37 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
-import clsx from 'clsx'
-import { LinkIcon, UnlinkIcon } from 'lucide-react'
-
-import { Button } from '@/shared/components/ui/button'
-import { Field, FieldError } from '@/shared/components/ui/field'
+import { Field, FieldError, FieldLabel } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
-import { Spinner } from '@/shared/components/ui/spinner'
+import { Label } from '@/shared/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select'
+import { Switch } from '@/shared/components/ui/switch'
 import { withForm } from '@/shared/contexts/form-context'
-import { getNetworkSettings } from '@/shared/queries/network'
+import { NetworkConnectionEnum } from '@/shared/lib/source/source-client'
 
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemTitle,
-} from '../../shared/components/ui/item'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../shared/components/ui/tooltip'
 import { networkAccessDefaultValues } from './network-access.defaults'
-import type { ConnectionType } from './network-access.types'
-
-const addressMap = {
-  ip: {
-    label: 'Eszköz IPv4 címe',
-    placeholder: 'Pl.: 192.168.1.100',
-    description:
-      'Annak az eszköznek a helyi IP címe, ahol a StremHU Source fut.',
-  },
-  domain: {
-    label: 'Domain cím',
-    placeholder: 'Pl.: https://stremhu.yourdomain.com',
-    description:
-      'Olyan domain, amely a StremHU Source-ot futtató eszközre irányít, és HTTPS-en keresztül érhető el.',
-  },
-}
-
-const networkCheckMap = {
-  pending: {
-    icon: <Spinner />,
-    title: 'Elérés ellenőrzése...',
-  },
-  success: {
-    icon: <LinkIcon />,
-    title: 'Sikeres kapcsolat!',
-  },
-  error: {
-    icon: <UnlinkIcon />,
-    title: 'Nem érhető el ezen a címen.',
-  },
-}
 
 export const UrlConfiguration = withForm({
-  props: {
-    // These props are also set as default values for the `render` function
-    connection: 'idle' as ConnectionType,
-  },
   defaultValues: networkAccessDefaultValues,
-  render: ({ form, connection }) => {
-    const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
-
+  render: ({ form }) => {
     return (
-      <form.Subscribe selector={(state) => [state.values.enebledlocalIp]}>
-        {([enebledlocalIp]) => {
-          const networkConfig = enebledlocalIp ? 'ip' : 'domain'
-
+      <form.Subscribe selector={(state) => [state.values.mode]}>
+        {([mode]) => {
           return (
-            <div className="grid gap-2">
-              <Item className="p-0">
-                <ItemContent>
-                  <ItemTitle>{addressMap[networkConfig].label}</ItemTitle>
-                  <ItemDescription>
-                    {addressMap[networkConfig].description}
-                  </ItemDescription>
-                </ItemContent>
-                {connection !== 'idle' && (
-                  <ItemActions>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant={
-                            connection === 'error' ? 'destructive' : 'default'
-                          }
-                          size="icon-sm"
-                          className={clsx([
-                            'rounded-full',
-                            connection === 'success' &&
-                              'bg-green-500 text-white',
-                          ])}
-                        >
-                          {networkCheckMap[connection].icon}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{networkCheckMap[connection].title}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </ItemActions>
-                )}
-              </Item>
-
-              <form.Field name="address">
+            <div className="grid gap-4">
+              <form.Field name="host">
                 {(field) => (
                   <Field>
+                    <FieldLabel>Domain vagy Host</FieldLabel>
                     <Input
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(e) => {
-                        field.handleChange(e.target.value)
-                      }}
-                      placeholder={addressMap[networkConfig].placeholder}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="Pl.: sub.duckdns.org vagy pelda.com"
                     />
                     {field.state.meta.isTouched && (
                       <FieldError errors={field.state.meta.errors} />
@@ -121,6 +39,92 @@ export const UrlConfiguration = withForm({
                   </Field>
                 )}
               </form.Field>
+
+              {mode !== 'manual' && (
+                <>
+                  <form.Field name="token">
+                    {(field) => (
+                      <Field>
+                        <FieldLabel>Token</FieldLabel>
+                        <Input
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="A szolgáltatótól kapott API token"
+                          type="password"
+                        />
+                        {field.state.meta.isTouched && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="email">
+                    {(field) => (
+                      <Field>
+                        <FieldLabel>E-mail cím (Let's Encrypt)</FieldLabel>
+                        <Input
+                          name={field.name}
+                          value={field.state.value}
+                          onBlur={field.handleBlur}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="SSL tanúsítvány generálásához"
+                          type="email"
+                        />
+                        {field.state.meta.isTouched && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="connection">
+                    {(field) => (
+                      <Field>
+                        <FieldLabel>Hálózati elérés</FieldLabel>
+                        <Select
+                          value={field.state.value}
+                          onValueChange={(value) =>
+                            field.handleChange(value as NetworkConnectionEnum)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Válassz típust" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NetworkConnectionEnum.local}>
+                              Helyi (Local - a router mögött vagyok)
+                            </SelectItem>
+                            <SelectItem value={NetworkConnectionEnum.public}>
+                              Publikus (Public - nyitott portom van)
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {field.state.meta.isTouched && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )}
+                  </form.Field>
+                </>
+              )}
+
+              {mode === 'manual' && (
+                <form.Field name="reverseProxy">
+                  {(field) => (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id={field.name}
+                        checked={field.state.value}
+                        onCheckedChange={field.handleChange}
+                      />
+                      <Label htmlFor={field.name}>Reverse Proxy mögött van</Label>
+                    </div>
+                  )}
+                </form.Field>
+              )}
             </div>
           )
         }}

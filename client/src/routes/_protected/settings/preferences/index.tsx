@@ -44,8 +44,8 @@ function RouteComponent() {
           <Preference
             preference={preference}
             toEditLink={{
-              to: '/settings/preferences/$preference',
-              params: { preference: preference.id },
+              to: '/settings/preferences/$preferenceId',
+              params: { preferenceId: preference.id },
             }}
             onDelete={handleDelete}
           />
