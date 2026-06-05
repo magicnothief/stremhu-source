@@ -1,6 +1,7 @@
 import datetime
 
 from modules.torrents.models import TorrentModel
+from modules.torrents.schemas.internal import TorrentUpdate
 from sqlalchemy.orm import Session
 
 
@@ -27,11 +28,16 @@ class TorrentRepository:
     def find_by_info_hash(self, info_hash: str) -> TorrentModel | None:
         return self.db.query(TorrentModel).filter_by(info_hash=info_hash).first()
 
-    def update(self, persisted_torrent: TorrentModel) -> TorrentModel:
-        self.db.add(persisted_torrent)
-        self.db.flush()
+    def update(self, info_hash: str, payload: TorrentUpdate) -> TorrentModel | None:
+        model = self.find_by_info_hash(info_hash)
 
-        return persisted_torrent
+        if model:
+            update_data = payload.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(model, key, value)
+            self.db.flush()
+
+        return model
 
     def delete(self, info_hash: str) -> None:
         self.db.query(TorrentModel).filter_by(info_hash=info_hash).delete()

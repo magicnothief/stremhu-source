@@ -18,3 +18,14 @@ def get_all(
     preferences_service: PreferencesService = Depends(get_preferences_service),
 ) -> list[PreferenceModel]:
     return preferences_service.get_list()
+
+
+@router.get(
+    "/{preference_id}",
+    response_model=PreferenceResponse,
+)
+def get(
+    preference_id: str,
+    preferences_service: PreferencesService = Depends(get_preferences_service),
+):
+    return preferences_service.get_by_id(preference_id)

@@ -21,4 +21,5 @@ class TorrentCreate(BaseModel):
 
 class TorrentUpdate(BaseModel):
     is_persisted: bool | None = None
-    download_full_torrent: bool | None = None
+    full_download: bool | None = None
+    resume_bytes: bytes | None = None

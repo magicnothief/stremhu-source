@@ -27,7 +27,7 @@ export function NuvioIntegration() {
   assertExists(me)
 
   const { nuvioUrl } = useIntegrationDomain({
-    token: me.token,
+    apiKey: me.apiKey,
   })
 
   const { handleCopy } = useCopy()

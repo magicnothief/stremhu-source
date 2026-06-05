@@ -7,7 +7,7 @@ from modules.indexer_accounts.models import IndexerAccountModel
 from modules.indexers.schemas.internal import IndexerTorrent
 from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_files.models import TorrentFileModel
-from modules.torrent_streams.utils.metadata_parser import TorrentMetadataParser
+from modules.torrent_streams.name_parser_service import TorrentNameParserService
 from modules.torrent_streams.utils.resolver_helpers import (
     is_sample,
     is_sample_or_trash,
@@ -63,11 +63,11 @@ class TorrentStream(BaseModel):
         ]
 
     @classmethod
-    def from_imdb_id_base(
+    def from_imdb_id(
         cls,
         indexer_torrent: IndexerTorrent,
         torrent_file: TorrentFileModel,
-        attribute_map: dict[str, AttributeModel],
+        torrent_name_parser_service: TorrentNameParserService,
         app_url: str,
         user: UserModel,
         series: ParsedStreamSeries | None = None,
@@ -83,13 +83,10 @@ class TorrentStream(BaseModel):
         if torrent_info is None:
             return None
 
-        parse_attributes = TorrentMetadataParser(
-            name=torrent_info.name,
-            attributes_map=attribute_map,
-            fallback_attributes=[],
+        parsed_attributes = torrent_name_parser_service.parse(
+            torrent_info.name,
+            external_fallbacks=indexer_torrent.fallback_attributes,
         )
-
-        parsed_attributes = parse_attributes.parse()
 
         indexer_id = indexer_torrent.indexer_account.indexer_id
         torrent_id = torrent_file.torrent_id

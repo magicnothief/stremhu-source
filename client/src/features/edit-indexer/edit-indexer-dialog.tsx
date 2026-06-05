@@ -53,7 +53,7 @@ export function EditIndexerDialog(dialog: OpenedDialog & EditIndexerDialog) {
 
   const dialogsStore = useDialogsStore()
 
-  const { mutateAsync: updateIndexer } = useIndexerUpdate(indexer.id)
+  const { mutateAsync: updateIndexer } = useIndexerUpdate(indexer.indexerId)
 
   const hitAndRunEnum = useMemo(() => {
     if (indexer.hitAndRun === true) {
@@ -108,7 +108,7 @@ export function EditIndexerDialog(dialog: OpenedDialog & EditIndexerDialog) {
         }
 
         await updateIndexer({
-          ...value,
+          downloadFullTorrent: value.downloadFullTorrent,
           hitAndRun,
           keepSeedSeconds,
         })
@@ -142,7 +142,9 @@ export function EditIndexerDialog(dialog: OpenedDialog & EditIndexerDialog) {
         <form.AppForm>
           <form name="edit-indexer" className="grid gap-4" onSubmit={onSubmit}>
             <DialogHeader>
-              <DialogTitle>"{indexer.id}" módosítása</DialogTitle>
+              <DialogTitle>
+                {indexer.indexerDefinition.name} módosítása
+              </DialogTitle>
               <DialogDescription>
                 Állítsd be az indexer-re vonatkozó beállításokat és írd felül a
                 globális beállítások ennél az indexer-nél.
@@ -155,7 +157,7 @@ export function EditIndexerDialog(dialog: OpenedDialog & EditIndexerDialog) {
                   <Switch
                     id={field.name}
                     checked={field.state.value}
-                    disabled={indexer.downloadFullTorrent}
+                    disabled={indexer.indexerDefinition.requiresFullDownload}
                     onCheckedChange={field.handleChange}
                   />
                   <Label htmlFor="airplane-mode">

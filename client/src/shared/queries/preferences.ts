@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 
-import { preferencesGetAll } from '../lib/source/source-client'
+import { preferencesGet, preferencesGetAll } from '../lib/source/source-client'
 
 export const getPreferences = queryOptions({
   queryKey: ['preferences'],
@@ -10,3 +10,13 @@ export const getPreferences = queryOptions({
     return response
   },
 })
+
+export const getPreference = (preference_id: string) =>
+  queryOptions({
+    queryKey: ['preferences', preference_id],
+    queryFn: async () => {
+      const response = await preferencesGet(preference_id)
+
+      return response
+    },
+  })

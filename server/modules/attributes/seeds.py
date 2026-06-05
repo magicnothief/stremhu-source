@@ -82,7 +82,7 @@ DEFAULT_ATTRIBUTES = [
         id=AttributeKey.SDR,
         name="SDR",
         preference_id=PreferenceKey.VIDEO_QUALITY,
-        pattern=None,  # Az SDR-t jellemzően fallback-ként kezeljük
+        pattern=None,
     ),
     # Sources
     AttributeModel(

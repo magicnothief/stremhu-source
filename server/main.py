@@ -37,14 +37,11 @@ async def lifespan(app: FastAPI):
     with (out_dir / "openapi.json").open("w", encoding="utf-8") as f:
         json.dump(app.openapi(), f, indent=2, ensure_ascii=False)
 
-    # 1. Rendszerindításkori szinkronizációk végrehajtása (szerepkörök, preferenciák, attribútumok, indexerek, libtorrent)
-    sync_database_and_settings()
+    sync_database_and_settings(app)
 
-    # 2. Háttérfeladatok elindítása (alert_loop, resume_save_loop)
     alert_task = asyncio.create_task(alert_loop())
     save_task = asyncio.create_task(resume_save_loop())
 
-    # 3. APScheduler beállítása és indítása (decentralizált moduláris háttérfeladatok regisztrálásával)
     scheduler = setup_scheduler()
     scheduler.start()
 

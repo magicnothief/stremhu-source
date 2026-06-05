@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { isEmpty } from 'lodash'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
@@ -19,7 +19,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/shared/components/ui/input-group'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
+import { parseApiError } from '@/shared/lib/utils'
 import { getRelaySettings, useUpdateRelaySetting } from '@/shared/queries/relay'
 
 const schema = z.object({
@@ -28,29 +28,26 @@ const schema = z.object({
 })
 
 export function Speed() {
-  const queryClient = useQueryClient()
-
-  const relay = queryClient.getQueryData(getRelaySettings.queryKey)
-  assertExists(relay)
+  const { data: relaySettings } = useSuspenseQuery(getRelaySettings)
 
   const { mutateAsync: updateSetting } = useUpdateRelaySetting()
 
   const setting = useMemo(() => {
     let downloadLimit = null
-    if (relay.downloadLimit !== 0) {
-      downloadLimit = `${relay.downloadLimit / 125_000}`
+    if (relaySettings.downloadLimit !== 0) {
+      downloadLimit = `${relaySettings.downloadLimit / 125_000}`
     }
 
     let uploadLimit = null
-    if (relay.uploadLimit !== 0) {
-      uploadLimit = `${relay.uploadLimit / 125_000}`
+    if (relaySettings.uploadLimit !== 0) {
+      uploadLimit = `${relaySettings.uploadLimit / 125_000}`
     }
 
     return {
       downloadLimit,
       uploadLimit,
     }
-  }, [relay])
+  }, [relaySettings])
 
   const form = useForm({
     defaultValues: {

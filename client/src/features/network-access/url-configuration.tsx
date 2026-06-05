@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
 import { LinkIcon, UnlinkIcon } from 'lucide-react'
 
@@ -7,7 +7,6 @@ import { Field, FieldError } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
 import { Spinner } from '@/shared/components/ui/spinner'
 import { withForm } from '@/shared/contexts/form-context'
-import { assertExists } from '@/shared/lib/utils'
 import { getNetworkSettings } from '@/shared/queries/network'
 
 import {
@@ -62,8 +61,7 @@ export const UrlConfiguration = withForm({
   },
   defaultValues: networkAccessDefaultValues,
   render: ({ form, connection }) => {
-    const { data: networkSettings } = useQuery(getNetworkSettings)
-    assertExists(networkSettings)
+    const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
 
     return (
       <form.Subscribe selector={(state) => [state.values.enebledlocalIp]}>

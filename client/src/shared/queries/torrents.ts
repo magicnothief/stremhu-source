@@ -13,7 +13,7 @@ import {
 
 export const getTorrents = queryOptions({
   queryKey: ['torrents'],
-  refetchInterval: 5000,
+  refetchInterval: 1000,
   queryFn: async () => {
     const response = await torrentsGetList()
 

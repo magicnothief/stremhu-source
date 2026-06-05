@@ -61,11 +61,11 @@ export function IndexerItem(props: IndexerItemProps) {
     e.stopPropagation()
 
     await confirmDialog.confirm({
-      title: `Biztosan törlöd a(z) ${indexer.id}-t?`,
-      description: `A(z) ${indexer.id} törlésével minden aktív torrent törlésre kerül, ami ezen a trackeren fut.`,
+      title: `Biztosan törlöd a(z) ${indexer.indexerDefinition.name}-t?`,
+      description: `A(z) ${indexer.indexerDefinition.name} törlésével minden aktív torrent törlésre kerül, ami ezen a trackeren fut.`,
       onConfirm: async () => {
         try {
-          await deleteTracker(indexer.id)
+          await deleteTracker(indexer.indexerId)
         } catch (error) {
           const message = parseApiError(error)
           toast.error(message)

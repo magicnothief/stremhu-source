@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from modules.indexer_definitions.schemas.api import IndexerDefinitionResponse
-from modules.torrents.schemas.internal import TorrentUpdate, TorrentWithRelay
+from modules.torrents.schemas.internal import TorrentWithRelay
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -52,8 +52,11 @@ class TorrentResponse(BaseModel):
         )
 
 
-class TorrentUpdateRequest(TorrentUpdate):
+class TorrentUpdateRequest(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,
     )
+
+    is_persisted: bool | None = None
+    full_download: bool | None = None

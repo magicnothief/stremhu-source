@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { isEmpty } from 'lodash'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -14,7 +14,7 @@ import { Field, FieldError, FieldLabel } from '@/shared/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/shared/components/ui/input-group'
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
+import { parseApiError } from '@/shared/lib/utils'
 import { getRelaySettings, useUpdateRelaySetting } from '@/shared/queries/relay'
 
 const schema = z.object({
@@ -23,8 +23,7 @@ const schema = z.object({
 })
 
 export function Port() {
-  const { data: relaySettings } = useQuery(getRelaySettings)
-  assertExists(relaySettings)
+  const { data: relaySettings } = useSuspenseQuery(getRelaySettings)
 
   const { mutateAsync: updateSetting } = useUpdateRelaySetting()
 

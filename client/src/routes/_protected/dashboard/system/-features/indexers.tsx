@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query'
+import { useSuspenseQueries } from '@tanstack/react-query'
 import { LogInIcon } from 'lucide-react'
 import type { MouseEventHandler } from 'react'
 
@@ -20,21 +20,20 @@ import {
   EmptyTitle,
 } from '@/shared/components/ui/empty'
 import { Separator } from '@/shared/components/ui/separator'
-import { assertExists } from '@/shared/lib/utils'
-import { getIndexers } from '@/shared/queries/indexers'
+import { getIndexerDefinitions, getIndexers } from '@/shared/queries/indexers'
 
 import { IndexerItem } from '../-components/indexer-item'
 
 export function Indexers() {
-  const [{ data: indexers }] = useQueries({
-    queries: [getIndexers],
-  })
-
-  assertExists(indexers)
+  const [{ data: indexers }, { data: indexerDefinitions }] = useSuspenseQueries(
+    {
+      queries: [getIndexers, getIndexerDefinitions],
+    },
+  )
 
   const dialogs = useDialogs()
 
-  const renderTrackerLogin = false
+  const renderTrackerLogin = indexers.length < indexerDefinitions.length
 
   const handleTrackerLogin: MouseEventHandler<HTMLButtonElement> = (e) => {
     e.preventDefault()

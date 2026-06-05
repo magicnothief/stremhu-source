@@ -116,9 +116,10 @@ export function Torrent(props: TorrentProps) {
     e.stopPropagation()
 
     const detailsPath = torrent.indexerDefinition.detailsPath.replace(
-      '{torrentId}',
+      '{torrent_id}',
       torrent.torrentId,
     )
+
     const url = new URL(detailsPath, torrent.indexerDefinition.url)
 
     window.open(url.href, '_blank', 'noopener,noreferrer')
@@ -130,7 +131,7 @@ export function Torrent(props: TorrentProps) {
       e.stopPropagation()
 
       try {
-        await updateTorrent({ downloadFullTorrent: value })
+        await updateTorrent({ fullDownload: value })
       } catch (error) {
         const message = parseApiError(error)
         toast.error(message)

@@ -12,7 +12,7 @@ class IndexerAccountsService:
         self._indexer_accounts_repository = indexer_accounts_repository
 
     def create(self, payload: IndexerAccountCreate) -> IndexerAccountModel:
-        indexer_account = self.get_by_id(payload.indexer_id)
+        indexer_account = self.find_by_id(payload.indexer_id)
 
         if indexer_account:
             raise HTTPException(
@@ -29,30 +29,26 @@ class IndexerAccountsService:
 
     def get_by_id(self, indexer_id: str) -> IndexerAccountModel:
         indexer_account = self.find_by_id(indexer_id)
-        if indexer_account is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Nem található indexer!",
-            )
-        return indexer_account
+        return self._ensure_exists(indexer_account)
 
     def update(
         self,
         indexer_id: str,
         payload: IndexerAccountUpdate,
-    ) -> None:
-        indexer_account = self.get_by_id(indexer_id)
-        if payload.hit_and_run is not None:
-            indexer_account.hit_and_run = payload.hit_and_run
-        if payload.keep_seed_seconds is not None:
-            indexer_account.keep_seed_seconds = payload.keep_seed_seconds
-        if payload.download_full_torrent is not None:
-            indexer_account.download_full_torrent = payload.download_full_torrent
-
-        self._indexer_accounts_repository.update(indexer_account)
+    ) -> IndexerAccountModel:
+        model = self._indexer_accounts_repository.update(indexer_id, payload)
+        return self._ensure_exists(model)
 
     def delete(
         self,
         indexer_id: str,
     ) -> None:
         self._indexer_accounts_repository.delete(indexer_id)
+
+    def _ensure_exists(self, model: IndexerAccountModel | None) -> IndexerAccountModel:
+        if model is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Nincs létező indexer fiók!",
+            )
+        return model

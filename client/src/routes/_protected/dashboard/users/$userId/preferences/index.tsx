@@ -4,6 +4,7 @@ import { createFileRoute, useParams } from '@tanstack/react-router'
 import { Preference } from '@/features/preferences/preference'
 import { PreferencesSection } from '@/features/preferences/preferences-section'
 import { Separator } from '@/shared/components/ui/separator'
+import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { assertExists } from '@/shared/lib/utils'
 import {
   getUser,
@@ -11,7 +12,6 @@ import {
   useDeleteUserPreference,
   useReorderUserPreference,
 } from '@/shared/queries/users'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
 
 import { OnlyBestTorrent } from '../-features/only-best-torrent'
 import { TorrentSeeders } from '../-features/torrent-seeders'
@@ -42,8 +42,8 @@ function RouteComponent() {
     })
   }
 
-  const handleDelete = async (preference: PreferenceDto) => {
-    await deleteUserPreference(preference.preference)
+  const handleDelete = async (preference: PreferenceResponse) => {
+    await deleteUserPreference(preference.id)
   }
 
   return (

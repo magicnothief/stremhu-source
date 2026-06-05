@@ -33,7 +33,7 @@ export function StremioIntegration() {
   assertExists(me)
 
   const { stremio } = useIntegrationDomain({
-    token: me.token,
+    apiKey: me.apiKey,
   })
 
   const { handleCopy } = useCopy()

@@ -43,7 +43,7 @@ class IndexersService:
             payload.indexer_id
         )
         indexer_account = await asyncio.to_thread(
-            self._indexer_accounts_service.get_by_id,
+            self._indexer_accounts_service.find_by_id,
             indexer_definition.id,
         )
 
@@ -94,27 +94,36 @@ class IndexersService:
         self,
         indexer_id: str,
         payload: IndexerAccountUpdate,
-    ) -> None:
+    ) -> IndexerAccountModel:
         indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
 
         if (
-            payload.download_full_torrent is not None
+            "download_full_torrent" in payload.model_fields_set
             and payload.download_full_torrent
             != indexer_definition.requires_full_download
         ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nem lehetséges a '{indexer_definition.name}' letöltési beállításának módosítása!",
-            )
-        else:
+            if (
+                indexer_definition.requires_full_download
+                and payload.download_full_torrent is not True
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Nem lehetséges a '{indexer_definition.name}' letöltési beállításának módosítása!",
+                )
+
+            download_full_torrent = indexer_definition.requires_full_download
+
+            if payload.download_full_torrent is not None:
+                download_full_torrent = payload.download_full_torrent
+
             self._torrents_service.bulk_update_by_indexer_id(
                 indexer_id=indexer_id,
                 payload=TorrentUpdate(
-                    download_full_torrent=payload.download_full_torrent,
+                    download_full_torrent=download_full_torrent,
                 ),
             )
 
-        self._indexer_accounts_service.update(indexer_id, payload)
+        return self._indexer_accounts_service.update(indexer_id, payload)
 
     async def delete(
         self,

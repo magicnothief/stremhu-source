@@ -1,5 +1,5 @@
 from modules.indexer_accounts.models import IndexerAccountModel
-from modules.indexer_accounts.schemas import IndexerAccountCreate
+from modules.indexer_accounts.schemas import IndexerAccountCreate, IndexerAccountUpdate
 from sqlalchemy.orm import Session
 
 
@@ -31,14 +31,23 @@ class IndexerAccountsRepository:
             self.db.query(IndexerAccountModel).filter_by(indexer_id=indexer_id).first()
         )
 
-    def update(self, model: IndexerAccountModel) -> IndexerAccountModel:
-        self.db.add(model)
-        self.db.flush()
+    def update(
+        self,
+        indexer_id: str,
+        payload: IndexerAccountUpdate,
+    ) -> IndexerAccountModel | None:
+        model = self.find_by_id(indexer_id)
+
+        if model:
+            update_data = payload.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(model, key, value)
+            self.db.flush()
+
         return model
 
-    def delete(self, model: IndexerAccountModel) -> None:
-        self.db.delete(model)
-        self.db.flush()
+    def delete(self, indexer_id: str) -> None:
+        self.db.query(IndexerAccountModel).filter_by(indexer_id=indexer_id).delete()
 
     def update_cookies(self, indexer_id: str, cookies: dict) -> None:
         model = self.find_by_id(indexer_id)

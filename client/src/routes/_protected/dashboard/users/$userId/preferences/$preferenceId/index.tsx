@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query'
+import { useSuspenseQueries } from '@tanstack/react-query'
 import {
   Link,
   createFileRoute,
@@ -19,7 +19,8 @@ import {
 import { Separator } from '@/shared/components/ui/separator'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type { PreferenceCreateRequest } from '@/shared/lib/source/source-client'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
+import { parseApiError } from '@/shared/lib/utils'
+import { getPreference } from '@/shared/queries/preferences'
 import {
   getUserPreference,
   useUpdateUserPreference,
@@ -37,10 +38,12 @@ function RouteComponent() {
     from: '/_protected/dashboard/users/$userId/preferences/$preferenceId/',
   })
 
-  const [{ data: userPreference }] = useQueries({
-    queries: [getUserPreference(userId, preferenceId)],
+  const [{ data: preference }, { data: userPreference }] = useSuspenseQueries({
+    queries: [
+      getPreference(preferenceId),
+      getUserPreference(userId, preferenceId),
+    ],
   })
-  assertExists(userPreference)
 
   const { mutateAsync: updateUserPreference } = useUpdateUserPreference(
     userId,
@@ -84,7 +87,7 @@ function RouteComponent() {
           </CardHeader>
           <Separator />
           <CardContent className="grid gap-4">
-            <PreferenceForm form={form} preference={userPreference} />
+            <PreferenceForm form={form} preference={preference} />
           </CardContent>
           <CardFooter className="gap-4 justify-end">
             <form.SubscribeButton asChild variant="outline">

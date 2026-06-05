@@ -2,7 +2,6 @@ from datetime import datetime
 
 from modules.indexer_accounts.schemas import IndexerAccountUpdate
 from modules.indexer_definitions.schemas.api import IndexerDefinitionResponse
-from modules.indexers.schemas.internal import IndexerLogin
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -18,17 +17,21 @@ class IndexerResponse(BaseModel):
     indexer_definition: IndexerDefinitionResponse
     username: str
     download_full_torrent: bool
-    hit_and_run: bool | None = None
-    keep_seed_seconds: int | None = None
+    hit_and_run: bool | None
+    keep_seed_seconds: int | None
     updated_at: datetime
     created_at: datetime
 
 
-class IndexerLoginRequest(IndexerLogin):
+class IndexerLoginRequest(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True,
         alias_generator=to_camel,
     )
+
+    indexer_id: str
+    username: str
+    password: str
 
 
 class IndexerUpdateRequest(IndexerAccountUpdate):

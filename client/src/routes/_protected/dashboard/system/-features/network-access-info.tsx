@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { Edit2Icon } from 'lucide-react'
 
 import { useDialogs } from '@/routes/-features/dialogs/dialogs-store'
@@ -17,7 +17,6 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { assertExists } from '@/shared/lib/utils'
 import { getHealth } from '@/shared/queries/app'
 import { getSystemStatus } from '@/shared/queries/system'
 
@@ -39,8 +38,7 @@ const networkCheckMap = {
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const { data: systemStatus } = useQuery(getSystemStatus)
-  assertExists(systemStatus)
+  const { data: systemStatus } = useSuspenseQuery(getSystemStatus)
 
   const { status: healthStatus } = useQuery(getHealth(systemStatus.appUrl))
 

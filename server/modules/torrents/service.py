@@ -1,7 +1,8 @@
 import libtorrent as libtorrent
 from common.constants import PRIO_0, PRIO_1
 from common.logger import logger
-from fastapi import HTTPException
+from fastapi import HTTPException, status
+from modules.indexer_accounts.service import IndexerAccountsService
 from modules.relay.service import RelayService
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.service import TorrentFilesService
@@ -15,10 +16,12 @@ class TorrentsService:
         self,
         torrent_repository: TorrentRepository,
         torrent_files_service: TorrentFilesService,
+        indexer_accounts_service: IndexerAccountsService,
         relay_service: RelayService,
     ):
         self._torrent_repository = torrent_repository
         self._torrent_files_service = torrent_files_service
+        self._indexer_accounts_service = indexer_accounts_service
         self._relay_service = relay_service
 
     def create_from_torrent_file(
@@ -95,26 +98,29 @@ class TorrentsService:
         info_hash: str,
         payload: TorrentUpdate,
     ) -> TorrentWithRelay:
-        persisted = self._torrent_repository.find_by_info_hash(info_hash)
-        if persisted is None:
-            raise HTTPException(404, "A torrent nem található")
 
-        if payload.is_persisted is not None:
-            persisted.is_persisted = payload.is_persisted
+        torrent_model = self._torrent_repository.update(info_hash, payload)
+        torrent_model = self._ensure_exists(torrent_model)
 
-        if payload.download_full_torrent is not None:
-            persisted.full_download = payload.download_full_torrent
+        if "full_download" in payload.model_fields_set:
+            priority = PRIO_1 if payload.full_download else PRIO_0
 
-            priority = PRIO_1 if payload.download_full_torrent else PRIO_0
+            if payload.full_download is None:
+                indexer_account = self._indexer_accounts_service.get_by_id(
+                    torrent_model.indexer_id
+                )
+                priority = PRIO_1 if indexer_account.download_full_torrent else PRIO_0
+
             sha1_hash = self.parse_info_hash(info_hash)
             torrent = self._relay_service._torrents.get(sha1_hash)
             if torrent:
                 torrent.update_default_priorities(priority)
 
-        self._torrent_repository.update(persisted)
-
         relay_torrent = self._relay_service.get_torrent_or_raise(info_hash)
-        return TorrentWithRelay(torrent=persisted, relay=relay_torrent)
+        return TorrentWithRelay(
+            torrent=torrent_model,
+            relay=relay_torrent,
+        )
 
     def bulk_update_by_indexer_id(
         self,
@@ -158,10 +164,12 @@ class TorrentsService:
         return sha1_hash
 
     def save_resume_data(self, info_hash: str, resume_bytes: bytes) -> None:
-        persisted = self._torrent_repository.find_by_info_hash(info_hash)
-        if persisted:
-            persisted.resume_bytes = resume_bytes
-            self._torrent_repository.update(persisted)
+        self._torrent_repository.update(
+            info_hash=info_hash,
+            payload=TorrentUpdate(
+                resume_bytes=resume_bytes,
+            ),
+        )
 
     def restore_torrents(self) -> None:
         torrents = self._torrent_repository.find()
@@ -180,3 +188,11 @@ class TorrentsService:
                     torrent.info_hash,
                     e,
                 )
+
+    def _ensure_exists(self, model: TorrentModel | None) -> TorrentModel:
+        if model is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="A torrent nem található!",
+            )
+        return model

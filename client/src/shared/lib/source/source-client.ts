@@ -82,13 +82,10 @@ export interface IndexerDefinitionResponse {
   requiresFullDownload: boolean
 }
 
-export type IndexerLoginRequestCookies = { [key: string]: string } | null
-
 export interface IndexerLoginRequest {
+  indexerId: string
   username: string
   password: string
-  cookies?: IndexerLoginRequestCookies
-  indexerId: string
 }
 
 export interface IndexerResponse {
@@ -96,8 +93,8 @@ export interface IndexerResponse {
   indexerDefinition: IndexerDefinitionResponse
   username: string
   downloadFullTorrent: boolean
-  hitAndRun?: boolean | null
-  keepSeedSeconds?: number | null
+  hitAndRun: boolean | null
+  keepSeedSeconds: number | null
   updatedAt: string
   createdAt: string
 }
@@ -464,7 +461,7 @@ export interface TorrentResponse {
 
 export interface TorrentUpdateRequest {
   isPersisted?: boolean | null
-  downloadFullTorrent?: boolean | null
+  fullDownload?: boolean | null
 }
 
 export interface UserCreateRequest {
@@ -521,6 +518,19 @@ export const preferencesGetAll = (
 ) => {
   return sourceClientInstance<PreferenceResponse[]>(
     { url: `/api/preferences/`, method: 'GET' },
+    options,
+  )
+}
+
+/**
+ * @summary Get
+ */
+export const preferencesGet = (
+  preferenceId: string,
+  options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
+) => {
+  return sourceClientInstance<PreferenceResponse>(
+    { url: `/api/preferences/${preferenceId}`, method: 'GET' },
     options,
   )
 }
@@ -720,7 +730,6 @@ export const usersRegenerateApiKey = (
 }
 
 /**
- * Lists all preferences for a specific user.
  * @summary Get Preferences
  */
 export const usersGetPreferences = (
@@ -734,7 +743,6 @@ export const usersGetPreferences = (
 }
 
 /**
- * Creates/adds a preference setting for a specific user.
  * @summary Create Preference
  */
 export const usersCreatePreference = (
@@ -754,7 +762,6 @@ export const usersCreatePreference = (
 }
 
 /**
- * Reorders the priority of preference categories for a specific user.
  * @summary Reorder Preferences
  */
 export const usersReorderPreferences = (
@@ -774,7 +781,6 @@ export const usersReorderPreferences = (
 }
 
 /**
- * Retrieves a specific preference setting for a specific user.
  * @summary Get Preference
  */
 export const usersGetPreference = (
@@ -789,7 +795,6 @@ export const usersGetPreference = (
 }
 
 /**
- * Updates preferred attributes within an existing preference setting category for a specific user.
  * @summary Update Preference
  */
 export const usersUpdatePreference = (
@@ -810,7 +815,6 @@ export const usersUpdatePreference = (
 }
 
 /**
- * Deletes a specific preference category setting for a specific user.
  * @summary Delete Preference
  */
 export const usersDeletePreference = (
@@ -840,7 +844,6 @@ export const meGet = (
 }
 
 /**
- * Updates the current user's profile information.
  * @summary Update
  */
 export const meUpdate = (
@@ -859,7 +862,6 @@ export const meUpdate = (
 }
 
 /**
- * Regenerates the current user's API key.
  * @summary Regenerate Api Key
  */
 export const meRegenerateApiKey = (
@@ -872,7 +874,6 @@ export const meRegenerateApiKey = (
 }
 
 /**
- * Lists all of the current user's preference settings.
  * @summary Get Preferences
  */
 export const meGetPreferences = (
@@ -885,7 +886,6 @@ export const meGetPreferences = (
 }
 
 /**
- * Adds/creates a preference setting with ordered preferred attributes.
  * @summary Create Preference
  */
 export const meCreatePreference = (
@@ -904,7 +904,6 @@ export const meCreatePreference = (
 }
 
 /**
- * Retrieves a specific preference setting for the current user.
  * @summary Get Preference
  */
 export const meGetPreference = (
@@ -918,7 +917,6 @@ export const meGetPreference = (
 }
 
 /**
- * Updates preferred attributes within an existing preference setting category.
  * @summary Update Preference
  */
 export const meUpdatePreference = (
@@ -938,7 +936,6 @@ export const meUpdatePreference = (
 }
 
 /**
- * Deletes a user's preference category setting.
  * @summary Delete Preference
  */
 export const meDeletePreference = (
@@ -952,7 +949,6 @@ export const meDeletePreference = (
 }
 
 /**
- * Reorders the priority of preference categories.
  * @summary Reorder Preferences
  */
 export const meReorderPreferences = (
@@ -1355,7 +1351,6 @@ export const indexersGetList = (
 }
 
 /**
- * Elérhető indexerek listájának lekérése.
  * @summary Get Definition List
  */
 export const indexersGetDefinitionList = (
@@ -1370,7 +1365,6 @@ export const indexersGetDefinitionList = (
 }
 
 /**
- * Bejelentkezés egy új indexerre.
  * @summary Login
  */
 export const indexersLogin = (
@@ -1402,7 +1396,6 @@ export const indexersCleanup = (
 }
 
 /**
- * Egy indexer beállításainak módosítása.
  * @summary Update
  */
 export const indexersUpdate = (
@@ -1440,6 +1433,9 @@ export type AttributesFindListResult = NonNullable<
 >
 export type PreferencesGetAllResult = NonNullable<
   Awaited<ReturnType<typeof preferencesGetAll>>
+>
+export type PreferencesGetResult = NonNullable<
+  Awaited<ReturnType<typeof preferencesGet>>
 >
 export type MonitoringHealthResult = NonNullable<
   Awaited<ReturnType<typeof monitoringHealth>>

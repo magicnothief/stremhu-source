@@ -4,6 +4,7 @@ from modules.auth.dependencies import SessionGuard
 from modules.roles.constants import UserRoleKey
 from modules.torrents.dependencies import get_torrents_service
 from modules.torrents.schemas.api import TorrentResponse, TorrentUpdateRequest
+from modules.torrents.schemas.internal import TorrentUpdate
 from modules.torrents.service import TorrentsService
 from modules.users.models import UserModel
 
@@ -47,13 +48,15 @@ def get_one(
 )
 def update(
     info_hash: str,
-    req: TorrentUpdateRequest,
+    payload: TorrentUpdateRequest,
     torrents_service: TorrentsService = Depends(get_torrents_service),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
     torrent_pair = torrents_service.update(
         info_hash=info_hash,
-        payload=req,
+        payload=TorrentUpdate.model_validate(
+            payload.model_dump(exclude_unset=True),
+        ),
     )
     return TorrentResponse.from_torrent_with_relay(torrent_pair)
 

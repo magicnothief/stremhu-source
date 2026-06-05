@@ -154,19 +154,6 @@ export function PreferencesSection(props: PreferencesSectionProps) {
             )}
           </div>
         </DndContext>
-        <Separator />
-        <div className="grid gap-4">
-          <Item className="p-0">
-            <ItemContent>
-              <ItemTitle>Csak kizárásra használt szabályok</ItemTitle>
-              <ItemDescription>
-                Itt olyan beállítások vannak, ahol nincs preferált érték - csak
-                azt mondod meg, mit ne mutasson. Emiatt nem részei a preferencia
-                sorrendnek.
-              </ItemDescription>
-            </ItemContent>
-          </Item>
-        </div>
       </CardContent>
     </Card>
   )

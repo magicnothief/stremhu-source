@@ -35,17 +35,10 @@ def update(
     users_service: UsersService = Depends(get_users_service),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> UserModel:
-    """
-    Updates the current user's profile information.
-    """
-    update_user_payload = UserUpdate(
-        username=payload.username,
-        password=payload.password,
-        torrent_seed=payload.torrent_seed,
-        only_best_torrent=payload.only_best_torrent,
-        role_id=None,
-    )
-    return users_service.update(current_user.id, update_user_payload)
+    update_payload = payload.model_dump(exclude_unset=True)
+    user_update = UserUpdate(**update_payload)
+
+    return users_service.update(current_user.id, user_update)
 
 
 @router.put("/api-key/regenerate", response_model=UserResponse)
@@ -53,9 +46,6 @@ def regenerate_api_key(
     users_service: UsersService = Depends(get_users_service),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> UserModel:
-    """
-    Regenerates the current user's API key.
-    """
     return users_service.regenerate_api_key(current_user.id)
 
 
@@ -69,9 +59,6 @@ def get_preferences(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> list[PreferenceResponse]:
-    """
-    Lists all of the current user's preference settings.
-    """
     models = user_preference_definitions_service.find_list(current_user.id)
     return [
         PreferenceResponse.from_user_preference_definition_model(model)
@@ -90,9 +77,6 @@ def create_preference(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> PreferenceResponse:
-    """
-    Adds/creates a preference setting with ordered preferred attributes.
-    """
     model = user_preference_definitions_service.create(
         current_user.id,
         payload,
@@ -111,9 +95,6 @@ def get_preference(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> PreferenceResponse:
-    """
-    Retrieves a specific preference setting for the current user.
-    """
     model = user_preference_definitions_service.find_by_id(
         current_user.id, preference_id
     )
@@ -136,9 +117,6 @@ def reorder_preferences(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> list[PreferenceResponse]:
-    """
-    Reorders the priority of preference categories.
-    """
     models = user_preference_definitions_service.reorder(
         current_user.id, payload.preference_ids
     )
@@ -160,9 +138,6 @@ def update_preference(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> PreferenceResponse:
-    """
-    Updates preferred attributes within an existing preference setting category.
-    """
     model = user_preference_definitions_service.update(
         current_user.id,
         preference_id,
@@ -182,7 +157,4 @@ def delete_preference(
     ),
     current_user: UserModel = Depends(SessionGuard()),
 ) -> None:
-    """
-    Deletes a user's preference category setting.
-    """
     user_preference_definitions_service.delete(current_user.id, preference_id)

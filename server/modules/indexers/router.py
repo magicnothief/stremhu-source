@@ -11,6 +11,7 @@ from modules.indexers.schemas.api import (
     IndexerResponse,
     IndexerUpdateRequest,
 )
+from modules.indexers.schemas.internal import IndexerLogin
 from modules.indexers.service import IndexersService
 from modules.roles.constants import UserRoleKey
 from modules.users.models import UserModel
@@ -45,7 +46,6 @@ async def get_definition_list(
     ),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
-    """Elérhető indexerek listájának lekérése."""
     return indexer_definitions_service.get_list()
 
 
@@ -59,9 +59,13 @@ async def login(
     indexers_service: IndexersService = Depends(get_indexers_service),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
-    """Bejelentkezés egy új indexerre."""
-    indexer_account = await indexers_service.login(payload)
-
+    indexer_account = await indexers_service.login(
+        IndexerLogin(
+            indexer_id=payload.indexer_id,
+            username=payload.username,
+            password=payload.password,
+        )
+    )
     return indexer_account
 
 
@@ -87,7 +91,6 @@ async def update(
     indexers_service: IndexersService = Depends(get_indexers_service),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
-    """Egy indexer beállításainak módosítása."""
     return await indexers_service.update(indexer_id, payload)
 
 
