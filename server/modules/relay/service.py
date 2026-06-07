@@ -7,7 +7,7 @@ from common.logger import logger
 from common.torrent_info import parse_torrent_info
 from config import config
 from fastapi import HTTPException
-from modules.relay.entities import File, Torrent
+from modules.relay.entities import File, Stream, Torrent
 from modules.relay.schemas import (
     RelaySettingsUpdate,
     RelayTorrent,
@@ -99,6 +99,13 @@ class RelayService:
             RelayTorrent.from_libtorrent_handle(torrent_handle)
             for torrent_handle in torrent_handlers
         ]
+
+    def get_active_streams(self) -> list[Stream]:
+        streams = []
+        for torrent in self._torrents.values():
+            for file in torrent.files.values():
+                streams.extend(list(file.streams.values()))
+        return streams
 
     def _get_torrents(
         self,

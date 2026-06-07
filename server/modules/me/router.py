@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from modules.auth.dependencies import OptionalSessionGuard, SessionGuard
-from modules.me.schemas import (
+from modules.me.schemas.api import (
     MeUpdateRequest,
 )
 from modules.preferences.schemas.api import (

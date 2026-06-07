@@ -1,8 +1,8 @@
 import asyncio
 
 import humanize
+from common.schemas.internal import SeriesInfo
 from modules.settings.service import SettingsService
-from modules.stremio.schemas import ParsedStreamSeries
 from modules.torrent_source_provider.service import (
     TorrentSourceProviderService,
 )
@@ -35,7 +35,7 @@ class TorrentStreamsService:
         self,
         user: UserModel,
         imdb_id: str,
-        series: ParsedStreamSeries | None = None,
+        series: SeriesInfo | None = None,
     ) -> tuple[list[TorrentStream], list[str]]:
         (
             torrent_sources,
@@ -84,7 +84,7 @@ class TorrentStreamsService:
 
         app_url = await asyncio.to_thread(self._settings_service.get_app_url)
 
-        return TorrentStream.from_torrent_id_base(
+        return TorrentStream.from_torrent_id(
             indexer_torrent=torrent_source.indexer_torrent,
             torrent_file=torrent_source.torrent_file,
             app_url=app_url,

@@ -18,10 +18,10 @@ from modules.stremio.schemas import (
     ManifestCatalog,
     ManifestExtra,
     ParsedExtra,
-    ParsedStreamId,
-    ParsedTorrentStreamId,
+    StreamId,
     StremioCatalogResponse,
     StremioStream,
+    TorrentStreamId,
 )
 from modules.torrent_streams.service import TorrentStreamsService
 from modules.users.models import UserModel
@@ -83,10 +83,10 @@ class StremioService:
     async def get_streams(
         self,
         user: UserModel,
-        parsed_id: ParsedStreamId,
+        parsed_id: StreamId,
     ) -> list[StremioStream]:
         """Lekéri a lejátszható streameket az adatbázisból vagy indexerekből."""
-        if isinstance(parsed_id, ParsedTorrentStreamId):
+        if isinstance(parsed_id, TorrentStreamId):
             torrent_streams = await self._torrent_streams_service.find_by_torrent_id(
                 indexer_id=parsed_id.indexer_id,
                 torrent_id=parsed_id.torrent_id,
@@ -102,7 +102,7 @@ class StremioService:
         torrent_streams, errors = await self._torrent_streams_service.find_by_imdb(
             user=user,
             imdb_id=parsed_id.imdb_id,
-            series=parsed_id.series,
+            series=parsed_id.series_info,
         )
 
         stremio_streams = [

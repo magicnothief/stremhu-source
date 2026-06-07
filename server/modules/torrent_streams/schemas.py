@@ -1,11 +1,13 @@
 import uuid
 
 import PTN
+from common.schemas.internal import SeriesInfo
 from common.torrent_info import TorrentFileInfo, TorrentInfo
 from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
 from modules.indexers.schemas.internal import IndexerTorrent
-from modules.stremio.schemas import ParsedStreamSeries
+from modules.stream.schemas import StreamToken
+from modules.stream.utils.stream_token import generate_stream_token
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_streams.name_parser_service import TorrentNameParserService
 from modules.torrent_streams.utils.resolver_helpers import (
@@ -37,30 +39,47 @@ class TorrentStream(BaseModel):
     is_persisted_torrent: bool
 
     @classmethod
-    def from_torrent_id_base(
+    def from_torrent_id(
         cls,
         indexer_torrent: IndexerTorrent,
         torrent_file: TorrentFileModel,
         app_url: str,
         user: UserModel,
     ) -> list["TorrentStream"]:
-        return [
-            cls(
-                indexer_account=indexer_torrent.indexer_account,
-                torrent_id=torrent_file.torrent_id,
-                info_hash=torrent_file.info_hash,
-                torrent_name=torrent_file.info.name,
-                file_name=file.name,
-                file_size=file.size,
-                file_index=file.index,
-                play_url=f"{app_url}/api/{user.api_key}/stream/{indexer_torrent.indexer_account.indexer_id}/{torrent_file.torrent_id}/{file.index}/{uuid.uuid4().hex}",
-                seeders=indexer_torrent.seeders,
-                attributes=[],
-                is_persisted_torrent=False,
+        indexer_id = indexer_torrent.indexer_account.indexer_id
+
+        torrent_streams: list[TorrentStream] = []
+
+        for file in torrent_file.info.files:
+            if not file.is_video:
+                continue
+
+            stream_token = generate_stream_token(
+                StreamToken(
+                    indexer_id=indexer_id,
+                    torrent_id=torrent_file.torrent_id,
+                    file_index=file.index,
+                    playback_id=str(uuid.uuid4()),
+                )
             )
-            for file in torrent_file.info.files
-            if file.is_video
-        ]
+
+            torrent_streams.append(
+                cls(
+                    indexer_account=indexer_torrent.indexer_account,
+                    torrent_id=torrent_file.torrent_id,
+                    info_hash=torrent_file.info_hash,
+                    torrent_name=torrent_file.info.name,
+                    file_name=file.name,
+                    file_size=file.size,
+                    file_index=file.index,
+                    play_url=f"{app_url}/api/{user.api_key}/stream/{stream_token}",
+                    seeders=indexer_torrent.seeders,
+                    attributes=[],
+                    is_persisted_torrent=False,
+                )
+            )
+
+        return torrent_streams
 
     @classmethod
     def from_imdb_id(
@@ -70,7 +89,7 @@ class TorrentStream(BaseModel):
         torrent_name_parser_service: TorrentNameParserService,
         app_url: str,
         user: UserModel,
-        series: ParsedStreamSeries | None = None,
+        series: SeriesInfo | None = None,
     ) -> "TorrentStream | None":
         if series:
             torrent_info = cls._resolve_series_file(
@@ -91,7 +110,20 @@ class TorrentStream(BaseModel):
         indexer_id = indexer_torrent.indexer_account.indexer_id
         torrent_id = torrent_file.torrent_id
         file_index = torrent_info.index
-        session_id = uuid.uuid4().hex
+        playback_id = str(uuid.uuid4())
+
+        stream_token = generate_stream_token(
+            StreamToken(
+                indexer_id=indexer_id,
+                torrent_id=torrent_id,
+                file_index=file_index,
+                playback_id=playback_id,
+                imdb_id=indexer_torrent.imdb_id,
+                series_info=SeriesInfo.model_validate(series.model_dump())
+                if series
+                else None,
+            )
+        )
 
         return TorrentStream(
             indexer_account=indexer_torrent.indexer_account,
@@ -103,7 +135,7 @@ class TorrentStream(BaseModel):
             file_name=torrent_info.name,
             file_size=torrent_info.size,
             file_index=file_index,
-            play_url=f"{app_url}/api/{user.api_key}/stream/{indexer_id}/{torrent_id}/{file_index}/{session_id}",
+            play_url=f"{app_url}/api/{user.api_key}/stream/{stream_token}",
             is_persisted_torrent=False,
         )
 
@@ -123,7 +155,7 @@ class TorrentStream(BaseModel):
     @staticmethod
     def _resolve_series_file(
         torrent_info: TorrentInfo,
-        series: ParsedStreamSeries,
+        series: SeriesInfo,
     ) -> TorrentFileInfo | None:
         for file in torrent_info.files:
             if is_sample_or_trash(file.name):

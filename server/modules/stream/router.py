@@ -1,10 +1,26 @@
 from __future__ import annotations
 
 import content_types
-from fastapi import APIRouter, Depends, Header, Path, Request, Response
+from common.schemas.internal import ImdbInfo
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    Request,
+    Response,
+)
 from fastapi.responses import StreamingResponse
 from modules.auth.dependencies import ApiKeyGuard
-from modules.stream.dependencies import get_stream_service
+from modules.playback_histories.dependencies import get_playback_histories_service
+from modules.playback_histories.schemas.internal import (
+    PlaybackHistoryClientInfo,
+    PlaybackHistoryCreate,
+)
+from modules.playback_histories.service import PlaybackHistoriesService
+from modules.playbacks.dependencies import get_playbacks_service
+from modules.playbacks.service import PlaybacksService
+from modules.stream.dependencies import get_parsed_stream_token, get_stream_service
+from modules.stream.schemas import StreamToken
 from modules.stream.service import StreamService
 from modules.users.models import UserModel
 
@@ -15,29 +31,60 @@ router = APIRouter(
 
 
 @router.get(
-    "/{indexer_id}/{torrent_id}/{file_index}/{session_id}",
+    "/{stream_token}",
     openapi_extra={"x-external": True},
 )
 @router.head(
-    "/{indexer_id}/{torrent_id}/{file_index}/{session_id}",
+    "/{stream_token}",
     openapi_extra={"x-external": True},
 )
 async def stream(
     request: Request,
-    indexer_id: str = Path(..., description="Az indexelő azonosítója"),
-    torrent_id: str = Path(..., description="A torrent azonosítója"),
-    file_index: int = Path(..., description="A fájl indexe"),
-    session_id: str = Path(..., description="A session azonosítója"),
+    stream_token: StreamToken = Depends(get_parsed_stream_token),
     range_header: str | None = Header(None, alias="Range"),
     stream_service: StreamService = Depends(get_stream_service),
-    current_user: UserModel = Depends(ApiKeyGuard()),
+    playback_histories_service: PlaybackHistoriesService = Depends(
+        get_playback_histories_service,
+    ),
+    playbacks_service: PlaybacksService = Depends(get_playbacks_service),
+    user: UserModel = Depends(ApiKeyGuard()),
 ) -> Response:
+    client_info = PlaybackHistoryClientInfo(
+        user_agent=request.headers.get("user-agent"),
+        ip=request.client.host if request.client else None,
+    )
+
+    playbacks_service.check_playback_limit(
+        user=user,
+        current_playback_id=stream_token.playback_id,
+    )
 
     parsed_range_header, file = await stream_service.prepare_for_stream(
         range_header=range_header,
-        indexer_id=indexer_id,
-        torrent_id=torrent_id,
-        file_index=file_index,
+        indexer_id=stream_token.indexer_id,
+        torrent_id=stream_token.torrent_id,
+        file_index=stream_token.file_index,
+    )
+
+    imdb_info: ImdbInfo | None = None
+    if stream_token.imdb_id is not None:
+        imdb_info = ImdbInfo(
+            imdb_id=stream_token.imdb_id,
+            series_info=stream_token.series_info,
+        )
+
+    playback_histories_service.get_or_create(
+        PlaybackHistoryCreate(
+            client=client_info,
+            indexer_id=stream_token.indexer_id,
+            playback_id=stream_token.playback_id,
+            user_id=user.id,
+            torrent_id=stream_token.torrent_id,
+            file_index=stream_token.file_index,
+            imdb_info=imdb_info,
+            torrent_name=file.torrent.name,
+            file_name=file.name,
+        )
     )
 
     content_type = content_types.get_content_type(file.name)
@@ -67,6 +114,8 @@ async def stream(
         )
 
     iterator = await file.stream(
+        playback_id=stream_token.playback_id,
+        user_id=user.id,
         request=request,
         stream_start_byte=parsed_range_header.start_byte,
         stream_end_byte=parsed_range_header.end_byte,

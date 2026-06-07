@@ -1,4 +1,14 @@
+from common.schemas.internal import SeriesInfo
 from pydantic import BaseModel
+
+
+class StreamToken(BaseModel):
+    indexer_id: str
+    torrent_id: str
+    file_index: int
+    playback_id: str
+    imdb_id: str | None = None
+    series_info: SeriesInfo | None = None
 
 
 class ParsedRangeHeader(BaseModel):

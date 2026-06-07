@@ -7,6 +7,7 @@ from modules.me.router import router as me_router
 from modules.monitoring.router import router as monitoring_router
 from modules.network.router import router as network_router
 from modules.pairings.router import router as pairings_router
+from modules.playbacks.router import router as playbacks_router
 from modules.preferences.router import router as preferences_router
 from modules.relay_settings.router import router as relay_settings_router
 from modules.stream.router import router as stream_router
@@ -33,3 +34,4 @@ api_router.include_router(stream_router)
 api_router.include_router(stremio_router)
 api_router.include_router(kodi_router)
 api_router.include_router(indexers_router)
+api_router.include_router(playbacks_router)

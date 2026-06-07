@@ -26,8 +26,10 @@ class Torrent:
         torrent_handle: libtorrent.torrent_handle,
         torrent_info: TorrentInfo,
     ):
-        self.info_hash = torrent_info.info_hash
         self.torrent_handle = torrent_handle
+
+        self.info_hash = torrent_info.info_hash
+        self.name = torrent_info.name
         self.total_size = torrent_info.size
 
         self.piece_size = torrent_info.piece_size
@@ -99,7 +101,7 @@ class Torrent:
                     piece_deadlines[piece_index] = piece_deadline
                 priority = PRIO_5
 
-            for stream in file.streams.values():
+            for stream in list(file.streams.values()):
                 priority_pieces, priority_count = stream.calculate_deadlines()
 
                 for index, (piece_index, piece_deadline) in enumerate(
@@ -180,13 +182,17 @@ class File:
 
     async def stream(
         self,
+        playback_id: str,
+        user_id: str,
         stream_start_byte: int,
         stream_end_byte: int,
         request: Request,
     ) -> AsyncIterator[bytes]:
         """A külső rétegek által hívott kényelmes belépési pont."""
         stream = Stream(
-            stream_id=uuid4().hex,
+            stream_id=str(uuid4()),
+            playback_id=playback_id,
+            user_id=user_id,
             torrent=self.torrent,
             file=self,
             stream_start_byte=stream_start_byte,
@@ -200,6 +206,8 @@ class Stream:
     def __init__(
         self,
         stream_id: str,
+        playback_id: str,
+        user_id: str,
         torrent: Torrent,
         file: File,
         stream_start_byte: int,
@@ -207,10 +215,13 @@ class Stream:
     ):
 
         self.id = stream_id
+        self.playback_id = playback_id
+        self.user_id = user_id
         self.torrent = torrent
         self.file = file
         self.start_byte = stream_start_byte
         self.end_byte = stream_end_byte
+        self.current_stream_byte = stream_start_byte
 
         stream_start_piece_index, stream_end_piece_index = self._get_byte_to_piece(
             stream_start_byte=stream_start_byte,
@@ -380,6 +391,8 @@ class Stream:
         end_byte: int,
         request: Request,
     ) -> AsyncIterator[bytes]:
+        self.current_stream_byte = start_byte
+
         with file_path.open("rb") as file_handle:
             await asyncio.to_thread(file_handle.seek, start_byte)
 
@@ -397,6 +410,7 @@ class Stream:
                     return
 
                 remaining -= len(chunk)
+                self.current_stream_byte += len(chunk)
 
                 yield chunk
 

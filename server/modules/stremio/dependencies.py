@@ -1,7 +1,11 @@
 from common.database import get_db
 from fastapi import Depends, Path
 from modules.settings.dependencies import create_settings_service
-from modules.stremio.schemas import ParsedCatalogId, ParsedExtra, ParsedStreamId
+from modules.stremio.schemas import (
+    ParsedCatalogId,
+    ParsedExtra,
+    StreamId,
+)
 from modules.stremio.service import StremioService
 from modules.stremio.utils import parse_catalog_id, parse_extra, parse_stream_id
 from modules.torrent_streams.dependencies import (
@@ -40,7 +44,7 @@ def get_parsed_stream_id(
     stream_id: str = Path(
         ..., description="Stream azonosító (IMDB ID vagy torrent ID)"
     ),
-) -> ParsedStreamId:
+) -> StreamId:
     return parse_stream_id(stream_id)
 
 

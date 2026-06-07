@@ -1,17 +1,17 @@
+from common.schemas.internal import SeriesInfo
 from fastapi import HTTPException, status
 from modules.stremio.constants import ADDON_APP_PREFIX_ID
 from modules.stremio.enums import StreamIdType
 from modules.stremio.schemas import (
+    ImdbStreamId,
     ParsedCatalogId,
     ParsedExtra,
-    ParsedImdbStreamId,
-    ParsedStreamId,
-    ParsedStreamSeries,
-    ParsedTorrentStreamId,
+    StreamId,
+    TorrentStreamId,
 )
 
 
-def parse_stream_id(value: str) -> ParsedStreamId:
+def parse_stream_id(value: str) -> StreamId:
     """
     Támogatott formátumok:
     - "stremhu-source:<indexer_id>:<torrent_id>" → torrent stream
@@ -39,7 +39,7 @@ def parse_stream_id(value: str) -> ParsedStreamId:
                 detail="Érvénytelen stream azonosító formátum.",
             )
 
-        return ParsedTorrentStreamId(
+        return TorrentStreamId(
             type=StreamIdType.TORRENT,
             indexer_id=indexer_id,
             torrent_id=torrent_id,
@@ -56,14 +56,14 @@ def parse_stream_id(value: str) -> ParsedStreamId:
     if len(parts) > 2 and parts[2]:
         episode = int(parts[2])
 
-    series: ParsedStreamSeries | None = None
+    series_info: SeriesInfo | None = None
     if season is not None and episode is not None:
-        series = ParsedStreamSeries(season=season, episode=episode)
+        series_info = SeriesInfo(season=season, episode=episode)
 
-    return ParsedImdbStreamId(
+    return ImdbStreamId(
         type=StreamIdType.IMDB,
         imdb_id=imdb_id,
-        series=series,
+        series_info=series_info,
     )
 
 

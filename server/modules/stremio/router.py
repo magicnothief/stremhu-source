@@ -13,7 +13,7 @@ from modules.stremio.schemas import (
     MetaResponse,
     ParsedCatalogId,
     ParsedExtra,
-    ParsedStreamId,
+    StreamId,
     StremioCatalogResponse,
     StremioStreams,
 )
@@ -60,7 +60,7 @@ def configure(
 )
 async def streams(
     media_type: MediaType = Path(..., description="A média típusa"),
-    parsed_id: ParsedStreamId = Depends(get_parsed_stream_id),
+    parsed_id: StreamId = Depends(get_parsed_stream_id),
     stremio_service: StremioService = Depends(get_stremio_service),
     user: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioStreams:

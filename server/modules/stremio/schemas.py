@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import humanize
+from common.schemas.internal import ImdbInfo
 from modules.attributes.models import AttributeModel
 from modules.preferences.constants import PreferenceKey
 from modules.stremio.constants import ADDON_APP_PREFIX_ID
@@ -388,35 +389,23 @@ class StremioCache(BaseModel):
     stale_error: int | None = None
 
 
-# ──────────────────────────────────────────────
-# Parsing típusok (internal, nem response DTO)
-# ──────────────────────────────────────────────
-
-
 class ParsedExtra(BaseModel):
     search: str | None = None
     genre: str | None = None
     skip: int | None = None
 
 
-class ParsedStreamSeries(BaseModel):
-    season: int
-    episode: int
-
-
-class ParsedImdbStreamId(BaseModel):
+class ImdbStreamId(ImdbInfo):
     type: StreamIdType = StreamIdType.IMDB
-    imdb_id: str
-    series: ParsedStreamSeries | None = None
 
 
-class ParsedTorrentStreamId(BaseModel):
+class TorrentStreamId(BaseModel):
     type: StreamIdType = StreamIdType.TORRENT
     indexer_id: str
     torrent_id: str
 
 
-ParsedStreamId = ParsedImdbStreamId | ParsedTorrentStreamId
+StreamId = ImdbStreamId | TorrentStreamId
 
 
 class ParsedCatalogId(BaseModel):

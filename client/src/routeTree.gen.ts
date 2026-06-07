@@ -28,6 +28,7 @@ import { Route as ProtectedRelayTorrentsRouteRouteImport } from './routes/_prote
 import { Route as ProtectedRelaySettingsRouteRouteImport } from './routes/_protected/relay/settings/route'
 import { Route as ProtectedDashboardUsersRouteRouteImport } from './routes/_protected/dashboard/users/route'
 import { Route as ProtectedDashboardSystemRouteRouteImport } from './routes/_protected/dashboard/system/route'
+import { Route as ProtectedDashboardPlaybacksRouteRouteImport } from './routes/_protected/dashboard/playbacks/route'
 import { Route as ProtectedSetupAddressIndexRouteImport } from './routes/_protected/setup/address/index'
 import { Route as ProtectedSettingsPreferencesIndexRouteImport } from './routes/_protected/settings/preferences/index'
 import { Route as ProtectedSettingsAccountIndexRouteImport } from './routes/_protected/settings/account/index'
@@ -35,6 +36,7 @@ import { Route as ProtectedRelayTorrentsIndexRouteImport } from './routes/_prote
 import { Route as ProtectedRelaySettingsIndexRouteImport } from './routes/_protected/relay/settings/index'
 import { Route as ProtectedDashboardUsersIndexRouteImport } from './routes/_protected/dashboard/users/index'
 import { Route as ProtectedDashboardSystemIndexRouteImport } from './routes/_protected/dashboard/system/index'
+import { Route as ProtectedDashboardPlaybacksIndexRouteImport } from './routes/_protected/dashboard/playbacks/index'
 import { Route as ProtectedSettingsPreferencesCreateRouteRouteImport } from './routes/_protected/settings/preferences/create/route'
 import { Route as ProtectedSettingsPreferencesPreferenceIdRouteRouteImport } from './routes/_protected/settings/preferences/$preferenceId/route'
 import { Route as ProtectedDashboardUsersUserIdRouteRouteImport } from './routes/_protected/dashboard/users/$userId/route'
@@ -147,6 +149,12 @@ const ProtectedDashboardSystemRouteRoute =
     path: '/system',
     getParentRoute: () => ProtectedDashboardRouteRoute,
   } as any)
+const ProtectedDashboardPlaybacksRouteRoute =
+  ProtectedDashboardPlaybacksRouteRouteImport.update({
+    id: '/playbacks',
+    path: '/playbacks',
+    getParentRoute: () => ProtectedDashboardRouteRoute,
+  } as any)
 const ProtectedSetupAddressIndexRoute =
   ProtectedSetupAddressIndexRouteImport.update({
     id: '/setup/address/',
@@ -188,6 +196,12 @@ const ProtectedDashboardSystemIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => ProtectedDashboardSystemRouteRoute,
+  } as any)
+const ProtectedDashboardPlaybacksIndexRoute =
+  ProtectedDashboardPlaybacksIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => ProtectedDashboardPlaybacksRouteRoute,
   } as any)
 const ProtectedSettingsPreferencesCreateRouteRoute =
   ProtectedSettingsPreferencesCreateRouteRouteImport.update({
@@ -265,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof ProtectedSettingsRouteRouteWithChildren
   '/login/': typeof LoginIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/dashboard/playbacks': typeof ProtectedDashboardPlaybacksRouteRouteWithChildren
   '/dashboard/system': typeof ProtectedDashboardSystemRouteRouteWithChildren
   '/dashboard/users': typeof ProtectedDashboardUsersRouteRouteWithChildren
   '/relay/settings': typeof ProtectedRelaySettingsRouteRouteWithChildren
@@ -279,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/users/$userId': typeof ProtectedDashboardUsersUserIdRouteRouteWithChildren
   '/settings/preferences/$preferenceId': typeof ProtectedSettingsPreferencesPreferenceIdRouteRouteWithChildren
   '/settings/preferences/create': typeof ProtectedSettingsPreferencesCreateRouteRouteWithChildren
+  '/dashboard/playbacks/': typeof ProtectedDashboardPlaybacksIndexRoute
   '/dashboard/system/': typeof ProtectedDashboardSystemIndexRoute
   '/dashboard/users/': typeof ProtectedDashboardUsersIndexRoute
   '/relay/settings/': typeof ProtectedRelaySettingsIndexRoute
@@ -305,6 +321,7 @@ export interface FileRoutesByTo {
   '/relay': typeof ProtectedRelayIndexRoute
   '/settings': typeof ProtectedSettingsIndexRoute
   '/setup/user': typeof SetupUserIndexRoute
+  '/dashboard/playbacks': typeof ProtectedDashboardPlaybacksIndexRoute
   '/dashboard/system': typeof ProtectedDashboardSystemIndexRoute
   '/dashboard/users': typeof ProtectedDashboardUsersIndexRoute
   '/relay/settings': typeof ProtectedRelaySettingsIndexRoute
@@ -329,6 +346,7 @@ export interface FileRoutesById {
   '/_protected/': typeof ProtectedIndexRoute
   '/login/': typeof LoginIndexRoute
   '/setup/': typeof SetupIndexRoute
+  '/_protected/dashboard/playbacks': typeof ProtectedDashboardPlaybacksRouteRouteWithChildren
   '/_protected/dashboard/system': typeof ProtectedDashboardSystemRouteRouteWithChildren
   '/_protected/dashboard/users': typeof ProtectedDashboardUsersRouteRouteWithChildren
   '/_protected/relay/settings': typeof ProtectedRelaySettingsRouteRouteWithChildren
@@ -343,6 +361,7 @@ export interface FileRoutesById {
   '/_protected/dashboard/users/$userId': typeof ProtectedDashboardUsersUserIdRouteRouteWithChildren
   '/_protected/settings/preferences/$preferenceId': typeof ProtectedSettingsPreferencesPreferenceIdRouteRouteWithChildren
   '/_protected/settings/preferences/create': typeof ProtectedSettingsPreferencesCreateRouteRouteWithChildren
+  '/_protected/dashboard/playbacks/': typeof ProtectedDashboardPlaybacksIndexRoute
   '/_protected/dashboard/system/': typeof ProtectedDashboardSystemIndexRoute
   '/_protected/dashboard/users/': typeof ProtectedDashboardUsersIndexRoute
   '/_protected/relay/settings/': typeof ProtectedRelaySettingsIndexRoute
@@ -369,6 +388,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/login/'
     | '/setup/'
+    | '/dashboard/playbacks'
     | '/dashboard/system'
     | '/dashboard/users'
     | '/relay/settings'
@@ -383,6 +403,7 @@ export interface FileRouteTypes {
     | '/dashboard/users/$userId'
     | '/settings/preferences/$preferenceId'
     | '/settings/preferences/create'
+    | '/dashboard/playbacks/'
     | '/dashboard/system/'
     | '/dashboard/users/'
     | '/relay/settings/'
@@ -409,6 +430,7 @@ export interface FileRouteTypes {
     | '/relay'
     | '/settings'
     | '/setup/user'
+    | '/dashboard/playbacks'
     | '/dashboard/system'
     | '/dashboard/users'
     | '/relay/settings'
@@ -432,6 +454,7 @@ export interface FileRouteTypes {
     | '/_protected/'
     | '/login/'
     | '/setup/'
+    | '/_protected/dashboard/playbacks'
     | '/_protected/dashboard/system'
     | '/_protected/dashboard/users'
     | '/_protected/relay/settings'
@@ -446,6 +469,7 @@ export interface FileRouteTypes {
     | '/_protected/dashboard/users/$userId'
     | '/_protected/settings/preferences/$preferenceId'
     | '/_protected/settings/preferences/create'
+    | '/_protected/dashboard/playbacks/'
     | '/_protected/dashboard/system/'
     | '/_protected/dashboard/users/'
     | '/_protected/relay/settings/'
@@ -606,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardSystemRouteRouteImport
       parentRoute: typeof ProtectedDashboardRouteRoute
     }
+    '/_protected/dashboard/playbacks': {
+      id: '/_protected/dashboard/playbacks'
+      path: '/playbacks'
+      fullPath: '/dashboard/playbacks'
+      preLoaderRoute: typeof ProtectedDashboardPlaybacksRouteRouteImport
+      parentRoute: typeof ProtectedDashboardRouteRoute
+    }
     '/_protected/setup/address/': {
       id: '/_protected/setup/address/'
       path: '/setup/address'
@@ -654,6 +685,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/system/'
       preLoaderRoute: typeof ProtectedDashboardSystemIndexRouteImport
       parentRoute: typeof ProtectedDashboardSystemRouteRoute
+    }
+    '/_protected/dashboard/playbacks/': {
+      id: '/_protected/dashboard/playbacks/'
+      path: '/'
+      fullPath: '/dashboard/playbacks/'
+      preLoaderRoute: typeof ProtectedDashboardPlaybacksIndexRouteImport
+      parentRoute: typeof ProtectedDashboardPlaybacksRouteRoute
     }
     '/_protected/settings/preferences/create': {
       id: '/_protected/settings/preferences/create'
@@ -734,6 +772,21 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface ProtectedDashboardPlaybacksRouteRouteChildren {
+  ProtectedDashboardPlaybacksIndexRoute: typeof ProtectedDashboardPlaybacksIndexRoute
+}
+
+const ProtectedDashboardPlaybacksRouteRouteChildren: ProtectedDashboardPlaybacksRouteRouteChildren =
+  {
+    ProtectedDashboardPlaybacksIndexRoute:
+      ProtectedDashboardPlaybacksIndexRoute,
+  }
+
+const ProtectedDashboardPlaybacksRouteRouteWithChildren =
+  ProtectedDashboardPlaybacksRouteRoute._addFileChildren(
+    ProtectedDashboardPlaybacksRouteRouteChildren,
+  )
 
 interface ProtectedDashboardSystemRouteRouteChildren {
   ProtectedDashboardSystemIndexRoute: typeof ProtectedDashboardSystemIndexRoute
@@ -821,6 +874,7 @@ const ProtectedDashboardUsersRouteRouteWithChildren =
   )
 
 interface ProtectedDashboardRouteRouteChildren {
+  ProtectedDashboardPlaybacksRouteRoute: typeof ProtectedDashboardPlaybacksRouteRouteWithChildren
   ProtectedDashboardSystemRouteRoute: typeof ProtectedDashboardSystemRouteRouteWithChildren
   ProtectedDashboardUsersRouteRoute: typeof ProtectedDashboardUsersRouteRouteWithChildren
   ProtectedDashboardIndexRoute: typeof ProtectedDashboardIndexRoute
@@ -828,6 +882,8 @@ interface ProtectedDashboardRouteRouteChildren {
 
 const ProtectedDashboardRouteRouteChildren: ProtectedDashboardRouteRouteChildren =
   {
+    ProtectedDashboardPlaybacksRouteRoute:
+      ProtectedDashboardPlaybacksRouteRouteWithChildren,
     ProtectedDashboardSystemRouteRoute:
       ProtectedDashboardSystemRouteRouteWithChildren,
     ProtectedDashboardUsersRouteRoute:

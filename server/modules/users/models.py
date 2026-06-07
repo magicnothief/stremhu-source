@@ -59,6 +59,11 @@ class UserModel(Base):
         default=False,
     )
 
+    max_concurrent_streams: Mapped[int | None] = mapped_column(
+        sa.Integer,
+        default=None,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         UTCDateTime,
         default_factory=datetime.now,

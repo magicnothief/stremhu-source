@@ -356,6 +356,42 @@ export interface PairVerifyRequest {
   userCode: string
 }
 
+export interface RoleResponse {
+  id: string
+  name: string
+}
+
+export interface UserResponse {
+  username: string
+  torrentSeed?: number | null
+  onlyBestTorrent?: boolean
+  maxConcurrentStreams: number | null
+  id: string
+  role: RoleResponse
+  apiKey: string
+  updatedAt: string
+  createdAt: string
+}
+
+export interface PlaybackHistoryResponse {
+  playbackId: string
+  user: UserResponse
+  indexerDefinition: IndexerDefinitionResponse
+  torrentName: string | null
+  fileName: string | null
+  createdAt: string
+}
+
+export interface PlaybackResponse {
+  playbackId: string
+  user: UserResponse
+  indexerDefinition: IndexerDefinitionResponse
+  torrentName: string | null
+  fileName: string | null
+  createdAt: string
+  progress: number
+}
+
 export interface PreferenceCreateRequest {
   preferenceId: string
   attributeIds: string[]
@@ -397,11 +433,6 @@ export interface RelaySettingsUpdateRequest {
   connectionsLimit?: number | null
   torrentConnectionsLimit?: number | null
   enableUpnpAndNatpmp?: boolean | null
-}
-
-export interface RoleResponse {
-  id: string
-  name: string
 }
 
 export interface StremioCatalogResponse {
@@ -468,19 +499,9 @@ export interface UserCreateRequest {
   username: string
   torrentSeed?: number | null
   onlyBestTorrent?: boolean
+  maxConcurrentStreams: number | null
   password?: string | null
   roleId?: string
-}
-
-export interface UserResponse {
-  username: string
-  torrentSeed?: number | null
-  onlyBestTorrent?: boolean
-  id: string
-  role: RoleResponse
-  apiKey: string
-  updatedAt: string
-  createdAt: string
 }
 
 export interface UserUpdateRequest {
@@ -489,6 +510,7 @@ export interface UserUpdateRequest {
   roleId?: string | null
   torrentSeed?: number | null
   onlyBestTorrent?: boolean | null
+  maxConcurrentStreams?: number | null
 }
 
 export type KodiGetStreamsParams = {
@@ -1179,17 +1201,11 @@ export const torrentsDelete = (
  */
 export const streamHeadStream = (
   apiKey: string,
-  indexerId: string,
-  torrentId: string,
-  fileIndex: number,
-  sessionId: string,
+  streamToken: string,
   options?: SecondParameter<typeof sourceClientInstance<unknown>>,
 ) => {
   return sourceClientInstance<unknown>(
-    {
-      url: `/api/${apiKey}/stream/${indexerId}/${torrentId}/${fileIndex}/${sessionId}`,
-      method: 'HEAD',
-    },
+    { url: `/api/${apiKey}/stream/${streamToken}`, method: 'HEAD' },
     options,
   )
 }
@@ -1199,17 +1215,11 @@ export const streamHeadStream = (
  */
 export const streamStream = (
   apiKey: string,
-  indexerId: string,
-  torrentId: string,
-  fileIndex: number,
-  sessionId: string,
+  streamToken: string,
   options?: SecondParameter<typeof sourceClientInstance<unknown>>,
 ) => {
   return sourceClientInstance<unknown>(
-    {
-      url: `/api/${apiKey}/stream/${indexerId}/${torrentId}/${fileIndex}/${sessionId}`,
-      method: 'GET',
-    },
+    { url: `/api/${apiKey}/stream/${streamToken}`, method: 'GET' },
     options,
   )
 }
@@ -1428,6 +1438,32 @@ export const indexersDelete = (
   )
 }
 
+/**
+ * @summary Get List
+ */
+export const playbacksGetList = (
+  options?: SecondParameter<typeof sourceClientInstance<PlaybackResponse[]>>,
+) => {
+  return sourceClientInstance<PlaybackResponse[]>(
+    { url: `/api/playbacks/`, method: 'GET' },
+    options,
+  )
+}
+
+/**
+ * @summary Get History List
+ */
+export const playbacksGetHistoryList = (
+  options?: SecondParameter<
+    typeof sourceClientInstance<PlaybackHistoryResponse[]>
+  >,
+) => {
+  return sourceClientInstance<PlaybackHistoryResponse[]>(
+    { url: `/api/playbacks/history`, method: 'GET' },
+    options,
+  )
+}
+
 export type AttributesFindListResult = NonNullable<
   Awaited<ReturnType<typeof attributesFindList>>
 >
@@ -1599,4 +1635,10 @@ export type IndexersUpdateResult = NonNullable<
 >
 export type IndexersDeleteResult = NonNullable<
   Awaited<ReturnType<typeof indexersDelete>>
+>
+export type PlaybacksGetListResult = NonNullable<
+  Awaited<ReturnType<typeof playbacksGetList>>
+>
+export type PlaybacksGetHistoryListResult = NonNullable<
+  Awaited<ReturnType<typeof playbacksGetHistoryList>>
 >

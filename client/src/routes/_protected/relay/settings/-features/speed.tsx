@@ -121,7 +121,7 @@ export function Speed() {
                     if (isEmpty(value)) {
                       field.handleChange(null)
                     } else {
-                      field.handleChange(e.target.value)
+                      field.handleChange(value)
                     }
                   }}
                 />
