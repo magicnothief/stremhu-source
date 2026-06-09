@@ -26,3 +26,5 @@ acme==5.6.0
 # Development tools
 ruff==0.15.14
 basedpyright==1.39.6
+pytest==8.4.2
+syrupy==4.8.0

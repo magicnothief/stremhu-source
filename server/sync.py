@@ -1,14 +1,13 @@
 from common.database import db_session
 from common.logger import logger
 from fastapi import FastAPI
-from modules.attributes.dependencies import create_attributes_service
 from modules.indexer_definitions.dependencies import (
     get_indexer_definitions_service,
 )
+from modules.media_attributes.dependencies import create_media_attributes_service
 from modules.preferences.dependencies import create_preferences_service
 from modules.relay_settings.dependencies import create_relay_settings_service
 from modules.roles.dependencies import create_roles_service
-from modules.torrent_streams.name_parser_service import TorrentNameParserService
 
 
 def sync_database_and_settings(app: FastAPI) -> None:
@@ -23,8 +22,8 @@ def sync_database_and_settings(app: FastAPI) -> None:
             preferences_service.sync_to_db()
 
             # 3. Attribútumok szinkronizálása
-            attributes_service = create_attributes_service(db)
-            attributes_service.sync_to_db()
+            media_attributes_service = create_media_attributes_service(db)
+            media_attributes_service.sync_to_db()
 
             # 4. Indexer definíciók szinkronizálása
             indexer_definitions_service = get_indexer_definitions_service()
@@ -33,17 +32,6 @@ def sync_database_and_settings(app: FastAPI) -> None:
             # 5. Libtorrent beállítások szinkronizálása a SettingsService és a RelayService között
             relay_settings_service = create_relay_settings_service(db)
             relay_settings_service.sync_settings()
-
-            # 6. TorrentNameParserService inicializálása és elmentése az app state-be
-            attrs = attributes_service.find_list()
-            prefs = preferences_service.get_list()
-
-            # Kijelöljük az attribútumokat a sessionből (expunge), így nem jár le az állapotuk a commit() során,
-            # és később is biztonságosan használhatóak maradnak a memóriában (DetachedInstanceError nélkül).
-            for attr in attrs:
-                db.expunge(attr)
-
-            app.state.torrent_name_parser = TorrentNameParserService(attrs, prefs)
 
         logger.info("✅ Rendszerindításkori szinkronizációk sikeresen lefutottak.")
     except Exception:

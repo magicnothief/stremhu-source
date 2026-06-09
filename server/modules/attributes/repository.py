@@ -30,14 +30,6 @@ class AttributesRepository:
         """Adds a new attribute entity to the session."""
         self.db.add(attribute)
 
-    def delete_excluding_ids(self, exclude_ids: set[str]) -> int:
-        """Deletes all attributes whose IDs are not in the provided set."""
-        return (
-            self.db.query(AttributeModel)
-            .filter(AttributeModel.id.not_in(exclude_ids))
-            .delete(synchronize_session=False)
-        )
-
     def commit(self) -> None:
         """Commits the active database transaction."""
         self.db.commit()

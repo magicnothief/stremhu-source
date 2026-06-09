@@ -9,20 +9,15 @@ from modules.stremio.schemas import (
 from modules.stremio.service import StremioService
 from modules.stremio.utils import parse_catalog_id, parse_extra, parse_stream_id
 from modules.torrent_streams.dependencies import (
-    create_torrent_name_parser_service,
     create_torrent_streams_service,
 )
-from modules.torrent_streams.name_parser_service import TorrentNameParserService
 from sqlalchemy.orm import Session
 
 
 def create_stremio_service(
     db: Session,
-    torrent_name_parser_service: TorrentNameParserService,
 ) -> StremioService:
-    torrent_streams_service = create_torrent_streams_service(
-        db, torrent_name_parser_service
-    )
+    torrent_streams_service = create_torrent_streams_service(db)
     settings_service = create_settings_service(db)
 
     return StremioService(
@@ -33,11 +28,8 @@ def create_stremio_service(
 
 def get_stremio_service(
     db: Session = Depends(get_db),
-    torrent_name_parser_service: TorrentNameParserService = Depends(
-        create_torrent_name_parser_service
-    ),
 ) -> StremioService:
-    return create_stremio_service(db, torrent_name_parser_service)
+    return create_stremio_service(db)
 
 
 def get_parsed_stream_id(

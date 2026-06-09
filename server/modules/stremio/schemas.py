@@ -4,8 +4,9 @@ from typing import TYPE_CHECKING
 
 import humanize
 from common.schemas.internal import ImdbInfo
-from modules.attributes.models import AttributeModel
+from modules.media_attributes.models import MediaAttributeModel
 from modules.preferences.constants import PreferenceKey
+from modules.preferences.seeds import DEFAULT_PREFERENCES
 from modules.stremio.constants import ADDON_APP_PREFIX_ID
 from modules.stremio.enums import (
     ContentType,
@@ -117,6 +118,10 @@ class Manifest(BaseModel):
 # Stream schemas
 # ──────────────────────────────────────────────
 
+EMOJI_MAP = {
+    pref.id: pref.emoji for pref in DEFAULT_PREFERENCES if getattr(pref, "emoji", None)
+}
+
 
 class BehaviorHints(BaseModel):
     model_config = ConfigDict(
@@ -146,72 +151,58 @@ class StremioStream(BaseModel):
         cls,
         torrent_stream: TorrentStream,
     ) -> StremioStream:
-        file_size = f"💾 {humanize.naturalsize(torrent_stream.file_size, binary=True)}"
+        file_size = f"💾 {humanize.naturalsize(torrent_stream.file_size, binary=True, format='%.2f')}"
         seeders = f"👥 {torrent_stream.seeders}"
         indexer = f"🧲 {torrent_stream.indexer_account.indexer_definition.name}"
 
         description_first_line = " | ".join(compact([indexer, seeders, file_size]))
 
-        resolutions = cls._attributes_parser(
-            preference_id=PreferenceKey.RESOLUTION,
-            attributes=torrent_stream.attributes,
-        )
+        def format_group(pref_key: str) -> str | None:
+            attrs = cls._attributes_parser(
+                preference_id=pref_key,
+                attributes=torrent_stream.attributes,
+            )
+            if not attrs:
+                return None
+            joined = ", ".join([attr.short_name or attr.name for attr in attrs])
+            emoji = EMOJI_MAP.get(pref_key)
+            return f"{emoji} {joined}" if emoji else joined
 
-        readable_resolutions = ", ".join(
-            [resolution.name for resolution in resolutions]
-        )
-
-        audio_qualities = cls._attributes_parser(
-            preference_id=PreferenceKey.AUDIO_QUALITY,
-            attributes=torrent_stream.attributes,
-        )
-
-        readable_audio_qualities = ", ".join(
-            [audio_quality.name for audio_quality in audio_qualities]
-        )
-
-        video_qualities = cls._attributes_parser(
-            preference_id=PreferenceKey.VIDEO_QUALITY,
-            attributes=torrent_stream.attributes,
-        )
-
-        readable_video_qualities = ", ".join(
-            [video_quality.name for video_quality in video_qualities]
-        )
-
-        audio_spatials = cls._attributes_parser(
-            preference_id=PreferenceKey.AUDIO_SPATIAL,
-            attributes=torrent_stream.attributes,
-        )
-
-        readable_audio_spatials = ", ".join(
-            [audio_spatial.name for audio_spatial in audio_spatials]
-        )
-
-        language = cls._attributes_parser(
-            preference_id=PreferenceKey.LANGUAGE,
-            attributes=torrent_stream.attributes,
-        )
-
-        readable_language = ", ".join([language.name for language in language])
-
-        sources = cls._attributes_parser(
-            preference_id=PreferenceKey.SOURCE,
-            attributes=torrent_stream.attributes,
-        )
-
-        readable_source = ", ".join([source.name for source in sources])
+        readable_resolutions = format_group(PreferenceKey.RESOLUTION)
+        readable_audio_qualities = format_group(PreferenceKey.AUDIO_QUALITY)
+        readable_video_qualities = format_group(PreferenceKey.VIDEO_QUALITY)
+        readable_audio_spatials = format_group(PreferenceKey.AUDIO_SPATIAL)
+        readable_language = format_group(PreferenceKey.LANGUAGE)
+        readable_source = format_group(PreferenceKey.SOURCE)
+        readable_editions = format_group(PreferenceKey.EDITION)
+        readable_video_codecs = format_group(PreferenceKey.VIDEO_CODEC)
+        readable_audio_channels = format_group(PreferenceKey.AUDIO_CHANNELS)
 
         description_second_line = " | ".join(
             compact(
-                [readable_language, readable_audio_qualities, readable_audio_spatials]
+                [
+                    readable_language,
+                    readable_audio_qualities,
+                    readable_audio_spatials,
+                    readable_audio_channels,
+                ]
             )
         )
 
-        name = " | ".join(
-            compact([readable_resolutions, readable_video_qualities, readable_source])
+        description_third_line = " | ".join(
+            compact(
+                [
+                    readable_editions,
+                    readable_source,
+                    readable_video_codecs,
+                ]
+            )
         )
-        description = "\n".join([description_first_line, description_second_line])
+
+        name = " | ".join(compact([readable_resolutions, readable_video_qualities]))
+        description = "\n".join(
+            [description_first_line, description_second_line, description_third_line]
+        )
         binge_group = f"{torrent_stream.indexer_account.indexer_definition.id}-{torrent_stream.torrent_id}"
 
         return cls(
@@ -228,12 +219,13 @@ class StremioStream(BaseModel):
     def _attributes_parser(
         cls,
         preference_id: str,
-        attributes: list[AttributeModel],
-    ) -> list[AttributeModel]:
+        attributes: list[MediaAttributeModel],
+    ) -> list[MediaAttributeModel]:
         return [
             attribute
             for attribute in attributes
             if attribute.preference_id == preference_id
+            and attribute.pattern is not None
         ]
 
 

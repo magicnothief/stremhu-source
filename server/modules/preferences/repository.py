@@ -1,7 +1,10 @@
+import sqlalchemy as sa
 from common.logger import logger
+from modules.attributes.models import AttributeModel
+from modules.indexer_accounts.models import IndexerAccountModel
 from modules.preferences.models import PreferenceModel
 from modules.preferences.seeds import DEFAULT_PREFERENCES
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 
 class PreferencesRepository:
@@ -9,7 +12,23 @@ class PreferencesRepository:
         self.db = db
 
     def find_list(self) -> list[PreferenceModel]:
-        return self.db.query(PreferenceModel).all()
+        return (
+            self.db.query(PreferenceModel)
+            .outerjoin(
+                AttributeModel,
+                sa.and_(
+                    PreferenceModel.id == AttributeModel.preference_id,
+                    sa.or_(
+                        AttributeModel.type != "indexer_definition",
+                        self.db.query(IndexerAccountModel.indexer_id)
+                        .filter(IndexerAccountModel.indexer_id == AttributeModel.id)
+                        .exists(),
+                    ),
+                ),
+            )
+            .options(contains_eager(PreferenceModel.attributes))
+            .all()
+        )
 
     def find_by_id(self, id: str) -> PreferenceModel | None:
         return self.db.query(PreferenceModel).filter(PreferenceModel.id == id).first()
@@ -39,14 +58,20 @@ class PreferencesRepository:
             )
 
             if db_pref:
-                if db_pref.name != pref.name or db_pref.description != pref.description:
+                if (
+                    db_pref.name != pref.name
+                    or db_pref.description != pref.description
+                    or db_pref.emoji != pref.emoji
+                ):
                     db_pref.name = pref.name
                     db_pref.description = pref.description
+                    db_pref.emoji = pref.emoji
             else:
                 new_pref = PreferenceModel(
                     id=pref.id,
                     name=pref.name,
                     description=pref.description,
+                    emoji=pref.emoji,
                 )
                 self.db.add(new_pref)
 

@@ -1,6 +1,6 @@
 from modules.indexer_accounts.models import IndexerAccountModel
 from modules.indexer_accounts.schemas import IndexerAccountCreate, IndexerAccountUpdate
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 
 class IndexerAccountsRepository:
@@ -24,11 +24,18 @@ class IndexerAccountsRepository:
         return model
 
     def find_list(self) -> list[IndexerAccountModel]:
-        return self.db.query(IndexerAccountModel).all()
+        return (
+            self.db.query(IndexerAccountModel)
+            .options(joinedload(IndexerAccountModel.indexer_definition))
+            .all()
+        )
 
     def find_by_id(self, indexer_id: str) -> IndexerAccountModel | None:
         return (
-            self.db.query(IndexerAccountModel).filter_by(indexer_id=indexer_id).first()
+            self.db.query(IndexerAccountModel)
+            .options(joinedload(IndexerAccountModel.indexer_definition))
+            .filter_by(indexer_id=indexer_id)
+            .first()
         )
 
     def update(

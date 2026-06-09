@@ -8,18 +8,10 @@ from alembic import context
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # 2. Import Base and engine from common.database and load application config
-# 3. Dynamic model auto-discovery: Auto-import all files named "models.py" under server root
-import importlib
 from typing import Any, Literal
 
 from common.database import Base, UTCDateTime, engine
 from config import config
-
-root_path = Path(__file__).resolve().parent.parent
-for path in root_path.rglob("models.py"):
-    relative_path = path.relative_to(root_path)
-    module_name = ".".join(relative_path.with_suffix("").parts)
-    importlib.import_module(module_name)
 
 
 def render_item(type_: str, obj: Any, autogen_context: Any) -> str | Literal[False]:

@@ -13,7 +13,10 @@ class NodeEnv(str, Enum):
 
 class Config(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env"),
+        env_file=(
+            Path(__file__).resolve().parent / ".env",
+            Path.cwd() / ".env",
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )

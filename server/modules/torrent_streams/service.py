@@ -6,7 +6,6 @@ from modules.settings.service import SettingsService
 from modules.torrent_source_provider.service import (
     TorrentSourceProviderService,
 )
-from modules.torrent_streams.name_parser_service import TorrentNameParserService
 from modules.torrent_streams.schemas import (
     TorrentStream,
 )
@@ -22,13 +21,12 @@ class TorrentStreamsService:
         db: Session,
         torrent_source_provider_service: TorrentSourceProviderService,
         torrents_service: TorrentsService,
-        torrent_name_parser_service: TorrentNameParserService,
         settings_service: SettingsService,
     ):
         self.db = db
         self._torrent_source_provider_service = torrent_source_provider_service
         self._torrents_service = torrents_service
-        self._torrent_name_parser_service = torrent_name_parser_service
+
         self._settings_service = settings_service
 
     async def find_by_imdb(
@@ -51,7 +49,6 @@ class TorrentStreamsService:
                 indexer_torrent=torrent_source.indexer_torrent,
                 torrent_file=torrent_source.torrent_file,
                 series=series,
-                torrent_name_parser_service=self._torrent_name_parser_service,
                 app_url=app_url,
                 user=user,
             )
@@ -149,6 +146,7 @@ class TorrentStreamsService:
                 for attr in stream.attributes:
                     if attr.preference_id == pref_id and attr.id in rank_map:
                         best_rank = min(best_rank, rank_map[attr.id])
+
                 pref_ranks.append(best_rank)
 
             seeders_rank = -(stream.seeders or 0)

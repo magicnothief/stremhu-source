@@ -1,4 +1,3 @@
-from modules.attributes.models import AttributeModel
 from pydantic import BaseModel
 
 
@@ -21,7 +20,7 @@ class IndexerDefinitionTorrent(BaseModel):
     download_url: str
     imdb_id: str | None = None
     seeders: int = 0
-    fallback_attributes: list[AttributeModel] = []
+    attribute_ids: list[str] = []
 
 
 class IndexerDefinitionFindTorrentsResult(BaseModel):

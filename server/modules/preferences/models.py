@@ -19,6 +19,8 @@ class PreferenceModel(Base):
 
     multiple: Mapped[bool] = mapped_column(sa.Boolean, default=False)
 
+    emoji: Mapped[str | None] = mapped_column(sa.String, default=None)
+
     attributes: Mapped[list["AttributeModel"]] = relationship(
         "AttributeModel",
         back_populates="preference",

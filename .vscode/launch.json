@@ -26,19 +26,6 @@
         "uriFormat": "%s",
         "action": "openExternally"
       }
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Legacy Server (Nest.js)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:debug", "--", "--inspect-brk"],
-      "cwd": "${workspaceFolder}/legacy-server",
-      "autoAttachChildProcesses": true,
-      "restart": true,
-      "sourceMaps": true,
-      "stopOnEntry": false,
-      "console": "integratedTerminal"
     }
   ]
 }

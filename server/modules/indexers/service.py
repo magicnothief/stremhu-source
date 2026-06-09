@@ -16,6 +16,7 @@ from modules.indexers.schemas.internal import (
     IndexerLogin,
     IndexerTorrent,
 )
+from modules.media_attributes.utils import resolve_attribute_ids
 from modules.settings.schemas.internal import SystemSettings
 from modules.settings.service import SettingsService
 from modules.torrents.schemas.internal import TorrentUpdate
@@ -111,15 +112,15 @@ class IndexersService:
                     detail=f"Nem lehetséges a '{indexer_definition.name}' letöltési beállításának módosítása!",
                 )
 
-            download_full_torrent = indexer_definition.requires_full_download
+            full_download = indexer_definition.requires_full_download
 
             if payload.download_full_torrent is not None:
-                download_full_torrent = payload.download_full_torrent
+                full_download = payload.download_full_torrent
 
             self._torrents_service.bulk_update_by_indexer_id(
                 indexer_id=indexer_id,
                 payload=TorrentUpdate(
-                    download_full_torrent=download_full_torrent,
+                    full_download=full_download,
                 ),
             )
 
@@ -147,13 +148,17 @@ class IndexersService:
             indexer_definition_torrent = await indexer_definition.find_torrent_by_id(
                 torrent_id
             )
+
             return IndexerTorrent(
                 indexer_account=indexer_account,
                 torrent_id=indexer_definition_torrent.torrent_id,
                 download_url=indexer_definition_torrent.download_url,
                 imdb_id=indexer_definition_torrent.imdb_id,
                 seeders=indexer_definition_torrent.seeders,
-                fallback_attributes=indexer_definition_torrent.fallback_attributes,
+                attributes=[
+                    *resolve_attribute_ids(indexer_definition_torrent.attribute_ids),
+                    indexer_account.indexer_definition,
+                ],
             )
 
         tasks = [fetch_and_map(indexer_account) for indexer_account in indexer_accounts]
@@ -191,7 +196,10 @@ class IndexersService:
             download_url=indexer_definition_torrent.download_url,
             imdb_id=indexer_definition_torrent.imdb_id,
             seeders=indexer_definition_torrent.seeders,
-            fallback_attributes=indexer_definition_torrent.fallback_attributes,
+            attributes=[
+                *resolve_attribute_ids(indexer_definition_torrent.attribute_ids),
+                indexer_account.indexer_definition,
+            ],
         )
 
     async def get_torrents_by_imdb_id(
@@ -219,7 +227,12 @@ class IndexersService:
                     download_url=indexer_definition_torrent.download_url,
                     imdb_id=indexer_definition_torrent.imdb_id,
                     seeders=indexer_definition_torrent.seeders,
-                    fallback_attributes=indexer_definition_torrent.fallback_attributes,
+                    attributes=[
+                        *resolve_attribute_ids(
+                            indexer_definition_torrent.attribute_ids
+                        ),
+                        indexer_account.indexer_definition,
+                    ],
                 )
                 for indexer_definition_torrent in indexer_definition_torrents
             ]

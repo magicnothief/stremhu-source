@@ -6,7 +6,6 @@
 from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
-from modules.attributes.constants import AttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
 from modules.indexer_definitions.schemas.internal import (
@@ -14,6 +13,7 @@ from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )
+from modules.media_attributes.constants import MediaAttributeKey
 from selectolax.parser import HTMLParser
 
 
@@ -95,13 +95,17 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
         torrents: list[IndexerDefinitionTorrent] = []
 
         for torrent in data.get("results", []):
-            torrent.get("category", "")
+            category = torrent.get("category", "")
             torrents.append(
                 IndexerDefinitionTorrent(
                     imdb_id=torrent.get("imdb_id"),
                     torrent_id=str(torrent["torrent_id"]),
                     seeders=int(torrent.get("seeders", 0)),
                     download_url=torrent["download_url"],
+                    attribute_ids=[
+                        self._resolve_language(category),
+                        self._resolve_resolution(category),
+                    ],
                 )
             )
 
@@ -166,10 +170,10 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
     def _resolve_resolution(self, category: str) -> str:
         if "hd" in category:
-            return AttributeKey.R720P
-        return AttributeKey.R480P
+            return MediaAttributeKey.R720P
+        return MediaAttributeKey.R480P
 
     def _resolve_language(self, category: str) -> str:
         if "hun" in category:
-            return AttributeKey.HUN
-        return AttributeKey.ENG
+            return MediaAttributeKey.HUN
+        return MediaAttributeKey.ENG

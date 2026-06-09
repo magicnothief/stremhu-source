@@ -12,6 +12,7 @@ from pydantic.alias_generators import to_camel
 
 class PreferenceResponse(BaseModel):
     model_config = ConfigDict(
+        from_attributes=True,
         validate_by_name=True,
         alias_generator=to_camel,
     )
@@ -19,6 +20,7 @@ class PreferenceResponse(BaseModel):
     id: str
     name: str
     description: str
+    emoji: str | None
     attributes: list[AttributeResponse]
 
     @classmethod
@@ -30,11 +32,9 @@ class PreferenceResponse(BaseModel):
             id=user_preference_definition_model.definition.preference.id,
             name=user_preference_definition_model.definition.preference.name,
             description=user_preference_definition_model.definition.preference.description,
+            emoji=user_preference_definition_model.definition.preference.emoji,
             attributes=[
-                AttributeResponse(
-                    id=definition_attribute.attribute.id,
-                    name=definition_attribute.attribute.name,
-                )
+                AttributeResponse.model_validate(definition_attribute.attribute)
                 for definition_attribute in user_preference_definition_model.definition.definition_attributes
             ],
         )
@@ -48,11 +48,9 @@ class PreferenceResponse(BaseModel):
             id=system_preference_definition_model.definition.preference.id,
             name=system_preference_definition_model.definition.preference.name,
             description=system_preference_definition_model.definition.preference.description,
+            emoji=system_preference_definition_model.definition.preference.emoji,
             attributes=[
-                AttributeResponse(
-                    id=definition_attribute.attribute.id,
-                    name=definition_attribute.attribute.name,
-                )
+                AttributeResponse.model_validate(definition_attribute.attribute)
                 for definition_attribute in system_preference_definition_model.definition.definition_attributes
             ],
         )

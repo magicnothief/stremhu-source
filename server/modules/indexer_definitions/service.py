@@ -4,6 +4,7 @@ from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefin
 from modules.indexer_definitions.integrations import discover_indexer_definitions
 from modules.indexer_definitions.models import IndexerDefinitionModel
 from modules.indexer_definitions.protocols import IndexerAccountStorage
+from modules.preferences.constants import PreferenceKey
 from sqlalchemy.orm import Session
 
 
@@ -87,11 +88,10 @@ class IndexerDefinitionsService:
             else:
                 new_definition = IndexerDefinitionModel(
                     id=instance.id,
+                    preference_id=PreferenceKey.SITE,
                     name=instance.name,
                     url=instance.url,
                     details_path=instance.details_path,
                     requires_full_download=instance.requires_full_download,
                 )
                 db.add(new_definition)
-
-        db.commit()

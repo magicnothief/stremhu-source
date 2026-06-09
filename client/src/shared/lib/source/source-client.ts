@@ -485,7 +485,6 @@ export interface TorrentResponse {
   total: number
   isPersisted: boolean
   fullDownload: boolean | null
-  lastPlayedAt: string
   updatedAt: string
   createdAt: string
 }

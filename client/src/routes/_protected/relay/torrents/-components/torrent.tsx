@@ -11,7 +11,6 @@ import {
   LayersPlusIcon,
   PinIcon,
   PinOffIcon,
-  PlayIcon,
   RotateCcwIcon,
   TrashIcon,
 } from 'lucide-react'
@@ -241,13 +240,6 @@ export function Torrent(props: TorrentProps) {
         >
           <LayersPlusIcon />
           {formatDateTime(torrent.createdAt)}
-        </Badge>
-        <Badge
-          variant="secondary"
-          title={`Torrent utolsó lejátszásának időpontja: ${formatDateTime(torrent.lastPlayedAt)}`}
-        >
-          <PlayIcon />
-          {formatDateTime(torrent.lastPlayedAt)}
         </Badge>
         {torrent.isPersisted && (
           <Badge

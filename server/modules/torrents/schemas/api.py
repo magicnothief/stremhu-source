@@ -23,7 +23,6 @@ class TorrentResponse(BaseModel):
     total: int
     is_persisted: bool
     full_download: bool | None
-    last_played_at: datetime
     updated_at: datetime
     created_at: datetime
 
@@ -46,7 +45,6 @@ class TorrentResponse(BaseModel):
             total=torrent_with_relay.relay.total,
             is_persisted=torrent_with_relay.torrent.is_persisted,
             full_download=torrent_with_relay.torrent.full_download,
-            last_played_at=torrent_with_relay.torrent.last_played_at,
             updated_at=torrent_with_relay.torrent.updated_at,
             created_at=torrent_with_relay.torrent.created_at,
         )

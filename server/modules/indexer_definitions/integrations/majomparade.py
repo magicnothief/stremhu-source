@@ -1,7 +1,7 @@
 from urllib.parse import urljoin
 
 import httpx
-from modules.attributes.constants import AttributeKey
+from modules.media_attributes.constants import MediaAttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
 from modules.indexer_definitions.schemas.internal import (
@@ -204,11 +204,11 @@ class MajomparadeIndexerDefinition(BaseIndexerDefinition):
     def _resolve_resolution(self, category: str) -> str:
         cat_type = _CATEGORY_MAP.get(category, "none")
         if "hd" in cat_type:
-            return AttributeKey.R720P
-        return AttributeKey.R480P
+            return MediaAttributeKey.R720P
+        return MediaAttributeKey.R480P
 
     def _resolve_language(self, category: str) -> str:
         cat_type = _CATEGORY_MAP.get(category, "none")
         if "hun" in cat_type:
-            return AttributeKey.HUN
-        return AttributeKey.ENG
+            return MediaAttributeKey.HUN
+        return MediaAttributeKey.ENG

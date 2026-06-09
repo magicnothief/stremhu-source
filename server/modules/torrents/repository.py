@@ -1,7 +1,9 @@
 import datetime
 
+from modules.playback_histories.models import PlaybackHistoryModel
 from modules.torrents.models import TorrentModel
 from modules.torrents.schemas.internal import TorrentUpdate
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 
@@ -65,6 +67,18 @@ class TorrentRepository:
             cutoff = datetime.datetime.now() - datetime.timedelta(
                 seconds=keep_seed_seconds
             )
-            query = query.filter(TorrentModel.last_played_at < cutoff)
+
+            last_played_subquery = (
+                self.db.query(func.max(PlaybackHistoryModel.created_at))
+                .filter(
+                    PlaybackHistoryModel.indexer_id == TorrentModel.indexer_id,
+                    PlaybackHistoryModel.torrent_id == TorrentModel.torrent_id,
+                )
+                .correlate(TorrentModel)
+                .scalar_subquery()
+            )
+
+            last_played = func.coalesce(last_played_subquery, TorrentModel.created_at)
+            query = query.filter(last_played < cutoff)
 
         return query.all()

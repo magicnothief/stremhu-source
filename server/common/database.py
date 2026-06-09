@@ -1,7 +1,9 @@
+import importlib
 import zoneinfo
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 import tzlocal
 from config import config
@@ -62,6 +64,15 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+root_path = Path(__file__).resolve().parent.parent
+for path in root_path.rglob("models.py"):
+    relative_path = path.relative_to(root_path)
+    module_name = ".".join(relative_path.with_suffix("").parts)
+    try:
+        importlib.import_module(module_name)
+    except Exception:
+        pass
 
 
 @contextmanager

@@ -1,20 +1,14 @@
 import uuid
 
-import PTN
 from common.schemas.internal import SeriesInfo
-from common.torrent_info import TorrentFileInfo, TorrentInfo
-from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
 from modules.indexers.schemas.internal import IndexerTorrent
+from modules.media_attributes.models import MediaAttributeModel
+from modules.media_attributes.parser import parse_torrent_name
 from modules.stream.schemas import StreamToken
 from modules.stream.utils.stream_token import generate_stream_token
 from modules.torrent_files.models import TorrentFileModel
-from modules.torrent_streams.name_parser_service import TorrentNameParserService
-from modules.torrent_streams.utils.resolver_helpers import (
-    is_sample,
-    is_sample_or_trash,
-    is_video,
-)
+from modules.torrent_streams.utils.stream_file_resolver import StreamFileResolver
 from modules.users.models import UserModel
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -35,7 +29,7 @@ class TorrentStream(BaseModel):
     file_index: int
     play_url: str
     seeders: int | None = None
-    attributes: list[AttributeModel] = []
+    attributes: list[MediaAttributeModel] = []
     is_persisted_torrent: bool
 
     @classmethod
@@ -86,30 +80,63 @@ class TorrentStream(BaseModel):
         cls,
         indexer_torrent: IndexerTorrent,
         torrent_file: TorrentFileModel,
-        torrent_name_parser_service: TorrentNameParserService,
         app_url: str,
         user: UserModel,
         series: SeriesInfo | None = None,
     ) -> "TorrentStream | None":
-        if series:
-            torrent_info = cls._resolve_series_file(
-                torrent_file.info,
-                series,
-            )
-        else:
-            torrent_info = cls._resolve_largest_file(torrent_file.info)
+        torrent_file_info = StreamFileResolver.resolve_file(
+            torrent_file.info,
+            series,
+        )
 
-        if torrent_info is None:
+        if torrent_file_info is None:
             return None
 
-        parsed_attributes = torrent_name_parser_service.parse(
-            torrent_info.name,
-            external_fallbacks=indexer_torrent.fallback_attributes,
+        indexer_media_attributes = [
+            indexer_attribute
+            for indexer_attribute in indexer_torrent.attributes
+            if isinstance(indexer_attribute, MediaAttributeModel)
+        ]
+
+        torrent_attributes = parse_torrent_name(
+            torrent_file.info.name,
+            external_fallbacks=indexer_media_attributes,
         )
+
+        file_attributes = parse_torrent_name(torrent_file_info.name)
+
+        torrent_attr_ids = {attribute.id for attribute in torrent_attributes}
+        file_attr_ids = {attribute.id for attribute in file_attributes}
+
+        if not file_attributes:
+            parsed_attributes = torrent_attributes
+        elif file_attr_ids == torrent_attr_ids:
+            parsed_attributes = torrent_attributes
+        else:
+            # Intelligens összefésülés: a fájl attribútumai felülírják a torrent azonos kategóriájú (preference_id) attribútumait
+            parsed_attributes = []
+            file_pref_ids = {
+                a.preference_id for a in file_attributes if a.preference_id is not None
+            }
+
+            for attr in torrent_attributes:
+                # Ha a fájl tartalmaz attribútumot ebből a kategóriából, akkor a torrent-szintűt eldobjuk (felülíródik)
+                if (
+                    attr.preference_id is not None
+                    and attr.preference_id in file_pref_ids
+                ):
+                    continue
+                # Ha nincs kategória, de a fájl már pont tartalmazza ezt az attribútumot, akkor elkerüljük a duplikációt
+                if attr.id in file_attr_ids:
+                    continue
+                parsed_attributes.append(attr)
+
+            # Hozzáadjuk a fájl saját attribútumait
+            parsed_attributes.extend(file_attributes)
 
         indexer_id = indexer_torrent.indexer_account.indexer_id
         torrent_id = torrent_file.torrent_id
-        file_index = torrent_info.index
+        file_index = torrent_file_info.index
         playback_id = str(uuid.uuid4())
 
         stream_token = generate_stream_token(
@@ -119,9 +146,7 @@ class TorrentStream(BaseModel):
                 file_index=file_index,
                 playback_id=playback_id,
                 imdb_id=indexer_torrent.imdb_id,
-                series_info=SeriesInfo.model_validate(series.model_dump())
-                if series
-                else None,
+                series_info=series,
             )
         )
 
@@ -130,48 +155,11 @@ class TorrentStream(BaseModel):
             torrent_id=torrent_id,
             info_hash=torrent_file.info_hash,
             seeders=indexer_torrent.seeders,
-            torrent_name=torrent_info.name,
+            torrent_name=torrent_file.info.name,
             attributes=parsed_attributes,
-            file_name=torrent_info.name,
-            file_size=torrent_info.size,
+            file_name=torrent_file_info.name,
+            file_size=torrent_file_info.size,
             file_index=file_index,
             play_url=f"{app_url}/api/{user.api_key}/stream/{stream_token}",
             is_persisted_torrent=False,
         )
-
-    @staticmethod
-    def _resolve_largest_file(torrent_info: TorrentInfo) -> TorrentFileInfo | None:
-        valid_files = [
-            file
-            for file in torrent_info.files
-            if is_video(file.name) and not is_sample(file.name)
-        ]
-
-        if not valid_files:
-            return None
-
-        return max(valid_files, key=lambda file: file.size)
-
-    @staticmethod
-    def _resolve_series_file(
-        torrent_info: TorrentInfo,
-        series: SeriesInfo,
-    ) -> TorrentFileInfo | None:
-        for file in torrent_info.files:
-            if is_sample_or_trash(file.name):
-                continue
-
-            parsed = PTN.parse(file.name)
-            season = parsed.get("season")
-            episode = parsed.get("episode")
-
-            if season is None or episode is None:
-                continue
-
-            seasons = season if isinstance(season, list) else [season]
-            episodes = episode if isinstance(episode, list) else [episode]
-
-            if series.season in seasons and series.episode in episodes:
-                return file
-
-        return None

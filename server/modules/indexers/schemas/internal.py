@@ -1,7 +1,7 @@
+from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
 from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionLogin,
-    IndexerDefinitionTorrent,
 )
 from pydantic import BaseModel
 
@@ -10,9 +10,13 @@ class IndexerLogin(IndexerDefinitionLogin):
     indexer_id: str
 
 
-class IndexerTorrent(IndexerDefinitionTorrent):
+class IndexerTorrent(BaseModel):
     indexer_account: IndexerAccountModel
     torrent_id: str
+    download_url: str
+    imdb_id: str | None = None
+    seeders: int = 0
+    attributes: list[AttributeModel] = []
 
 
 class DownloadedTorrentFile(BaseModel):

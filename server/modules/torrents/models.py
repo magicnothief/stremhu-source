@@ -42,11 +42,6 @@ class TorrentModel(Base):
         sa.String,
     )
 
-    last_played_at: Mapped[datetime.datetime] = mapped_column(
-        sa.DateTime,
-        default_factory=datetime.datetime.now,
-    )
-
     is_persisted: Mapped[bool] = mapped_column(sa.Boolean, default=False)
 
     full_download: Mapped[bool | None] = mapped_column(
