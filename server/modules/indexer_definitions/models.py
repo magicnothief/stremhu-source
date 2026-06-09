@@ -3,10 +3,11 @@ from modules.attributes.models import AttributeModel
 from sqlalchemy.orm import Mapped, mapped_column
 
 
-class IndexerDefinitionModel(AttributeModel):
-    """Database representation of static tracker integrations discovered at runtime"""
-
+class IndexerDefinitionModel(AttributeModel, kw_only=True):
     __tablename__ = "indexer_definitions"
+    __mapper_args__ = {
+        "polymorphic_identity": "indexer_definition",
+    }
 
     id: Mapped[str] = mapped_column(
         sa.ForeignKey("attributes.id", ondelete="CASCADE"),
@@ -29,7 +30,3 @@ class IndexerDefinitionModel(AttributeModel):
         sa.Boolean,
         default=False,
     )
-
-    __mapper_args__ = {
-        "polymorphic_identity": "indexer_definition",
-    }

@@ -1,6 +1,6 @@
 import { useSuspenseQueries } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CircleCheckBigIcon } from 'lucide-react'
+import { HistoryIcon, PlayIcon } from 'lucide-react'
 
 import { Alert, AlertTitle } from '@/shared/components/ui/alert'
 import {
@@ -31,16 +31,16 @@ function RouteComponent() {
     <div className="grid gap-8">
       <Card>
         <CardHeader>
-          <CardTitle>Aktív {DASHBOARD_PLAYBACKS_NAME}</CardTitle>
+          <CardTitle>Aktív {DASHBOARD_PLAYBACKS_NAME.toLowerCase()}</CardTitle>
           <CardDescription>
-            Az elindított médiákhoz tartozó lejátszások itt fognak megjelennie.
+            Aktív lejátszások és a legfontosabb adatok.
           </CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="grid gap-3">
           {playbacks.length === 0 ? (
             <Alert>
-              <CircleCheckBigIcon />
+              <PlayIcon />
               <AlertTitle>Nincs aktív lejátszás</AlertTitle>
             </Alert>
           ) : (
@@ -53,17 +53,26 @@ function RouteComponent() {
       <Separator />
       <Card>
         <CardHeader>
-          <CardTitle>{DASHBOARD_PLAYBACKS_NAME}</CardTitle>
-          <CardDescription>Az lejátszások története.</CardDescription>
+          <CardTitle>Lejátszási előzmények</CardTitle>
+          <CardDescription>
+            Elindított lejátszások története és részletes adatai.
+          </CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="grid gap-3">
-          {playbackHistories.map((playback_history) => (
-            <PlaybackItem
-              key={playback_history.playbackId}
-              playback={playback_history}
-            />
-          ))}
+          {playbackHistories.length === 0 ? (
+            <Alert>
+              <HistoryIcon />
+              <AlertTitle>Nincs lejátszási előzmény</AlertTitle>
+            </Alert>
+          ) : (
+            playbackHistories.map((playback_history) => (
+              <PlaybackItem
+                key={playback_history.playbackId}
+                playback={playback_history}
+              />
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

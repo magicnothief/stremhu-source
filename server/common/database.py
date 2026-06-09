@@ -44,7 +44,11 @@ class UTCDateTime(TypeDecorator):
         return value
 
 
-class Base(MappedAsDataclass, DeclarativeBase):
+class Base(
+    MappedAsDataclass,
+    DeclarativeBase,
+    kw_only=True,
+):
     metadata = MetaData(naming_convention=convention)
     type_annotation_map = {
         datetime: UTCDateTime,
@@ -64,15 +68,6 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-root_path = Path(__file__).resolve().parent.parent
-for path in root_path.rglob("models.py"):
-    relative_path = path.relative_to(root_path)
-    module_name = ".".join(relative_path.with_suffix("").parts)
-    try:
-        importlib.import_module(module_name)
-    except Exception:
-        pass
 
 
 @contextmanager
@@ -99,3 +94,13 @@ def get_db() -> Generator[Session, None, None]:
     """
     with db_session() as db:
         yield db
+
+
+root_path = Path(__file__).resolve().parent.parent
+for path in root_path.rglob("models.py"):
+    relative_path = path.relative_to(root_path)
+    module_name = ".".join(relative_path.with_suffix("").parts)
+    try:
+        importlib.import_module(module_name)
+    except Exception:
+        pass

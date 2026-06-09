@@ -16,6 +16,7 @@ import {
   indexersUpdate,
 } from '../lib/source/source-client'
 import { getMePreferences } from './me'
+import { getPreferences } from './preferences'
 import { getUsers } from './users'
 
 export const getIndexers = queryOptions({
@@ -53,7 +54,13 @@ export function useIndexerUpdate(indexerId: string) {
       await indexersUpdate(indexerId, payload)
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: getIndexers.queryKey })
+      await Promise.all(
+        [
+          getIndexers.queryKey,
+          getMePreferences().queryKey,
+          getPreferences.queryKey,
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
     },
   })
 }
@@ -65,13 +72,14 @@ export function useIndexerDelete() {
       await indexersDelete(indexerId)
     },
     onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getIndexers.queryKey }),
-        queryClient.invalidateQueries({
-          queryKey: getMePreferences().queryKey,
-        }),
-        queryClient.invalidateQueries({ queryKey: getUsers.queryKey }),
-      ])
+      await Promise.all(
+        [
+          getIndexers.queryKey,
+          getMePreferences().queryKey,
+          getPreferences.queryKey,
+          getUsers.queryKey,
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
     },
   })
 }

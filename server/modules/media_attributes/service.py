@@ -1,3 +1,4 @@
+import pydash
 from common.logger import logger
 from modules.media_attributes.models import MediaAttributeModel
 from modules.media_attributes.repository import MediaAttributesRepository
@@ -26,24 +27,18 @@ class MediaAttributesService:
             db_attributes_map[db_record.id] = db_record
 
         # Hozzáadjuk a hiányzókat és frissítjük a megváltozottakat
-        for code_attribute in DEFAULT_ATTRIBUTES:
+        fields = ["name", "preference_id", "pattern", "short_name", "order"]
+        for index, code_attribute in enumerate(DEFAULT_ATTRIBUTES):
+            code_attribute.order = index
+
             if code_attribute.id in db_attributes_map:
                 db_attribute = db_attributes_map[code_attribute.id]
-                # Frissítjük, ha megváltozott valami
-                if (
-                    db_attribute.name != code_attribute.name
-                    or db_attribute.preference_id != code_attribute.preference_id
-                    or db_attribute.pattern != code_attribute.pattern
-                    or db_attribute.short_name != code_attribute.short_name
+
+                if pydash.pick(db_attribute, *fields) != pydash.pick(
+                    code_attribute, *fields
                 ):
-                    logger.info(
-                        f"🔄 Frissítve a(z) {code_attribute.id} media attribútum a DB-ben "
-                        f"(pattern: '{db_attribute.pattern}' -> '{code_attribute.pattern}')"
-                    )
-                    db_attribute.name = code_attribute.name
-                    db_attribute.preference_id = code_attribute.preference_id
-                    db_attribute.pattern = code_attribute.pattern
-                    db_attribute.short_name = code_attribute.short_name
+                    for field in fields:
+                        setattr(db_attribute, field, getattr(code_attribute, field))
             else:
                 new_attribute = MediaAttributeModel(
                     id=code_attribute.id,
@@ -51,5 +46,6 @@ class MediaAttributesService:
                     preference_id=code_attribute.preference_id,
                     pattern=code_attribute.pattern,
                     short_name=code_attribute.short_name,
+                    order=code_attribute.order,
                 )
                 self._repository.add(new_attribute)

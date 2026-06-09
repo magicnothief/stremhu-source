@@ -9,7 +9,10 @@ class BaseUser(BaseModel):
 
     only_best_torrent: bool = False
 
-    max_concurrent_streams: int | None = None
+    max_concurrent_streams: int | None = Field(
+        None,
+        gt=0,
+    )
 
 
 class UserCreate(BaseUser):

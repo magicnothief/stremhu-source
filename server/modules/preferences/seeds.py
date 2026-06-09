@@ -21,18 +21,25 @@ DEFAULT_PREFERENCES = [
         emoji="📺",
     ),
     PreferenceModel(
-        id=PreferenceKey.SOURCE,
-        name="Forrás",
-        description="A kiadás forrástípusa / eredete.",
-        multiple=True,
-        emoji="💿",
-    ),
-    PreferenceModel(
         id=PreferenceKey.VIDEO_QUALITY,
         name="Képminőség",
         description="A videó képi minőségi formátuma.",
         multiple=True,
         emoji="✨",
+    ),
+    PreferenceModel(
+        id=PreferenceKey.EDITION,
+        name="Kiadás",
+        description="A film speciális kiadása / változata.",
+        multiple=True,
+        emoji="🏷️",
+    ),
+    PreferenceModel(
+        id=PreferenceKey.SOURCE,
+        name="Forrás",
+        description="A kiadás forrástípusa / eredete.",
+        multiple=True,
+        emoji="💿",
     ),
     PreferenceModel(
         id=PreferenceKey.VIDEO_CODEC,
@@ -58,12 +65,5 @@ DEFAULT_PREFERENCES = [
         name="Térhangzás",
         description="Objektumalapú surround hangzás",
         emoji="🌌",
-    ),
-    PreferenceModel(
-        id=PreferenceKey.EDITION,
-        name="Kiadás",
-        description="A film speciális kiadása / változata.",
-        multiple=True,
-        emoji="🏷️",
     ),
 ]

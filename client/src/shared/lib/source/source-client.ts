@@ -9,6 +9,7 @@ import { sourceClientInstance } from './source-client-instance'
 export interface AttributeResponse {
   id: string
   name: string
+  shortName?: string | null
 }
 
 export interface BehaviorHints {
@@ -365,7 +366,7 @@ export interface UserResponse {
   username: string
   torrentSeed?: number | null
   onlyBestTorrent?: boolean
-  maxConcurrentStreams: number | null
+  maxConcurrentStreams?: number | null
   id: string
   role: RoleResponse
   apiKey: string
@@ -401,6 +402,7 @@ export interface PreferenceResponse {
   id: string
   name: string
   description: string
+  emoji: string | null
   attributes: AttributeResponse[]
 }
 
@@ -498,7 +500,7 @@ export interface UserCreateRequest {
   username: string
   torrentSeed?: number | null
   onlyBestTorrent?: boolean
-  maxConcurrentStreams: number | null
+  maxConcurrentStreams?: number | null
   password?: string | null
   roleId?: string
 }

@@ -5,11 +5,11 @@ from contextlib import asynccontextmanager
 import pydash
 from api import api_router
 from common.logger import logger
+from common.spa_static_files import SPAStaticFiles
 from config import NodeEnv, config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
-from fastapi.staticfiles import StaticFiles
 from modules.relay.background_tasks import alert_loop, resume_save_loop
 from modules.relay.dependencies import get_relay_service
 from modules.torrents.background_tasks import (
@@ -108,10 +108,11 @@ app.add_middleware(
 # API router beemelése
 app.include_router(api_router)
 
-# Kliens statikus fájljainak kiszolgálása
+
+# Kliens statikus fájljainak kiszolgálása (SPA útválasztás támogatással)
 app.mount(
     "/",
-    StaticFiles(
+    SPAStaticFiles(
         directory=config.client_path,
         html=True,
     ),

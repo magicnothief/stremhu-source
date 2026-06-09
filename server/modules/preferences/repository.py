@@ -1,3 +1,4 @@
+import pydash
 import sqlalchemy as sa
 from common.logger import logger
 from modules.attributes.models import AttributeModel
@@ -14,7 +15,7 @@ class PreferencesRepository:
     def find_list(self) -> list[PreferenceModel]:
         return (
             self.db.query(PreferenceModel)
-            .outerjoin(
+            .join(
                 AttributeModel,
                 sa.and_(
                     PreferenceModel.id == AttributeModel.preference_id,
@@ -27,6 +28,7 @@ class PreferencesRepository:
                 ),
             )
             .options(contains_eager(PreferenceModel.attributes))
+            .order_by(PreferenceModel.order.asc())
             .all()
         )
 
@@ -50,28 +52,25 @@ class PreferencesRepository:
         if deleted_count > 0:
             logger.info(f"🗑️ Törölve {deleted_count} elavult kategória a DB-ből.")
 
-        for pref in DEFAULT_PREFERENCES:
-            db_pref = (
-                self.db.query(PreferenceModel)
-                .filter(PreferenceModel.id == pref.id)
-                .first()
-            )
+        # Meglévő rekordok lekérése egyetlen lekérdezéssel
+        db_prefs_map = {
+            db_pref.id: db_pref for db_pref in self.db.query(PreferenceModel).all()
+        }
 
-            if db_pref:
-                if (
-                    db_pref.name != pref.name
-                    or db_pref.description != pref.description
-                    or db_pref.emoji != pref.emoji
-                ):
-                    db_pref.name = pref.name
-                    db_pref.description = pref.description
-                    db_pref.emoji = pref.emoji
+        fields = ["name", "description", "multiple", "emoji", "order"]
+        for index, pref in enumerate(DEFAULT_PREFERENCES):
+            pref.order = index
+
+            if pref.id in db_prefs_map:
+                db_pref = db_prefs_map[pref.id]
+
+                if pydash.pick(db_pref, *fields) != pydash.pick(pref, *fields):
+                    for field in fields:
+                        setattr(db_pref, field, getattr(pref, field))
             else:
                 new_pref = PreferenceModel(
                     id=pref.id,
-                    name=pref.name,
-                    description=pref.description,
-                    emoji=pref.emoji,
+                    **pydash.pick(pref, *fields),
                 )
                 self.db.add(new_pref)
 

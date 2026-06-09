@@ -56,7 +56,7 @@ def parse_torrent_info(torrent: bytes | libtorrent.torrent_info) -> TorrentInfo:
 
     return TorrentInfo(
         info_hash=str(torrent_info.info_hash()),
-        name=torrent_info.name() or "",
+        name=torrent_info.name(),
         size=torrent_info.total_size(),
         piece_size=piece_size,
         files=files,

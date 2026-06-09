@@ -1,3 +1,4 @@
+import pydash
 from common.logger import logger
 from fastapi import HTTPException, status
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
@@ -52,6 +53,17 @@ class IndexerDefinitionsService:
         """Szinkronizálja az integrations/ mappából dinamikusan felderített indexereket az adatbázissal."""
 
         discovered_definitions = self.get_list()
+
+        def get_sort_key(instance: BaseIndexerDefinition) -> tuple[int, str]:
+            idx = instance.id.lower()
+            if idx == "ncore":
+                return (0, "")
+            if idx == "bithumen":
+                return (1, "")
+            return (2, instance.name.lower())
+
+        discovered_definitions.sort(key=get_sort_key)
+
         discovered_ids = {instance.id for instance in discovered_definitions}
 
         deleted_count = (
@@ -64,34 +76,31 @@ class IndexerDefinitionsService:
                 f"🗑️ Törölve {deleted_count} elavult indexer definíció a DB-ből."
             )
 
-        for instance in discovered_definitions:
-            db_definition = (
-                db.query(IndexerDefinitionModel)
-                .filter(IndexerDefinitionModel.id == instance.id)
-                .first()
-            )
+        # Meglévő rekordok lekérése egyetlen lekérdezéssel
+        db_definitions_map = {
+            db_def.id: db_def for db_def in db.query(IndexerDefinitionModel).all()
+        }
 
-            if db_definition:
-                if (
-                    db_definition.name != instance.name
-                    or db_definition.url != instance.url
-                    or db_definition.details_path != instance.details_path
-                    or db_definition.requires_full_download
-                    != instance.requires_full_download
-                ):
-                    db_definition.name = instance.name
-                    db_definition.url = instance.url
-                    db_definition.details_path = instance.details_path
-                    db_definition.requires_full_download = (
-                        instance.requires_full_download
-                    )
+        fields = ["name", "url", "details_path", "requires_full_download", "order"]
+        for index, instance in enumerate(discovered_definitions):
+            instance_data = {
+                "name": instance.name,
+                "url": instance.url,
+                "details_path": instance.details_path,
+                "requires_full_download": instance.requires_full_download,
+                "order": index,
+            }
+
+            if instance.id in db_definitions_map:
+                db_definition = db_definitions_map[instance.id]
+
+                if pydash.pick(db_definition, *fields) != instance_data:
+                    for field in fields:
+                        setattr(db_definition, field, instance_data[field])
             else:
                 new_definition = IndexerDefinitionModel(
                     id=instance.id,
                     preference_id=PreferenceKey.SITE,
-                    name=instance.name,
-                    url=instance.url,
-                    details_path=instance.details_path,
-                    requires_full_download=instance.requires_full_download,
+                    **instance_data,
                 )
                 db.add(new_definition)

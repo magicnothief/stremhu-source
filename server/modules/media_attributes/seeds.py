@@ -3,6 +3,21 @@ from modules.media_attributes.models import MediaAttributeModel
 from modules.preferences.constants import PreferenceKey
 
 DEFAULT_ATTRIBUTES = [
+    # Languages
+    MediaAttributeModel(
+        id=MediaAttributeKey.HUN,
+        name="magyar",
+        short_name="Hun",
+        preference_id=PreferenceKey.LANGUAGE,
+        pattern=r"\b(hun(?:[-_. ]?dub)?|magyar|hungarian)\b",
+    ),
+    MediaAttributeModel(
+        id=MediaAttributeKey.ENG,
+        name="angol",
+        short_name="Eng",
+        preference_id=PreferenceKey.LANGUAGE,
+        pattern=r"\b(eng(?:[-_. ]?dub)?|english)\b",
+    ),
     # Resolutions
     MediaAttributeModel(
         id=MediaAttributeKey.R2160P,
@@ -45,21 +60,6 @@ DEFAULT_ATTRIBUTES = [
         short_name=None,
         preference_id=PreferenceKey.RESOLUTION,
         pattern=r"(480(i|p)|640x480|848x480)",
-    ),
-    # Languages
-    MediaAttributeModel(
-        id=MediaAttributeKey.HUN,
-        name="magyar",
-        short_name="Hun",
-        preference_id=PreferenceKey.LANGUAGE,
-        pattern=r"\b(hun(?:[-_. ]?dub)?|magyar|hungarian)\b",
-    ),
-    MediaAttributeModel(
-        id=MediaAttributeKey.ENG,
-        name="angol",
-        short_name="Eng",
-        preference_id=PreferenceKey.LANGUAGE,
-        pattern=r"\b(eng(?:[-_. ]?dub)?|english)\b",
     ),
     # Video Qualities
     MediaAttributeModel(
@@ -185,18 +185,18 @@ DEFAULT_ATTRIBUTES = [
     ),
     # Edition
     MediaAttributeModel(
+        id=MediaAttributeKey.THEATRICAL,
+        name="Moziváltozat (Theatrical)",
+        preference_id=PreferenceKey.EDITION,
+        pattern=None,
+        short_name="Theatrical",
+    ),
+    MediaAttributeModel(
         id=MediaAttributeKey.UNCUT,
         name="Vágatlan változat (Uncut / Unrated)",
         preference_id=PreferenceKey.EDITION,
         pattern=r"\b(unrated|uncut)\b",
         short_name="Uncut",
-    ),
-    MediaAttributeModel(
-        id=MediaAttributeKey.IMAX,
-        name="IMAX verzió",
-        preference_id=PreferenceKey.EDITION,
-        pattern=r"\b(imax)\b",
-        short_name="IMAX",
     ),
     MediaAttributeModel(
         id=MediaAttributeKey.REMASTERED,
@@ -220,11 +220,11 @@ DEFAULT_ATTRIBUTES = [
         short_name="Director's Cut",
     ),
     MediaAttributeModel(
-        id=MediaAttributeKey.THEATRICAL,
-        name="Moziváltozat (Theatrical)",
+        id=MediaAttributeKey.IMAX,
+        name="IMAX verzió",
         preference_id=PreferenceKey.EDITION,
-        pattern=None,
-        short_name="Theatrical",
+        pattern=r"\b(imax)\b",
+        short_name="IMAX",
     ),
     # Audio Qualities
     MediaAttributeModel(
