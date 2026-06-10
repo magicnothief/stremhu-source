@@ -4,7 +4,7 @@ import time
 import httpx
 from common.logger import logger
 from config import config
-from modules.network.ddns.schemas import DDNSIpUpdate
+from modules.network.ddns.schemas.internal import DDNSIpUpdate
 from modules.network.ddns.service import DDNSService
 from modules.network.schemas.internal import NetworkSetup
 from modules.network.ssl.schemas import AcmeCertificateGenerate, SelfSignedCertificate
@@ -76,14 +76,16 @@ class NetworkService:
 
         return False
 
-    async def setup(self, payload: NetworkSetup) -> None:
+    async def setup(self, payload: NetworkSetup) -> NetworkSettings:
         if self._in_progress:
             raise ValueError("Hálózati elérés beállítása már folyamatban van!")
 
         try:
             self._in_progress = True
 
-            current_network = self._settings_service.get_network()
+            current_network_settings = await asyncio.to_thread(
+                self._settings_service.get_network
+            )
 
             if payload.mode == NetworkModeEnum.MANUAL:
                 manual_network_settings = NetworkManualSettings(
@@ -92,104 +94,104 @@ class NetworkService:
                     reverse_proxy=payload.reverse_proxy,
                 )
 
-                self._settings_service.save_network(manual_network_settings)
+                network_settings = await asyncio.to_thread(
+                    self._settings_service.save_network,
+                    manual_network_settings,
+                )
 
                 asyncio.create_task(self._system_service.restart())
-                return
 
-            if payload.mode == NetworkModeEnum.AUTO:
-                # Automatikus beállítás (DDNS + SSL)
-                logger.info(
-                    "⚙️ Automatikus hálózati elérés beállítása (Host: %s, DNS: %s)...",
-                    payload.host,
-                    payload.provider,
-                )
+                return network_settings
 
-                # 1. DNS hitelesítés
-                await self._ddns_service.validate(
-                    provider_id=payload.provider,
+            # Automatikus beállítás (DDNS + SSL)
+            logger.info(
+                "⚙️ Automatikus hálózati elérés beállítása (Host: %s, DNS: %s)...",
+                payload.host,
+                payload.provider,
+            )
+
+            # 1. DNS IP szinkronizáció
+            ip = await self._ddns_service.get_current_ip(payload.connection)
+            await self._ddns_service.update(
+                provider_id=payload.provider,
+                payload=DDNSIpUpdate(
+                    provider_token=payload.token,
                     host=payload.host,
-                    token=payload.token,
-                )
-
-                # 2. DNS IP szinkronizáció
-                ip = await self._ddns_service.get_current_ip(payload.connection)
-                await self._ddns_service.update(
-                    provider_id=payload.provider,
-                    payload=DDNSIpUpdate(
-                        provider_token=payload.token,
-                        host=payload.host,
-                        ip=ip,
-                    ),
-                )
-
-                # 3. Kapcsolat ellenőrzése fallback védelemmel
-                is_connected = await self.check_connectivity(
-                    host=payload.host,
-                )
-                if not is_connected:
-                    # Rollback: ha nem érhető el, állítsuk vissza a DNS-t a korábbi beállításra
-                    logger.warning(
-                        "🚨 Kapcsolat ellenőrzés sikertelen! Visszagörgetés..."
-                    )
-                    if current_network and current_network.mode == NetworkModeEnum.AUTO:
-                        try:
-                            await self._ddns_service.update(
-                                provider_id=current_network.provider,
-                                payload=DDNSIpUpdate(
-                                    provider_token=current_network.token,
-                                    host=current_network.host,
-                                    ip=current_network.ip,
-                                ),
-                            )
-                        except Exception as e:
-                            logger.error("Nem sikerült a DNS visszaállítása: %s", e)
-
-                    raise ValueError(
-                        "A szerver nem érhető el a megadott domainen keresztül! "
-                        "A DNS rekordokat visszaállítottuk. Ellenőrizd a router port forward beállításait (TCP 4300 port)!"
-                    )
-
-                # 4. SSL tanúsítvány igénylése
-                account_key_pem = None
-                if current_network and current_network.mode == NetworkModeEnum.AUTO:
-                    account_key_pem = current_network.account_key
-
-                certs = await self._ssl_service.generate_acme_certificate(
-                    AcmeCertificateGenerate(
-                        ddns_provider_id=payload.provider,
-                        ddns_provider_token=payload.token,
-                        host=payload.host,
-                        email=payload.email,
-                        account_key_pem=account_key_pem,
-                    )
-                )
-
-                auto_network = NetworkAutoSettings(
-                    mode=NetworkModeEnum.AUTO,
-                    host=payload.host,
-                    token=payload.token,
-                    email=payload.email,
-                    connection=payload.connection,
-                    provider=payload.provider,
                     ip=ip,
-                    fullchain=certs.fullchain,
-                    privkey=certs.privkey,
-                    expires_at=certs.expires_at,
-                    account_key=certs.account_key,
-                )
-                self._settings_service.save_network(auto_network)
+                ),
+            )
 
-                # Ütemezzük az újraindítást
-                asyncio.create_task(self._system_service.restart())
+            # 3. Kapcsolat ellenőrzése fallback védelemmel
+            is_connected = await self.check_connectivity(
+                host=payload.host,
+            )
+            if not is_connected:
+                # Rollback: ha nem érhető el, állítsuk vissza a DNS-t a korábbi beállításra
+                logger.warning("🚨 Kapcsolat ellenőrzés sikertelen! Visszagörgetés...")
+                if (
+                    current_network_settings
+                    and current_network_settings.mode == NetworkModeEnum.AUTO
+                ):
+                    await self._ddns_service.update(
+                        provider_id=current_network_settings.provider,
+                        payload=DDNSIpUpdate(
+                            provider_token=current_network_settings.token,
+                            host=current_network_settings.host,
+                            ip=current_network_settings.ip,
+                        ),
+                    )
+
+                raise ValueError(
+                    "A szerver nem érhető el a megadott domainen keresztül! "
+                    "A DNS rekordokat visszaállítottuk. Ellenőrizd a router port forward beállításait (TCP 4300 port)!"
+                )
+
+            # 4. SSL tanúsítvány igénylése
+            account_key_pem = None
+            if (
+                current_network_settings
+                and current_network_settings.mode == NetworkModeEnum.AUTO
+            ):
+                account_key_pem = current_network_settings.account_key
+
+            certs = await self._ssl_service.generate_acme_certificate(
+                AcmeCertificateGenerate(
+                    ddns_provider_id=payload.provider,
+                    ddns_provider_token=payload.token,
+                    host=payload.host,
+                    email=payload.email,
+                    account_key_pem=account_key_pem,
+                )
+            )
+
+            auto_network = NetworkAutoSettings(
+                mode=NetworkModeEnum.AUTO,
+                host=payload.host,
+                token=payload.token,
+                email=payload.email,
+                connection=payload.connection,
+                provider=payload.provider,
+                ip=ip,
+                last_ip_sync_at=int(time.time()),
+                fullchain=certs.fullchain,
+                privkey=certs.privkey,
+                expires_at=certs.expires_at,
+                account_key=certs.account_key,
+            )
+            network_settings = self._settings_service.save_network(auto_network)
+
+            asyncio.create_task(self._system_service.restart())
+
+            return network_settings
 
         finally:
             self._in_progress = False
 
     async def sync_ip(self):
-        """Cron feladat: Ellenőrzi és szinkronizálja az IP cím változásokat és az SSL lejáratot."""
         try:
-            network_settings = self._settings_service.get_network()
+            network_settings = await asyncio.to_thread(
+                self._settings_service.get_network
+            )
 
             if network_settings.mode != NetworkModeEnum.AUTO:
                 return
@@ -199,13 +201,14 @@ class NetworkService:
                 network_settings.connection
             )
 
-            if network_settings.ip != current_ip:
-                logger.info(
-                    "🔄 Hálózati IP változás észlelve (%s -> %s). DNS rekordok frissítése...",
-                    network_settings.ip,
-                    current_ip,
-                )
+            one_day_seconds = 24 * 60 * 60
+            should_sync = (
+                network_settings.ip != current_ip
+                or (int(time.time()) - network_settings.last_ip_sync_at)
+                > one_day_seconds
+            )
 
+            if should_sync:
                 await self._ddns_service.update(
                     provider_id=network_settings.provider,
                     payload=DDNSIpUpdate(
@@ -216,45 +219,55 @@ class NetworkService:
                 )
 
                 network_settings.ip = current_ip
+                network_settings.last_ip_sync_at = int(time.time())
 
-            # 2. SSL tanúsítvány lejárati ellenőrzés (30 nap = 2592000 másodperc)
-            ssl_renewed = False
-
-            thirty_days_in_seconds = 30 * 24 * 60 * 60
-            time_left = network_settings.expires_at - int(time.time())
-            if time_left < thirty_days_in_seconds:
-                logger.warning(
-                    "⚠️ Let's Encrypt SSL tanúsítvány hamarosan lejár (%d nap van hátra). "
-                    "Automatikus megújítás folyamatban...",
-                    max(0, time_left // (24 * 60 * 60)),
+                await asyncio.to_thread(
+                    self._settings_service.save_network,
+                    network_settings,
                 )
-                try:
-                    certs = await self._ssl_service.generate_acme_certificate(
-                        AcmeCertificateGenerate(
-                            ddns_provider_id=network_settings.provider,
-                            ddns_provider_token=network_settings.token,
-                            host=network_settings.host,
-                            email=network_settings.email,
-                            account_key_pem=network_settings.account_key,
-                        )
-                    )
-                    network_settings.fullchain = certs.fullchain
-                    network_settings.privkey = certs.privkey
-                    network_settings.expires_at = certs.expires_at
-                    network_settings.account_key = certs.account_key
-
-                    ssl_renewed = True
-                except Exception as renewal_err:
-                    logger.error(
-                        "🚨 Sikertelen Let's Encrypt SSL megújítás a háttérben: %s",
-                        renewal_err,
-                    )
-
-            self._settings_service.save_network(network_settings)
-
-            if ssl_renewed:
-                logger.info("🔄 SSL megújítás sikeres, újraindítás ütemezése...")
-                asyncio.create_task(self._system_service.restart())
 
         except Exception as e:
             logger.error("🚨 Sikertelen IP / SSL szinkronizáció háttérfeladat: %s", e)
+
+    async def check_ssl_certificate(self):
+        network_settings = await asyncio.to_thread(self._settings_service.get_network)
+
+        if network_settings.mode != NetworkModeEnum.AUTO:
+            return
+
+        ssl_renewed = False
+
+        thirty_days_in_seconds = 30 * 24 * 60 * 60
+        time_left = network_settings.expires_at - int(time.time())
+
+        if time_left < thirty_days_in_seconds:
+            try:
+                certs = await self._ssl_service.generate_acme_certificate(
+                    AcmeCertificateGenerate(
+                        ddns_provider_id=network_settings.provider,
+                        ddns_provider_token=network_settings.token,
+                        host=network_settings.host,
+                        email=network_settings.email,
+                        account_key_pem=network_settings.account_key,
+                    )
+                )
+
+                network_settings.fullchain = certs.fullchain
+                network_settings.privkey = certs.privkey
+                network_settings.expires_at = certs.expires_at
+                network_settings.account_key = certs.account_key
+
+                await asyncio.to_thread(
+                    self._settings_service.save_network,
+                    network_settings,
+                )
+
+                ssl_renewed = True
+            except Exception:
+                logger.exception(
+                    "🚨 Sikertelen Let's Encrypt SSL megújítás a háttérben"
+                )
+
+        if ssl_renewed:
+            logger.info("🔄 SSL megújítás sikeres, újraindítás...")
+            asyncio.create_task(self._system_service.restart())

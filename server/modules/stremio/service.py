@@ -1,5 +1,3 @@
-from venv import logger
-
 from config import NodeEnv, config
 from modules.settings.service import SettingsService
 from modules.stremio.constants import (
@@ -9,7 +7,6 @@ from modules.stremio.constants import (
 from modules.stremio.enums import (
     ContentType,
     ExtraName,
-    MediaType,
     ShortManifestResource,
 )
 from modules.stremio.schemas import (
@@ -17,9 +14,7 @@ from modules.stremio.schemas import (
     ManifestBehaviorHints,
     ManifestCatalog,
     ManifestExtra,
-    ParsedExtra,
     StreamId,
-    StremioCatalogResponse,
     StremioStream,
     TorrentStreamId,
 )
@@ -42,7 +37,7 @@ class StremioService:
         addon_id = "hu.stremhu-source.addon"
         name = "StremHU Source"
 
-        if config.node_env != NodeEnv.PRODUCTION:
+        if config.node_env != NodeEnv.PROD:
             addon_id = f"{addon_id}.dev"
             name = f"{name} (DEV)"
 
@@ -111,26 +106,3 @@ class StremioService:
         ]
 
         return stremio_streams
-
-    async def get_catalog(
-        self,
-        media_type: MediaType,
-        catalog_id: str,
-        extra: ParsedExtra = ParsedExtra(),
-    ):
-        if media_type != MediaType.MOVIE or catalog_id != SEARCH_ID or not extra.search:
-            return StremioCatalogResponse(metas=[])
-
-        parts = extra.search.split("-", 1)
-        if len(parts) < 2 or parts[0] != "t":
-            return StremioCatalogResponse(metas=[])
-
-        torrent_id = parts[1]
-
-        try:
-            meta_previews = await self.get_metas(torrent_id)
-        except Exception as e:
-            logger.error("A lista lekérésénél hiba történt: %s", e)
-            meta_previews = []
-
-        return StremioCatalogResponse(metas=meta_previews)

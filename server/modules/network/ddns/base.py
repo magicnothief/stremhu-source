@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from modules.network.ddns.schemas import DDNSIpUpdate, DDNSTxtUpdate
+from modules.network.ddns.schemas.internal import DDNSIpUpdate, DDNSTxtUpdate
 
 
 class BaseDDNSProvider(ABC):
@@ -18,10 +18,6 @@ class BaseDDNSProvider(ABC):
     @abstractmethod
     def website_url(self) -> str:
         """A szolgáltató weboldala (pl. 'https://www.duckdns.org')"""
-
-    @abstractmethod
-    async def validate(self, host: str, provider_token: str) -> None:
-        """Hitelesítő adatok ellenőrzése a szolgáltatónál"""
 
     @abstractmethod
     async def update(self, payload: DDNSIpUpdate | DDNSTxtUpdate) -> None:

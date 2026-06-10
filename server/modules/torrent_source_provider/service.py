@@ -73,7 +73,8 @@ class TorrentSourceProviderService:
         self,
         indexer_torrents: list[IndexerTorrent] | IndexerTorrent,
     ) -> list[TorrentSource] | TorrentSource | None:
-        if isinstance(indexer_torrents, IndexerTorrent):
+        is_single = isinstance(indexer_torrents, IndexerTorrent)
+        if is_single:
             indexer_torrents = [indexer_torrents]
 
         torrent_file_ids: list[TorrentFileIdentifier] = [
@@ -158,7 +159,7 @@ class TorrentSourceProviderService:
                 )
             )
 
-        if isinstance(indexer_torrents, IndexerTorrent):
-            return torrent_sources[0]
+        if is_single:
+            return torrent_sources[0] if torrent_sources else None
 
         return torrent_sources

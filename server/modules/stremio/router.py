@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, Path, status
 from fastapi.responses import RedirectResponse
 from modules.auth.dependencies import ApiKeyGuard
+from modules.stremio.catalogs_service import StremioCatalogsService
 from modules.stremio.dependencies import (
     get_parsed_catalog_id,
     get_parsed_extra,
     get_parsed_stream_id,
+    get_stremio_catalogs_service,
     get_stremio_service,
 )
 from modules.stremio.enums import MediaType
@@ -76,10 +78,12 @@ async def streams(
 async def catalog(
     media_type: MediaType,
     catalog_id: str,
-    stremio_service: StremioService = Depends(get_stremio_service),
-    current_user: UserModel = Depends(ApiKeyGuard()),
+    stremio_catalogs_service: StremioCatalogsService = Depends(
+        get_stremio_catalogs_service
+    ),
+    _: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioCatalogResponse:
-    return await stremio_service.get_catalog(
+    return await stremio_catalogs_service.get_catalog(
         media_type,
         catalog_id,
     )
@@ -94,10 +98,12 @@ async def catalog_with_extra(
     media_type: MediaType = Path(..., description="A média típusa"),
     catalog_id: str = Path(..., description="A katalógus azonosítója"),
     parsed_extra: ParsedExtra = Depends(get_parsed_extra),
-    stremio_service: StremioService = Depends(get_stremio_service),
+    stremio_catalogs_service: StremioCatalogsService = Depends(
+        get_stremio_catalogs_service
+    ),
     _: UserModel = Depends(ApiKeyGuard()),
 ) -> StremioCatalogResponse:
-    return await stremio_service.get_catalog(
+    return await stremio_catalogs_service.get_catalog(
         media_type,
         catalog_id,
         parsed_extra,
@@ -112,14 +118,16 @@ async def catalog_with_extra(
 async def meta(
     media_type: MediaType = Path(..., description="A média típusa"),
     parsed_id: ParsedCatalogId | None = Depends(get_parsed_catalog_id),
-    stremio_service: StremioService = Depends(get_stremio_service),
+    stremio_catalogs_service: StremioCatalogsService = Depends(
+        get_stremio_catalogs_service
+    ),
     _: UserModel = Depends(ApiKeyGuard()),
 ) -> MetaResponse:
     if media_type != MediaType.MOVIE or parsed_id is None:
         return MetaResponse(meta={})
 
-    result = await stremio_service.get_meta(
-        tracker_id=parsed_id.tracker_id,
+    result = await stremio_catalogs_service.get_meta(
+        indexer_id=parsed_id.indexer_id,
         torrent_id=parsed_id.torrent_id,
     )
 

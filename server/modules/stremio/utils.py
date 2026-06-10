@@ -88,7 +88,7 @@ def parse_catalog_id(value: str) -> ParsedCatalogId | None:
         )
 
     return ParsedCatalogId(
-        tracker_id=parts[0],
+        indexer_id=parts[0],
         torrent_id=parts[1],
     )
 

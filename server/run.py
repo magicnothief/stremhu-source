@@ -14,7 +14,7 @@ from config import NodeEnv, config
 
 
 def start_server():
-    is_dev = config.node_env == NodeEnv.DEVELOPMENT
+    is_dev = config.node_env == NodeEnv.DEV
 
     ensure_default_settings()
     boot_config = ensure_network_settings()

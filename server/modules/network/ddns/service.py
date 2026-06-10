@@ -3,7 +3,7 @@ from common.logger import logger
 from config import config
 from modules.network.ddns import discover_dns_providers
 from modules.network.ddns.base import BaseDDNSProvider
-from modules.network.ddns.schemas import DDNSIpUpdate, DDNSTxtUpdate
+from modules.network.ddns.schemas.internal import DDNSIpUpdate, DDNSTxtUpdate
 from modules.settings.enums import NetworkConnectionEnum
 
 
@@ -18,11 +18,20 @@ class DDNSService:
             "📡 Regisztrált DDNS szolgáltatók: %s", list(self._providers.keys())
         )
 
-    def _get_provider(self, provider_id: str) -> BaseDDNSProvider:
+    def get_list(self) -> list[BaseDDNSProvider]:
+        return list(self._providers.values())
+
+    def get_by_id(self, provider_id: str) -> BaseDDNSProvider:
         provider = self._providers.get(provider_id)
         if not provider:
             raise ValueError(f"Nem támogatott DDNS szolgáltató: {provider_id}")
         return provider
+
+    async def update(
+        self, provider_id: str, payload: DDNSIpUpdate | DDNSTxtUpdate
+    ) -> None:
+        provider = self.get_by_id(provider_id)
+        await provider.update(payload)
 
     async def get_current_ip(self, connection: NetworkConnectionEnum) -> str:
         if connection == NetworkConnectionEnum.LOCAL:
@@ -38,13 +47,3 @@ class DDNSService:
         except Exception as e:
             logger.error("Nem sikerült lekérdezni a publikus IP-t: %s", e)
             raise
-
-    async def validate(self, provider_id: str, host: str, token: str) -> None:
-        provider = self._get_provider(provider_id)
-        await provider.validate(host, token)
-
-    async def update(
-        self, provider_id: str, payload: DDNSIpUpdate | DDNSTxtUpdate
-    ) -> None:
-        provider = self._get_provider(provider_id)
-        await provider.update(payload)

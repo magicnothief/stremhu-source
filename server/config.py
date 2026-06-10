@@ -7,8 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class NodeEnv(str, Enum):
-    DEVELOPMENT = "development"
-    PRODUCTION = "production"
+    DEV = "dev"
+    BETA = "beta"
+    PROD = "prod"
 
 
 class Config(BaseSettings):
@@ -22,7 +23,7 @@ class Config(BaseSettings):
     )
 
     # General App Settings
-    node_env: NodeEnv = NodeEnv.PRODUCTION
+    node_env: NodeEnv = NodeEnv.PROD
     version: str = "0.0.0"
     description: str = "Torrentalapú streaming magyar trackeroldalakra építve."
     session_secret: str = "stremhu-source"
@@ -34,6 +35,10 @@ class Config(BaseSettings):
     @property
     def libtorrent_port(self) -> int:
         return 6881
+
+    @property
+    def database_url(self) -> str:
+        return f"sqlite:///{self.system_dir}/stremhu.db"
 
     @property
     def base_data_dir(self) -> Path:
@@ -56,12 +61,8 @@ class Config(BaseSettings):
         return self.system_dir / "own-certificates"
 
     @property
-    def database_url(self) -> str:
-        return f"sqlite:///{self.system_dir}/stremhu.db"
-
-    @property
     def acme_directory_url(self) -> str:
-        if self.node_env == NodeEnv.DEVELOPMENT:
+        if self.node_env == NodeEnv.DEV:
             return "https://acme-staging-v02.api.letsencrypt.org/directory"
         return "https://acme-v02.api.letsencrypt.org/directory"
 

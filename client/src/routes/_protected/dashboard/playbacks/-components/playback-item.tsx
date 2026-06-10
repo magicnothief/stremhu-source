@@ -1,8 +1,13 @@
-import { PlayIcon, UserIcon } from 'lucide-react'
+import { FilePlayIcon, PlayIcon, UserIcon } from 'lucide-react'
 
 import { Badge } from '@/shared/components/ui/badge'
 import { Item, ItemContent, ItemTitle } from '@/shared/components/ui/item'
 import { Progress } from '@/shared/components/ui/progress'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/shared/components/ui/tooltip'
 import type {
   PlaybackHistoryResponse,
   PlaybackResponse,
@@ -27,7 +32,6 @@ export function PlaybackItem(props: PlaybackItemProps) {
         </ItemContent>
       </Item>
       <div className="grid gap-2 text-muted-foreground text-sm font-normal">
-        <p>{playback.fileName}</p>
         <div className="mt-1 flex flex-wrap gap-2">
           <Badge
             variant="secondary"
@@ -36,6 +40,16 @@ export function PlaybackItem(props: PlaybackItemProps) {
             <UserIcon />
             {playback.user.username}
           </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="secondary">
+                <FilePlayIcon />
+                Fájl
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>{playback.fileName}</TooltipContent>
+          </Tooltip>
+
           <Badge
             variant="secondary"
             title={`Lejátszás időpontja: ${formatDateTime(playback.createdAt)}`}

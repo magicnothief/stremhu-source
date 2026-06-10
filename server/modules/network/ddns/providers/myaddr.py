@@ -1,7 +1,7 @@
 import httpx
 from common.logger import logger
 from modules.network.ddns.base import BaseDDNSProvider
-from modules.network.ddns.schemas import DDNSIpUpdate, DDNSTxtUpdate
+from modules.network.ddns.schemas.internal import DDNSIpUpdate, DDNSTxtUpdate
 
 
 class MyAddrProvider(BaseDDNSProvider):
@@ -16,21 +16,6 @@ class MyAddrProvider(BaseDDNSProvider):
     @property
     def website_url(self) -> str:
         return "https://myaddr.tools"
-
-    async def validate(self, host: str, provider_token: str) -> None:
-        params = {"key": provider_token}
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(f"{self.website_url}/update", params=params)
-                response.raise_for_status()
-
-            if "OK" not in response.text:
-                raise ValueError(
-                    f"MyAddr hitelesítés sikertelen. Válasz: {response.text}"
-                )
-        except Exception as e:
-            logger.error("MyAddr validációs hiba: %s", e)
-            raise ValueError(f"MyAddr validációs hiba: {e}") from e
 
     async def update(self, payload: DDNSIpUpdate | DDNSTxtUpdate) -> None:
         params = {"key": payload.provider_token}

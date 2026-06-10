@@ -1,7 +1,5 @@
 from venv import logger
 
-from modules.indexers.service import IndexersService
-from modules.network.service import NetworkService
 from modules.stremio.constants import (
     SEARCH_ID,
 )
@@ -16,21 +14,14 @@ from modules.stremio.schemas import (
 )
 from modules.torrent_files.service import TorrentFilesService
 from modules.torrent_source_provider.service import TorrentSourceProviderService
-from modules.torrent_streams.service import TorrentStreamsService
 
 
 class StremioCatalogsService:
     def __init__(
         self,
-        torrent_streams_service: TorrentStreamsService,
-        network_service: NetworkService,
-        indexers_service: IndexersService,
         torrent_files_service: TorrentFilesService,
         torrent_source_provider_service: TorrentSourceProviderService,
     ):
-        self._torrent_streams_service = torrent_streams_service
-        self._network_service = network_service
-        self._indexers_service = indexers_service
         self._torrent_files_service = torrent_files_service
         self._torrent_source_provider_service = torrent_source_provider_service
 

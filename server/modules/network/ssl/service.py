@@ -1,6 +1,10 @@
+import asyncio
 import datetime
 import ipaddress
+from typing import cast
 
+import dns.exception
+import dns.resolver
 from acme import challenges, client, errors as acme_errors, messages
 from common.logger import logger
 from config import config
@@ -9,13 +13,50 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID
 from josepy import jwk
-from modules.network.ddns.schemas import DDNSTxtUpdate
+from modules.network.ddns.schemas.internal import DDNSTxtUpdate
 from modules.network.ddns.service import DDNSService
 from modules.network.ssl.schemas import (
     AcmeCertificate,
     AcmeCertificateGenerate,
     SelfSignedCertificate,
 )
+
+
+async def wait_for_dns_propagation(
+    host: str,
+    expected_txt: str,
+    timeout: int = 300,
+    delay: int = 10,
+) -> bool:
+    resolver = dns.resolver.Resolver(configure=False)
+    # Nyilvános DNS szerverek lekérdezése (elkerülve a helyi cache-elést)
+    resolver.nameservers = ["1.1.1.1", "8.8.8.8"]
+
+    txt_domain = f"_acme-challenge.{host}"
+    start_time = asyncio.get_event_loop().time()
+
+    while asyncio.get_event_loop().time() - start_time < timeout:
+        try:
+            # TXT rekordok lekérdezése
+            answers = resolver.resolve(txt_domain, "TXT")
+            for rdata in answers:
+                for txt_segment in rdata.strings:
+                    if txt_segment.decode("utf-8") == expected_txt:
+                        logger.info("✅ A DNS TXT rekord sikeresen propagált!")
+                        return True
+        except (
+            dns.resolver.NoAnswer,
+            dns.resolver.NXDOMAIN,
+            dns.exception.DNSException,
+        ):
+            pass
+
+        logger.info("⏳ A DNS rekord még nem elérhető, várakozás (%ss)...", delay)
+        await asyncio.sleep(delay)
+
+    raise TimeoutError(
+        f"Időtúllépés: A DNS rekord nem propagált {timeout} másodpercen belül."
+    )
 
 
 class SslService:
@@ -146,7 +187,6 @@ class SslService:
         order = acme_client.new_order(csr_pem)
 
         # authorizations típusának explicit megadása, hogy a Pyright megértse
-        from typing import cast
 
         authorizations = cast(
             list[messages.AuthorizationResource], order.authorizations
@@ -186,11 +226,9 @@ class SslService:
                 ),
             )
 
-            # Várjunk 20 másodpercet a DNS rekord propagálására
-            logger.info("⏱️ Várakozás a DNS rekord propagálására (20s)...")
-            import asyncio
-
-            await asyncio.sleep(20)
+            # Várakozás a DNS rekord propagálására
+            logger.info("⏱️ Várakozás a DNS rekord propagálására...")
+            await wait_for_dns_propagation(host=host, expected_txt=key_authorization)
 
             # Válaszolunk a kihívásra Let's Encrypt felé
             response = dns_chall.response(jwk_key)

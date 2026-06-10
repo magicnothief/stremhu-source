@@ -26,6 +26,7 @@ class NetworkAutoSettings(BaseModel):
     fullchain: str
     privkey: str
     expires_at: int
+    last_ip_sync_at: int = 0
 
 
 class NetworkManualSettings(BaseModel):

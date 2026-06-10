@@ -5,6 +5,7 @@ import type {
   NetworkManualSetupRequest,
 } from '../lib/source/source-client'
 import {
+  networkGetDdnsProviders,
   networkGetSettings,
   networkReset,
   networkSetup,
@@ -15,6 +16,14 @@ export const getNetworkSettings = queryOptions({
   queryFn: async () => {
     const settings = await networkGetSettings()
     return settings
+  },
+})
+
+export const getNetworkProviders = queryOptions({
+  queryKey: ['network', 'providers'],
+  queryFn: async () => {
+    const providers = await networkGetDdnsProviders()
+    return providers
   },
 })
 

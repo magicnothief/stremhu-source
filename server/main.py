@@ -26,7 +26,7 @@ setproctitle("stremhu-source")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if config.node_env == NodeEnv.PRODUCTION:
+    if config.node_env == NodeEnv.PROD:
         for route in app.routes:
             if isinstance(route, APIRoute):
                 is_external = pydash.get(route, "openapi_extra.x-external") is True

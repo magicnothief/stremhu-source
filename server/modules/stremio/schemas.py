@@ -401,5 +401,5 @@ StreamId = ImdbStreamId | TorrentStreamId
 
 
 class ParsedCatalogId(BaseModel):
-    tracker_id: str = ""
+    indexer_id: str = ""
     torrent_id: str = ""

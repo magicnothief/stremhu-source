@@ -73,14 +73,14 @@ DEFAULT_ATTRIBUTES = [
         id=MediaAttributeKey.HDR10P,
         name="HDR10+",
         preference_id=PreferenceKey.VIDEO_QUALITY,
-        pattern=r"\b(hdr10(?:plus|p|\+))\b",
+        pattern=r"(?<![a-zA-Z0-9])(hdr10(?:plus|p|\+))(?![a-zA-Z0-9])",
         short_name=None,
     ),
     MediaAttributeModel(
         id=MediaAttributeKey.HDR10,
         name="HDR10",
         preference_id=PreferenceKey.VIDEO_QUALITY,
-        pattern=r"\b(hdr10)\b",
+        pattern=r"(?<![a-zA-Z0-9])(hdr(?:10)?)(?![a-zA-Z0-9+])",
         short_name=None,
     ),
     MediaAttributeModel(
