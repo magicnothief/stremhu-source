@@ -128,7 +128,7 @@ DEFAULT_ATTRIBUTES = [
         short_name="Remux",
     ),
     MediaAttributeModel(
-        id=MediaAttributeKey.UHD_BLURAY,
+        id=MediaAttributeKey.UHD,
         name="UHD",
         preference_id=PreferenceKey.SOURCE,
         pattern=r"\b(uhd)\b",
@@ -149,13 +149,6 @@ DEFAULT_ATTRIBUTES = [
         short_name="BDRip",
     ),
     MediaAttributeModel(
-        id=MediaAttributeKey.DVD_RIP,
-        name="DVD Rip",
-        preference_id=PreferenceKey.SOURCE,
-        pattern=r"\b(dvdrip)\b",
-        short_name="DVDRip",
-    ),
-    MediaAttributeModel(
         id=MediaAttributeKey.WEB_DL,
         name="Web-DL",
         preference_id=PreferenceKey.SOURCE,
@@ -168,6 +161,13 @@ DEFAULT_ATTRIBUTES = [
         preference_id=PreferenceKey.SOURCE,
         pattern=r"\b(webrip|web[-_. ]rip)\b",
         short_name=None,
+    ),
+    MediaAttributeModel(
+        id=MediaAttributeKey.DVD_RIP,
+        name="DVD Rip",
+        preference_id=PreferenceKey.SOURCE,
+        pattern=r"\b(dvdrip)\b",
+        short_name="DVDRip",
     ),
     MediaAttributeModel(
         id=MediaAttributeKey.HDTV,

@@ -10,23 +10,17 @@ class MediaAttributesService:
         self._repository = repository
 
     def sync_to_db(self) -> None:
-        """
-        Synchronizes the predefined media attributes defined in code (seeds.py) with the database.
-        It updates existing records, adds new ones, and deletes those that no longer exist in code.
-        """
         code_ids = {attr.id for attr in DEFAULT_ATTRIBUTES}
 
         deleted_count = self._repository.delete_excluding_ids(code_ids)
         if deleted_count > 0:
             logger.info(f"🗑️ Törölve {deleted_count} elavult media attribútum a DB-ből.")
 
-        # Kérjük le a meglévő rekordokat
         db_attributes_map: dict[str, MediaAttributeModel] = {}
         db_records = self._repository.db.query(MediaAttributeModel).all()
         for db_record in db_records:
             db_attributes_map[db_record.id] = db_record
 
-        # Hozzáadjuk a hiányzókat és frissítjük a megváltozottakat
         fields = ["name", "preference_id", "pattern", "short_name", "order"]
         for index, code_attribute in enumerate(DEFAULT_ATTRIBUTES):
             code_attribute.order = index

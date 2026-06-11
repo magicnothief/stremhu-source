@@ -31,7 +31,7 @@ class MediaAttributeKey:
     DVD_RIP = "dvd-rip"
     BDRIP = "bdrip"
     BLURAY = "bluray"
-    UHD_BLURAY = "uhd-bluray"
+    UHD = "uhd"
     REMUX = "remux"
 
     # Audio Quality

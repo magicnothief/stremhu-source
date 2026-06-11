@@ -47,10 +47,14 @@ def get_ddns_providers(
 async def setup(
     payload: NetworkSetupRequest,
     network_service: NetworkService = Depends(get_network_service),
+    settings_service: SettingsService = Depends(get_settings_service),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
     await network_service.setup(payload)
-    return {"message": "Network setup started"}
+    return {
+        "message": "Network setup started",
+        "app_url": settings_service.get_app_url(),
+    }
 
 
 @router.delete(
@@ -59,7 +63,11 @@ async def setup(
 )
 def reset(
     network_service: NetworkService = Depends(get_network_service),
+    settings_service: SettingsService = Depends(get_settings_service),
     _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
 ):
     network_service.setup_local()
-    return {"message": "Network reset started"}
+    return {
+        "message": "Network reset started",
+        "app_url": settings_service.get_app_url(),
+    }

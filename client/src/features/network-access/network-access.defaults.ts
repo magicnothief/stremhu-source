@@ -1,11 +1,5 @@
-import { NetworkConnectionEnum } from '@/shared/lib/source/source-client'
-
-import type { NetworkAccessFormValues } from './network-access.types'
+import type { NetworkAccessFormValues } from './network-access.schema'
 
 export const networkAccessDefaultValues: NetworkAccessFormValues = {
-  mode: 'duckdns',
-  host: '',
-  token: '',
-  email: '',
-  connection: NetworkConnectionEnum.local,
+  mode: 'none',
 }

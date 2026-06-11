@@ -1,5 +1,5 @@
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { Edit2Icon } from 'lucide-react'
+import { useSuspenseQueries } from '@tanstack/react-query'
+import { SettingsIcon } from 'lucide-react'
 
 import { useDialogs } from '@/routes/-features/dialogs/dialogs-store'
 import { Button } from '@/shared/components/ui/button'
@@ -17,46 +17,42 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { getHealth } from '@/shared/queries/app'
+import { getNetworkSettings } from '@/shared/queries/network'
 import { getSystemStatus } from '@/shared/queries/system'
-
-const networkCheckMap = {
-  idle: {
-    title: '🔎 Elérés ellenőrzése...',
-  },
-  pending: {
-    title: '🔎 Elérés ellenőrzése...',
-  },
-  success: {
-    title: '🟢 Elérés rendben',
-  },
-  error: {
-    title: '🔴 Nem érhető el a megadott címen',
-  },
-}
 
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const { data: systemStatus } = useSuspenseQuery(getSystemStatus)
-
-  const { status: healthStatus } = useQuery(getHealth(systemStatus.appUrl))
+  const [{ data: systemStatus }, { data: networkSettings }] =
+    useSuspenseQueries({
+      queries: [getSystemStatus, getNetworkSettings],
+    })
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Elérési adatok</CardTitle>
+        <CardTitle>Elérési beállítások</CardTitle>
         <CardDescription>
-          Itt láthatod, milyen címen éri el a Stremio a StremHU Source-ot, és
-          hogy a kapcsolat rendben van-e.
+          A kliensek elvárják a biztonságos domain alapú SSL tanúsítvánnyal
+          rendelkező elérést.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-6">
+        {networkSettings.mode !== 'local' && (
+          <Item variant="default" className="p-0">
+            <ItemContent>
+              <ItemTitle>Konfigurált domain</ItemTitle>
+              <ItemDescription className="font-bold font-mono break-all">
+                {systemStatus.appUrl}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+        )}
         <Item variant="default" className="p-0">
           <ItemContent>
-            <ItemTitle>{networkCheckMap[healthStatus].title}</ItemTitle>
-            <ItemDescription className="font-bold font-mono break-all">
-              {systemStatus.appUrl}
+            <ItemTitle>Konfiguráció</ItemTitle>
+            <ItemDescription>
+              Elérési beállítások módosítása, konfigurálása.
             </ItemDescription>
           </ItemContent>
           <ItemActions>
@@ -65,7 +61,7 @@ export function NetworkAccessInfo() {
               className="rounded-full"
               onClick={() => dialogs.openDialog({ type: 'NETWORK_ACCESS' })}
             >
-              <Edit2Icon />
+              <SettingsIcon />
             </Button>
           </ItemActions>
         </Item>

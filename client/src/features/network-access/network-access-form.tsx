@@ -1,95 +1,48 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import type { ReactEventHandler, SubmitEventHandler } from 'react'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
-import * as z from 'zod'
 
-import { useConfirmDialog } from '@/features/confirm/use-confirm-dialog'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type {
   NetworkAutoSetupRequest,
   NetworkManualSetupRequest,
 } from '@/shared/lib/source/source-client'
-import { NetworkConnectionEnum } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
 import { getNetworkSettings, useNetworkConfig } from '@/shared/queries/network'
 
-import { Separator } from '../../shared/components/ui/separator'
 import { networkAccessDefaultValues } from './network-access.defaults'
-import type { NetworkAccessFormValues } from './network-access.types'
-import { NetworkSelector } from './network-selector'
-import { UrlConfiguration } from './url-configuration'
-
-export { networkAccessDefaultValues } from './network-access.defaults'
+import type { NetworkAccessFormValues } from './network-access.schema'
+import { networkAccessSchema } from './network-access.schema'
 
 export const NETWORK_ACCESS_FORM_ID = 'network-access-form'
 export const NETWORK_ACCESS_HEADER = {
   TITLE: 'Elérés beállítása',
   DESCRIPTION:
-    'Bizonyos kliensek (Stremio web) csak biztonságos (HTTPS) kapcsolaton keresztül tudnak addont telepíteni. Itt adhatod meg, milyen címen érje el a StremHU Source-ot.',
+    'A kliensek elvárják a biztonságos domain alapú SSL tanúsítvánnyal rendelkező elérést.',
 }
 
-const schema = z.discriminatedUnion('mode', [
-  z.object({
-    mode: z.enum(['duckdns', 'myaddr']),
-    host: z.string().min(1, 'A host megadása kötelező'),
-    token: z.string().min(1, 'A token megadása kötelező'),
-    email: z.string().email('Érvénytelen e-mail cím'),
-    connection: z.nativeEnum(NetworkConnectionEnum),
-  }),
-  z.object({
-    mode: z.literal('manual'),
-    host: z.string().min(1, 'A host megadása kötelező'),
-    reverseProxy: z.boolean(),
-  }),
-])
-
-export type NetworkAccessProps = {
-  onSuccess?: () => void
-  onSkip?: () => void
-  onValidated?: (isValid: boolean) => void
-}
-
-export function NetworkAccess(props: NetworkAccessProps) {
-  const { onSuccess, onSkip, onValidated } = props
-
-  const { confirm } = useConfirmDialog()
+export function useNetworkAccessForm() {
   const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
   const { mutateAsync: configNetwork } = useNetworkConfig()
 
-  let defaultValues: NetworkAccessFormValues = { ...networkAccessDefaultValues }
+  const defaultValues: NetworkAccessFormValues = useMemo(() => {
+    if (networkSettings.mode === 'local') {
+      return networkAccessDefaultValues
+    }
 
-  if (networkSettings.mode === 'auto') {
-    defaultValues = {
-      mode: networkSettings.provider as 'duckdns' | 'myaddr',
-      host: networkSettings.host,
-      token: networkSettings.token,
-      email: networkSettings.email,
-      connection: networkSettings.connection,
-    }
-  } else if (networkSettings.mode === 'manual') {
-    defaultValues = {
-      mode: 'manual',
-      host: networkSettings.host,
-      reverseProxy: networkSettings.reverseProxy,
-    }
-  }
+    return networkSettings
+  }, [networkSettings])
 
   const form = useAppForm({
     defaultValues,
     validators: {
-      onChange: schema,
+      onChange: networkAccessSchema,
     },
-    listeners: {
-      onBlur: async ({ formApi }) => {
-        if (onValidated) onValidated(formApi.state.isValid)
-      },
-      onChange: async ({ formApi }) => {
-        if (onValidated) onValidated(formApi.state.isValid)
-      },
-      onChangeDebounceMs: 500,
-    },
+
     onSubmit: async ({ value }) => {
       try {
+        if (value.mode === 'none') return
+
         let payload: NetworkAutoSetupRequest | NetworkManualSetupRequest
 
         if (value.mode === 'manual') {
@@ -101,7 +54,7 @@ export function NetworkAccess(props: NetworkAccessProps) {
         } else {
           payload = {
             mode: 'auto',
-            provider: value.mode,
+            provider: value.provider,
             host: value.host,
             token: value.token,
             email: value.email,
@@ -109,9 +62,7 @@ export function NetworkAccess(props: NetworkAccessProps) {
           }
         }
 
-        await configNetwork(payload)
-
-        const appUrl = `https://${value.host}`
+        const networkSetup = await configNetwork(payload)
 
         toast.success(
           <div className="flex flex-col gap-1">
@@ -119,12 +70,12 @@ export function NetworkAccess(props: NetworkAccessProps) {
             <p>
               Az új elérhetőség:{' '}
               <a
-                href={appUrl}
+                href={networkSetup.appUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="underline font-bold"
               >
-                {appUrl}
+                {networkSetup.appUrl}
               </a>
             </p>
           </div>,
@@ -132,8 +83,6 @@ export function NetworkAccess(props: NetworkAccessProps) {
             duration: Infinity,
           },
         )
-
-        if (onSuccess) onSuccess()
       } catch (error) {
         const message = parseApiError(error)
         toast.error(message)
@@ -141,43 +90,5 @@ export function NetworkAccess(props: NetworkAccessProps) {
     },
   })
 
-  const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await form.handleSubmit()
-  }
-
-  const handleSkip: ReactEventHandler<HTMLFormElement> = async (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    await confirm({
-      title: 'Biztos kihagyod a beállítást?',
-      description:
-        'A lépés kihagyása után a "Beállítások" menüpont alatt tudod elvégezni a beállítást, addig az addon nem fog működni!',
-      onConfirm: async () => {
-        try {
-          if (onSkip) onSkip()
-        } catch (error) {
-          const message = parseApiError(error)
-          toast.error(message)
-          throw error
-        }
-      },
-    })
-  }
-
-  return (
-    <form.AppForm>
-      <form
-        id={NETWORK_ACCESS_FORM_ID}
-        className="grid gap-4"
-        onSubmit={handleSubmit}
-        onReset={handleSkip}
-      >
-        <NetworkSelector form={form} />
-        <Separator />
-        <UrlConfiguration form={form} />
-      </form>
-    </form.AppForm>
-  )
+  return form
 }

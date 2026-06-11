@@ -7,11 +7,15 @@ class MediaAttributesRepository:
         self.db = db
 
     def delete_excluding_ids(self, ids: set[str]) -> int:
-        return (
+        to_delete = (
             self.db.query(MediaAttributeModel)
             .filter(~MediaAttributeModel.id.in_(ids))
-            .delete(synchronize_session=False)
+            .all()
         )
+        count = len(to_delete)
+        for attr in to_delete:
+            self.db.delete(attr)
+        return count
 
     def add(self, attribute: MediaAttributeModel) -> None:
         self.db.add(attribute)

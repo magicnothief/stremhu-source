@@ -10,6 +10,7 @@ from config import NodeEnv, config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
+from modules.indexer_definitions.dependencies import get_indexer_definitions_service
 from modules.relay.background_tasks import alert_loop, resume_save_loop
 from modules.relay.dependencies import get_relay_service
 from modules.torrents.background_tasks import (
@@ -56,6 +57,11 @@ async def lifespan(app: FastAPI):
 
     # Leállítási szekvencia
     logger.info("🛑 Szerver leállítása, erőforrások felszabadítása...")
+
+    indexer_definitions_service = get_indexer_definitions_service()
+
+    await indexer_definitions_service.close_all()
+
     priority_manager_task.cancel()
     scheduler.shutdown()
     save_task.cancel()

@@ -1,16 +1,9 @@
 import { Field, FieldError, FieldLabel } from '@/shared/components/ui/field'
 import { Input } from '@/shared/components/ui/input'
 import { Label } from '@/shared/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shared/components/ui/select'
+import { Separator } from '@/shared/components/ui/separator'
 import { Switch } from '@/shared/components/ui/switch'
 import { withForm } from '@/shared/contexts/form-context'
-import { NetworkConnectionEnum } from '@/shared/lib/source/source-client'
 
 import { networkAccessDefaultValues } from './network-access.defaults'
 
@@ -20,18 +13,21 @@ export const UrlConfiguration = withForm({
     return (
       <form.Subscribe selector={(state) => [state.values.mode]}>
         {([mode]) => {
+          if (mode === 'none') return null
+
           return (
             <div className="grid gap-4">
+              <Separator />
               <form.Field name="host">
                 {(field) => (
                   <Field>
-                    <FieldLabel>Domain vagy Host</FieldLabel>
+                    <FieldLabel>Domain</FieldLabel>
                     <Input
                       name={field.name}
                       value={field.state.value}
                       onBlur={field.handleBlur}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="Pl.: sub.duckdns.org vagy pelda.com"
+                      placeholder="Pl.: stremhu.duckdns.org"
                     />
                     {field.state.meta.isTouched && (
                       <FieldError errors={field.state.meta.errors} />
@@ -40,19 +36,18 @@ export const UrlConfiguration = withForm({
                 )}
               </form.Field>
 
-              {mode !== 'manual' && (
+              {mode === 'auto' && (
                 <>
                   <form.Field name="token">
                     {(field) => (
                       <Field>
-                        <FieldLabel>Token</FieldLabel>
+                        <FieldLabel>Token / API kulcs</FieldLabel>
                         <Input
                           name={field.name}
                           value={field.state.value}
                           onBlur={field.handleBlur}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="A szolgáltatótól kapott API token"
-                          type="password"
+                          placeholder="Szolgáltatótól kapott token / api kulcs"
                         />
                         {field.state.meta.isTouched && (
                           <FieldError errors={field.state.meta.errors} />
@@ -64,7 +59,7 @@ export const UrlConfiguration = withForm({
                   <form.Field name="email">
                     {(field) => (
                       <Field>
-                        <FieldLabel>E-mail cím (Let's Encrypt)</FieldLabel>
+                        <FieldLabel>E-mail cím</FieldLabel>
                         <Input
                           name={field.name}
                           value={field.state.value}
@@ -82,30 +77,27 @@ export const UrlConfiguration = withForm({
 
                   <form.Field name="connection">
                     {(field) => (
-                      <Field>
-                        <FieldLabel>Hálózati elérés</FieldLabel>
-                        <Select
-                          value={field.state.value}
-                          onValueChange={(value) =>
-                            field.handleChange(value as NetworkConnectionEnum)
-                          }
+                      <div className="grid gap-1">
+                        <Label
+                          htmlFor={field.name}
+                          className="flex items-start gap-3"
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Válassz típust" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={NetworkConnectionEnum.local}>
-                              Helyi (Local - a router mögött vagyok)
-                            </SelectItem>
-                            <SelectItem value={NetworkConnectionEnum.public}>
-                              Publikus (Public - nyitott portom van)
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {field.state.meta.isTouched && (
-                          <FieldError errors={field.state.meta.errors} />
-                        )}
-                      </Field>
+                          <p className="flex-1 text-sm leading-none font-medium">
+                            Külső elérés bekapcsolása
+                          </p>
+                          <Switch
+                            id={field.name}
+                            checked={field.state.value === 'public'}
+                            onCheckedChange={(checked) => {
+                              field.setValue(checked ? 'public' : 'local')
+                            }}
+                          />
+                        </Label>
+                        <p className="text-muted-foreground text-sm">
+                          Csak akkor lehetséges, ha nem vagy CGNAT mögött és a
+                          routeren kinyitod a megfelelő portot!
+                        </p>
+                      </div>
                     )}
                   </form.Field>
                 </>
@@ -114,13 +106,25 @@ export const UrlConfiguration = withForm({
               {mode === 'manual' && (
                 <form.Field name="reverseProxy">
                   {(field) => (
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id={field.name}
-                        checked={field.state.value}
-                        onCheckedChange={field.handleChange}
-                      />
-                      <Label htmlFor={field.name}>Reverse Proxy mögött van</Label>
+                    <div className="grid gap-1">
+                      <Label
+                        htmlFor={field.name}
+                        className="flex items-start gap-3"
+                      >
+                        <p className="flex-1 text-sm leading-none font-medium">
+                          Reverse Proxy használata
+                        </p>
+                        <Switch
+                          id={field.name}
+                          checked={field.state.value}
+                          onCheckedChange={field.handleChange}
+                        />
+                      </Label>
+                      <p className="text-muted-foreground text-sm">
+                        Reverse Proxy használata esetén http protokkolon lehet
+                        elérni a szervert. Ellenkező esetben biztosítanod kell a
+                        certeket.
+                      </p>
                     </div>
                   )}
                 </form.Field>

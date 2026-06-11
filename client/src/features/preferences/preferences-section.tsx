@@ -29,14 +29,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/components/ui/card'
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from '@/shared/components/ui/item'
+import { ItemMedia } from '@/shared/components/ui/item'
 import { Separator } from '@/shared/components/ui/separator'
 import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { getPreferences } from '@/shared/queries/preferences'
@@ -91,38 +84,24 @@ export function PreferencesSection(props: PreferencesSectionProps) {
       <CardHeader>
         <CardTitle>{SETTINGS_PREFERENCES_NAME}</CardTitle>
         <CardDescription>
-          Testreszabhatod, milyen torrentek kerüljenek előre a listában, és mit
-          szeretnél kizárni. A preferált tulajdonságok a sorrendet javítják, a
-          kizárások pedig kiszűrik a nem kívánt találatokat.
+          Testreszabhatod, milyen torrentek kerüljenek előre a listában. A
+          preferált tulajdonságok befolyásolják a sorrendet.
         </CardDescription>
-        {!disableCreatePreference && (
-          <CardAction>
+        <CardAction className="flex items-center gap-2">
+          <ItemMedia variant="icon" className="rounded-full">
+            <GrabIcon />
+          </ItemMedia>
+          {!disableCreatePreference && (
             <Button asChild size="icon-sm" className="rounded-full">
               <Link {...toCreateLink}>
                 <PlusIcon />
               </Link>
             </Button>
-          </CardAction>
-        )}
+          )}
+        </CardAction>
       </CardHeader>
       <Separator />
       <CardContent className="grid gap-8">
-        <div className="grid gap-4">
-          <Item className="p-0">
-            <ItemContent>
-              <ItemTitle>Preferencia sorrend</ItemTitle>
-              <ItemDescription>
-                Preferált tulajdonsággal rendelkező szabályok esetén módosítható
-                azok súlyozása a sorrend módosításával.
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <ItemMedia variant="icon" className="rounded-full">
-                <GrabIcon />
-              </ItemMedia>
-            </ItemActions>
-          </Item>
-        </div>
         <DndContext
           onDragEnd={handleDragEnd}
           modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}

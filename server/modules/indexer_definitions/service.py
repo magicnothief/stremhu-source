@@ -10,11 +10,6 @@ from sqlalchemy.orm import Session
 
 
 class IndexerDefinitionsService:
-    """
-    Az integrations/ mappából automatikusan felderíti az adapter osztályokat,
-    példányosítja őket, és nyilvántartja egy szótárban.
-    """
-
     def __init__(
         self,
         indexer_account_storage: IndexerAccountStorage | None = None,
@@ -24,36 +19,8 @@ class IndexerDefinitionsService:
         for definition_class in discover_indexer_definitions():
             instance = definition_class(indexer_account_storage)
             self._definitions[instance.id] = instance
-            logger.debug("Definition registered: %s (%s)", instance.name, instance.id)
 
     def get_list(self) -> list[BaseIndexerDefinition]:
-        """Az összes regisztrált adapter visszaadása."""
-        return list(self._definitions.values())
-
-    def get_by_id(self, indexer_id: str) -> BaseIndexerDefinition:
-        """
-        Egy adapter keresése ID alapján.
-        """
-        adapter = self._definitions.get(indexer_id)
-
-        if not adapter:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Nem regisztrált tracker adapter: {indexer_id}",
-            )
-
-        return adapter
-
-    async def close_all(self) -> None:
-        """Lezárja az összes adapter HTTP kliensét (alkalmazás leállásakor)."""
-        for adapter in self._definitions.values():
-            await adapter.close()
-
-    def sync_to_db(self, db: Session):
-        """Szinkronizálja az integrations/ mappából dinamikusan felderített indexereket az adatbázissal."""
-
-        discovered_definitions = self.get_list()
-
         def get_sort_key(instance: BaseIndexerDefinition) -> tuple[int, str]:
             idx = instance.id.lower()
             if idx == "ncore":
@@ -62,15 +29,43 @@ class IndexerDefinitionsService:
                 return (1, "")
             return (2, instance.name.lower())
 
-        discovered_definitions.sort(key=get_sort_key)
+        return sorted(self._definitions.values(), key=get_sort_key)
+
+    def get_by_id(self, indexer_id: str) -> BaseIndexerDefinition:
+        adapter = self._definitions.get(indexer_id)
+
+        if not adapter:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Nem regisztrált indexer definition: {indexer_id}",
+            )
+
+        return adapter
+
+    async def close_all(self) -> None:
+        try:
+            for adapter in self._definitions.values():
+                await adapter.close()
+        except Exception:
+            logger.exception("Hiba történt az indexer definíciók leállításakor.")
+
+    def sync_to_db(
+        self,
+        db: Session,
+    ):
+        discovered_definitions = self.get_list()
 
         discovered_ids = {instance.id for instance in discovered_definitions}
 
-        deleted_count = (
+        to_delete = (
             db.query(IndexerDefinitionModel)
             .filter(IndexerDefinitionModel.id.not_in(discovered_ids))
-            .delete(synchronize_session=False)
+            .all()
         )
+        deleted_count = len(to_delete)
+        for definition in to_delete:
+            db.delete(definition)
+
         if deleted_count > 0:
             logger.info(
                 f"🗑️ Törölve {deleted_count} elavult indexer definíció a DB-ből."

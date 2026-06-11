@@ -4,8 +4,6 @@ export type NetworkAccessDialog = {
   type: 'NETWORK_ACCESS'
 }
 
-export type NetworkMode = 'duckdns' | 'myaddr' | 'manual'
-
 export type NetworkAutoFormValues = {
   mode: 'duckdns' | 'myaddr'
   host: string
@@ -19,9 +17,5 @@ export type NetworkManualFormValues = {
   host: string
   reverseProxy: boolean
 }
-
-export type NetworkAccessFormValues =
-  | NetworkAutoFormValues
-  | NetworkManualFormValues
 
 export type ConnectionCheckType = 'idle' | 'pending' | 'success' | 'error'
