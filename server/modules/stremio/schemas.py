@@ -237,8 +237,7 @@ class StremioStream(BaseModel):
         return [
             attribute
             for attribute in attributes
-            if attribute.preference_id == preference_id
-            and attribute.pattern is not None
+            if attribute.preference_id == preference_id and attribute.show_in_details
         ]
 
 

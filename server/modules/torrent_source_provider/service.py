@@ -92,6 +92,11 @@ class TorrentSourceProviderService:
             filter=TorrentFilesFilter(identifiers=torrent_file_ids),
         )
 
+        await asyncio.to_thread(
+            self._torrent_files_service.touch,
+            torrent_file_ids,
+        )
+
         current_torrent_files_map: dict[tuple[str, str], TorrentFileModel] = {
             (
                 current_torrent_file.indexer_id,
@@ -123,19 +128,22 @@ class TorrentSourceProviderService:
         created_torrent_files: list[TorrentFileModel] = []
         for downloaded_torrent_file in downloaded_torrent_files:
             if isinstance(downloaded_torrent_file, BaseException):
+                logger.warning(
+                    f"⚠️ Hibas a torrent letöltése, átugorva: {downloaded_torrent_file}"
+                )
                 continue
 
             try:
                 torrent_file = await asyncio.to_thread(
                     self._torrent_files_service.create,
-                    indexer_id=downloaded_torrent_file.indexer_account.indexer_id,
+                    indexer_id=downloaded_torrent_file.indexer_id,
                     torrent_id=downloaded_torrent_file.torrent_id,
                     torrent_bytes=downloaded_torrent_file.torrent_bytes,
                 )
                 created_torrent_files.append(torrent_file)
             except InvalidTorrentFileException:
                 logger.warning(
-                    f"Érvénytelen torrent fájl átugorva: indexer={downloaded_torrent_file.indexer_account.indexer_id}, torrent_id={downloaded_torrent_file.torrent_id}"
+                    f"⚠️ Érvénytelen torrent fájl átugorva: indexer: {downloaded_torrent_file.indexer_id}, torrent_id: {downloaded_torrent_file.torrent_id}"
                 )
                 continue
 

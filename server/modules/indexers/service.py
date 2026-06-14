@@ -257,24 +257,16 @@ class IndexersService:
         torrent_id: str,
         download_url: str,
     ) -> DownloadedTorrentFile:
-        indexer_account = await asyncio.to_thread(
-            self._indexer_accounts_service.get_by_id, indexer_id
-        )
-
-        indexer_definition = self._indexer_definitions_service.get_by_id(
-            indexer_account.indexer_id
-        )
+        indexer_definition = self._indexer_definitions_service.get_by_id(indexer_id)
         torrent_bytes = await indexer_definition.download_torrent(download_url)
 
         return DownloadedTorrentFile(
-            indexer_account=indexer_account,
+            indexer_id=indexer_id,
             torrent_id=torrent_id,
             torrent_bytes=torrent_bytes,
         )
 
     async def cleanup_torrents_by_rules(self) -> None:
-        """Karbantartási takarítás futtatása a bejelentkezett indexerekre a seed/hit and run szabályok alapján."""
-
         indexer_accounts = await asyncio.to_thread(
             self._indexer_accounts_service.find_list
         )

@@ -12,6 +12,7 @@ from modules.stremio.schemas import (
     ParsedExtra,
     StremioCatalogResponse,
 )
+from modules.torrent_files.schemas import TorrentFileIdentifier
 from modules.torrent_files.service import TorrentFilesService
 from modules.torrent_source_provider.service import TorrentSourceProviderService
 
@@ -60,6 +61,9 @@ class StremioCatalogsService:
         ]
 
     async def get_meta(self, indexer_id: str, torrent_id: str) -> MetaDetail | None:
+        self._torrent_files_service.touch(
+            TorrentFileIdentifier(indexer_id=indexer_id, torrent_id=torrent_id)
+        )
         torrent_file = self._torrent_files_service.find_by_id(
             indexer_id=indexer_id,
             torrent_id=torrent_id,

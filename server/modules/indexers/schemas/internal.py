@@ -20,7 +20,7 @@ class IndexerTorrent(BaseModel):
 
 
 class DownloadedTorrentFile(BaseModel):
-    indexer_account: IndexerAccountModel
+    indexer_id: str
     torrent_id: str
     torrent_bytes: bytes
 

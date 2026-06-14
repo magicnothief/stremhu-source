@@ -96,6 +96,7 @@ DEFAULT_ATTRIBUTES = [
         preference_id=PreferenceKey.VIDEO_QUALITY,
         pattern=None,
         short_name=None,
+        show_in_details=False,
     ),
     # Video Codecs
     MediaAttributeModel(
@@ -190,6 +191,7 @@ DEFAULT_ATTRIBUTES = [
         preference_id=PreferenceKey.EDITION,
         pattern=None,
         short_name="Theatrical",
+        show_in_details=False,
     ),
     MediaAttributeModel(
         id=MediaAttributeKey.UNCUT,
@@ -225,6 +227,15 @@ DEFAULT_ATTRIBUTES = [
         preference_id=PreferenceKey.EDITION,
         pattern=r"\b(imax)\b",
         short_name="IMAX",
+    ),
+    MediaAttributeModel(
+        id=MediaAttributeKey.BLACK_AND_WHITE,
+        name="Fekete-Fehér (Black and White)",
+        preference_id=PreferenceKey.EDITION,
+        pattern=r"\.bw\.",
+        short_name="Black and White",
+        is_preferable=False,
+        show_in_details=True,
     ),
     # Audio Qualities
     MediaAttributeModel(

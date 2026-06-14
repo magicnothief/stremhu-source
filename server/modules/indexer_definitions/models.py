@@ -30,3 +30,8 @@ class IndexerDefinitionModel(AttributeModel, kw_only=True):
         sa.Boolean,
         default=False,
     )
+
+    disabled: Mapped[bool] = mapped_column(
+        sa.Boolean,
+        default=False,
+    )

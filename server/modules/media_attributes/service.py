@@ -31,7 +31,16 @@ class MediaAttributesService:
         for db_record in db_records:
             db_attributes_map[db_record.id] = db_record
 
-        fields = ["name", "preference_id", "pattern", "short_name", "order"]
+        fields = [
+            "name",
+            "preference_id",
+            "pattern",
+            "short_name",
+            "order",
+            "description",
+            "is_preferable",
+            "show_in_details",
+        ]
         for index, code_attribute in enumerate(DEFAULT_ATTRIBUTES):
             code_attribute.order = index
 
@@ -51,5 +60,8 @@ class MediaAttributesService:
                     pattern=code_attribute.pattern,
                     short_name=code_attribute.short_name,
                     order=code_attribute.order,
+                    description=code_attribute.description,
+                    is_preferable=code_attribute.is_preferable,
+                    show_in_details=code_attribute.show_in_details,
                 )
                 self._repository.add(new_attribute)

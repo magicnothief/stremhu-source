@@ -11,6 +11,16 @@ class MediaAttributeModel(AttributeModel, kw_only=True):
 
     name: Mapped[str] = mapped_column(sa.String)
 
+    short_name: Mapped[str | None] = mapped_column(
+        sa.String,
+        default=None,
+    )
+
+    description: Mapped[str | None] = mapped_column(
+        sa.String,
+        default=None,
+    )
+
     id: Mapped[str] = mapped_column(
         sa.ForeignKey("attributes.id", ondelete="CASCADE"), primary_key=True
     )
@@ -20,7 +30,12 @@ class MediaAttributeModel(AttributeModel, kw_only=True):
         default=None,
     )
 
-    short_name: Mapped[str | None] = mapped_column(
-        sa.String,
-        default=None,
+    is_preferable: Mapped[bool] = mapped_column(
+        sa.Boolean,
+        default=True,
+    )
+
+    show_in_details: Mapped[bool] = mapped_column(
+        sa.Boolean,
+        default=True,
     )

@@ -2,12 +2,13 @@ import asyncio
 import time
 
 import httpx
+import pydash
 from common.logger import logger
 from config import config
 from cryptography import x509
 from modules.network.ddns.schemas.internal import DDNSIpUpdate
 from modules.network.ddns.service import DDNSService
-from modules.network.schemas.internal import NetworkSetup
+from modules.network.schemas.internal import NetworkAutoSetup, NetworkSetup
 from modules.network.ssl.schemas import AcmeCertificateGenerate, SelfSignedCertificate
 from modules.network.ssl.service import SslService
 from modules.settings.schemas.internal import (
@@ -102,9 +103,7 @@ class NetworkService:
 
             if payload.mode == NetworkModeEnum.LOCAL:
                 network_settings, certs = await self.setup_local()
-
                 asyncio.create_task(self._system_service.restart())
-
                 return network_settings
 
             if payload.mode == NetworkModeEnum.MANUAL:
@@ -112,99 +111,153 @@ class NetworkService:
                     mode=NetworkModeEnum.MANUAL,
                     host=payload.host,
                 )
-
                 network_settings = await asyncio.to_thread(
                     self._settings_service.save_network,
                     manual_network_settings,
                 )
-
                 asyncio.create_task(self._system_service.restart())
-
                 return network_settings
 
-            # Automatikus beállítás (DDNS + SSL)
-            logger.info(
-                "⚙️ Automatikus hálózati elérés beállítása (Host: %s, DNS: %s)...",
-                payload.host,
-                payload.provider,
-            )
-
-            # 1. DNS IP szinkronizáció
-            ip = await self._ddns_service.get_current_ip(payload.connection)
-            await self._ddns_service.update(
-                provider_id=payload.provider,
-                payload=DDNSIpUpdate(
-                    provider_token=payload.token,
-                    host=payload.host,
-                    ip=ip,
-                ),
-            )
-
-            # 3. Kapcsolat ellenőrzése fallback védelemmel
-            is_connected = await self.check_connectivity(
-                host=payload.host,
-            )
-            if not is_connected:
-                # Rollback: ha nem érhető el, állítsuk vissza a DNS-t a korábbi beállításra
-                logger.warning("🚨 Kapcsolat ellenőrzés sikertelen! Visszagörgetés...")
-                if (
-                    current_network_settings
-                    and current_network_settings.mode == NetworkModeEnum.AUTO
-                ):
-                    await self._ddns_service.update(
-                        provider_id=current_network_settings.provider,
-                        payload=DDNSIpUpdate(
-                            provider_token=current_network_settings.token,
-                            host=current_network_settings.host,
-                            ip=current_network_settings.ip,
-                        ),
-                    )
-
-                raise ValueError(
-                    "A szerver nem érhető el a megadott domainen keresztül! "
-                    "A DNS rekordokat visszaállítottuk. Ellenőrizd a router port forward beállításait (TCP 4300 port)!"
-                )
-
-            # 4. SSL tanúsítvány igénylése
-            account_key_pem = None
-            if (
-                current_network_settings
-                and current_network_settings.mode == NetworkModeEnum.AUTO
-            ):
-                account_key_pem = current_network_settings.account_key
-
-            certs = await self._ssl_service.generate_acme_certificate(
-                AcmeCertificateGenerate(
-                    ddns_provider_id=payload.provider,
-                    ddns_provider_token=payload.token,
-                    host=payload.host,
-                    email=payload.email,
-                    account_key_pem=account_key_pem,
-                )
-            )
-
-            auto_network = NetworkAutoSettings(
-                mode=NetworkModeEnum.AUTO,
-                host=payload.host,
-                token=payload.token,
-                email=payload.email,
-                connection=payload.connection,
-                provider=payload.provider,
-                ip=ip,
-                last_ip_sync_at=int(time.time()),
-                fullchain=certs.fullchain,
-                privkey=certs.privkey,
-                expires_at=certs.expires_at,
-                account_key=certs.account_key,
-            )
-            network_settings = self._settings_service.save_network(auto_network)
-
-            asyncio.create_task(self._system_service.restart())
-
-            return network_settings
+            return await self._setup_auto(payload, current_network_settings)
 
         finally:
             self._in_progress = False
+
+    async def _setup_auto(
+        self, payload: NetworkAutoSetup, current_network_settings: NetworkSettings
+    ) -> NetworkSettings:
+        logger.info(
+            "⚙️ Automatikus hálózati elérés beállítása (Host: %s, DNS: %s)...",
+            payload.host,
+            payload.provider,
+        )
+
+        dns_needs_update = True
+        ssl_needs_update = True
+
+        dns_fields = ["mode", "host", "provider", "connection", "token"]
+        ssl_fields = ["mode", "host", "provider", "email"]
+
+        if isinstance(current_network_settings, NetworkAutoSettings):
+            dns_needs_update = not pydash.is_equal(
+                pydash.pick(payload.model_dump(), *dns_fields),
+                pydash.pick(current_network_settings.model_dump(), *dns_fields),
+            )
+            ssl_needs_update = (
+                not pydash.is_equal(
+                    pydash.pick(payload.model_dump(), *ssl_fields),
+                    pydash.pick(current_network_settings.model_dump(), *ssl_fields),
+                )
+                or not current_network_settings.fullchain
+            )
+
+        if not dns_needs_update and not ssl_needs_update:
+            logger.info(
+                "Nincs változás a hálózati beállításokban, kihagyjuk a beállítást."
+            )
+            return current_network_settings
+
+        ip = (
+            current_network_settings.ip
+            if current_network_settings.mode == NetworkModeEnum.AUTO
+            else ""
+        )
+        last_ip_sync_at = (
+            current_network_settings.last_ip_sync_at
+            if current_network_settings.mode == NetworkModeEnum.AUTO
+            else 0
+        )
+
+        if dns_needs_update:
+            ip = await self._setup_auto_dns(payload, current_network_settings)
+            last_ip_sync_at = int(time.time())
+
+        if ssl_needs_update:
+            certs = await self._setup_auto_ssl(payload, current_network_settings)
+            fullchain = certs.fullchain
+            privkey = certs.privkey
+            expires_at = certs.expires_at
+            account_key = certs.account_key
+        else:
+            assert isinstance(current_network_settings, NetworkAutoSettings)
+            fullchain = current_network_settings.fullchain
+            privkey = current_network_settings.privkey
+            expires_at = current_network_settings.expires_at
+            account_key = current_network_settings.account_key
+
+        auto_network = NetworkAutoSettings(
+            mode=NetworkModeEnum.AUTO,
+            host=payload.host,
+            token=payload.token,
+            email=payload.email,
+            connection=payload.connection,
+            provider=payload.provider,
+            ip=ip,
+            last_ip_sync_at=last_ip_sync_at,
+            fullchain=fullchain,
+            privkey=privkey,
+            expires_at=expires_at,
+            account_key=account_key,
+        )
+        network_settings = await asyncio.to_thread(
+            self._settings_service.save_network, auto_network
+        )
+
+        asyncio.create_task(self._system_service.restart())
+        return network_settings
+
+    async def _setup_auto_dns(
+        self, payload: NetworkAutoSetup, current_network_settings: NetworkSettings
+    ) -> str:
+        # 1. DNS IP szinkronizáció
+        ip = await self._ddns_service.get_current_ip(payload.connection)
+        await self._ddns_service.update(
+            provider_id=payload.provider,
+            payload=DDNSIpUpdate(
+                provider_token=payload.token,
+                host=payload.host,
+                ip=ip,
+            ),
+        )
+
+        # 2. Kapcsolat ellenőrzése fallback védelemmel
+        is_connected = await self.check_connectivity(host=payload.host)
+        if not is_connected:
+            # Rollback: ha nem érhető el, állítsuk vissza a DNS-t a korábbi beállításra
+            logger.warning("🚨 Kapcsolat ellenőrzés sikertelen! Visszagörgetés...")
+            if current_network_settings.mode == NetworkModeEnum.AUTO:
+                await self._ddns_service.update(
+                    provider_id=current_network_settings.provider,
+                    payload=DDNSIpUpdate(
+                        provider_token=current_network_settings.token,
+                        host=current_network_settings.host,
+                        ip=current_network_settings.ip,
+                    ),
+                )
+
+            raise ValueError(
+                "A szerver nem érhető el a megadott domainen keresztül! "
+                "A DNS rekordokat visszaállítottuk. Ellenőrizd a router port forward beállításait (TCP 4300 port)!"
+            )
+        return ip
+
+    async def _setup_auto_ssl(
+        self, payload: NetworkAutoSetup, current_network_settings: NetworkSettings
+    ):
+        account_key_pem = None
+        if current_network_settings.mode == NetworkModeEnum.AUTO:
+            account_key_pem = current_network_settings.account_key
+
+        certs = await self._ssl_service.generate_acme_certificate(
+            AcmeCertificateGenerate(
+                ddns_provider_id=payload.provider,
+                ddns_provider_token=payload.token,
+                host=payload.host,
+                email=payload.email,
+                account_key_pem=account_key_pem,
+            )
+        )
+        return certs
 
     async def sync_ip(self):
         try:

@@ -1,5 +1,7 @@
+import datetime
+
 from modules.torrent_files.models import TorrentFileModel
-from modules.torrent_files.schemas import TorrentFilesFilter
+from modules.torrent_files.schemas import TorrentFileIdentifier, TorrentFilesFilter
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -56,3 +58,23 @@ class TorrentFilesRepository:
     def delete(self, model: TorrentFileModel) -> None:
         self.db.delete(model)
         self.db.flush()
+
+    def touch(
+        self,
+        identifiers: TorrentFileIdentifier | list[TorrentFileIdentifier],
+    ) -> None:
+        """Frissíti a megadott .torrent fájl(ok) legutóbbi használati idejét (last_used_at) az adatbázisban."""
+        if not identifiers:
+            return
+
+        identifiers_list = (
+            identifiers if isinstance(identifiers, list) else [identifiers]
+        )
+
+        records = self.find_list(TorrentFilesFilter(identifiers=identifiers_list))
+
+        if records:
+            now = datetime.datetime.now()
+            for record in records:
+                record.last_used_at = now
+            self.db.flush()

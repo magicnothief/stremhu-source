@@ -4,7 +4,7 @@ from common.logger import logger
 from fastapi import HTTPException
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.repository import TorrentFilesRepository
-from modules.torrent_files.schemas import TorrentFilesFilter
+from modules.torrent_files.schemas import TorrentFileIdentifier, TorrentFilesFilter
 
 
 class TorrentFilesService:
@@ -53,6 +53,13 @@ class TorrentFilesService:
 
     def find_by_info_hash(self, info_hash: str) -> TorrentFileModel | None:
         return self._torrent_files_repository.find_by_info_hash(info_hash)
+
+    def touch(
+        self,
+        identifiers: TorrentFileIdentifier | list[TorrentFileIdentifier],
+    ) -> None:
+        """Frissíti a megadott .torrent fájl(ok) legutóbbi használati idejét (last_used_at) az adatbázisban."""
+        self._torrent_files_repository.touch(identifiers)
 
     def get_by_id(self, indexer_id: str, torrent_id: str) -> TorrentFileModel:
         record = self.find_by_id(indexer_id, torrent_id)

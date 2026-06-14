@@ -129,6 +129,11 @@ class BaseIndexerDefinition(ABC):
     def requires_full_download(self) -> bool:
         """Szükséges-e a teljes .torrent letöltés a seedeléshez."""
 
+    @property
+    def disabled(self) -> bool:
+        """Letiltott-e az indexer integráció (pl. törött működés miatt)."""
+        return False
+
     # --- Absztrakt üzleti metódusok ---
 
     @abstractmethod
@@ -224,7 +229,6 @@ class BaseIndexerDefinition(ABC):
             raise TrackerException(error_msg) from e
 
     async def download_torrent(self, download_url: str) -> bytes:
-
         try:
             response = await self._client.get(download_url)
             response.raise_for_status()

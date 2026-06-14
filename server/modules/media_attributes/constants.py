@@ -62,3 +62,4 @@ class MediaAttributeKey:
     EXTENDED = "extended"
     DIRECTORS_CUT = "directors-cut"
     THEATRICAL = "theatrical"
+    BLACK_AND_WHITE = "black-and-white"

@@ -6,6 +6,7 @@ from common.logger import logger
 from modules.attribute_exclusions.models import AttributeExclusionModel
 from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
+from modules.media_attributes.models import MediaAttributeModel
 from modules.preferences.models import PreferenceModel
 from modules.preferences.seeds import DEFAULT_PREFERENCES
 from sqlalchemy.orm import Session, contains_eager, with_polymorphic
@@ -23,6 +24,10 @@ class PreferencesRepository:
             sa.or_(
                 attr_poly.type != "indexer_definition",
                 attr_poly.id.in_(sa.select(IndexerAccountModel.indexer_id)),
+            ),
+            sa.or_(
+                attr_poly.type != "media",
+                MediaAttributeModel.is_preferable.is_(True),
             ),
         ]
 
@@ -55,6 +60,10 @@ class PreferencesRepository:
             sa.or_(
                 attr_poly.type != "indexer_definition",
                 attr_poly.id.in_(sa.select(IndexerAccountModel.indexer_id)),
+            ),
+            sa.or_(
+                attr_poly.type != "media",
+                MediaAttributeModel.is_preferable.is_(True),
             ),
         ]
 

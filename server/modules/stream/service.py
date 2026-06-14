@@ -8,6 +8,7 @@ from modules.stream.schemas import (
     ParsedRangeHeader,
 )
 from modules.torrent_files.models import TorrentFileModel
+from modules.torrent_files.schemas import TorrentFileIdentifier
 from modules.torrent_files.service import TorrentFilesService
 from modules.torrents.schemas.internal import TorrentWithRelay
 from modules.torrents.service import TorrentsService
@@ -41,6 +42,10 @@ class StreamService:
                     indexer_id=indexer_id,
                     torrent_id=torrent_id,
                 )
+            )
+
+            self._torrent_files_service.touch(
+                TorrentFileIdentifier(indexer_id=indexer_id, torrent_id=torrent_id)
             )
 
             if torrent_with_relay is None:
