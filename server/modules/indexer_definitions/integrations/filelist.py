@@ -247,7 +247,7 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
             if not torrent_id:
                 continue
 
-            row_clone = HTMLParser(row.html)
+            row_clone = HTMLParser(row.html or "")
             for node in row_clone.css('a[href*="details.php?id="]'):
                 node.decompose()
 
@@ -295,7 +295,9 @@ class FilelistIndexerDefinition(BaseIndexerDefinition):
 
         return form
 
-    def _resolve_imdb_id(self, imdb_url: str) -> str | None:
+    def _resolve_imdb_id(self, imdb_url: str | None) -> str | None:
+        if not imdb_url:
+            return None
         match = re.search(r"/title/(tt\d+)", imdb_url)
         return match.group(1) if match else None
 

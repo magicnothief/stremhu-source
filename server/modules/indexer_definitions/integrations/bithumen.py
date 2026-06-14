@@ -187,7 +187,7 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
 
         imdb_node = tree.css_first('a[href*="www.imdb.com/title/"]')
         imdb_url = imdb_node.attributes.get("href") if imdb_node else ""
-        imdb_id_parts = imdb_url.rstrip("/").split("/")
+        imdb_id_parts = (imdb_url or "").rstrip("/").split("/")
         imdb_id = imdb_id_parts[-2] if len(imdb_id_parts) >= 2 else None
 
         if not download_path:

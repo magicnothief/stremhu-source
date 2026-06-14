@@ -10,7 +10,7 @@ class BaseUser(BaseModel):
     only_best_torrent: bool = False
 
     max_concurrent_streams: int | None = Field(
-        None,
+        default=None,
         gt=0,
     )
 
@@ -33,6 +33,6 @@ class UserUpdate(BaseModel):
     only_best_torrent: bool | None = None
 
     max_concurrent_streams: int | None = Field(
-        None,
+        default=None,
         gt=0,
     )

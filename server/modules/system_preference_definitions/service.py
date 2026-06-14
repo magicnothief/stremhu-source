@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from modules.attributes.service import AttributesService
 from modules.preference_definitions.service import PreferenceDefinitionsService
+from modules.preferences.schemas.internal import PreferenceCreate, PreferenceUpdate
 from modules.system_preference_definitions.models import SystemPreferenceDefinitionModel
 from modules.system_preference_definitions.repository import (
     SystemPreferenceDefinitionsRepository,
@@ -60,8 +61,10 @@ class SystemPreferenceDefinitionsService:
             )
 
         preference_definition = self._preference_definitions_service.create(
-            preference_id,
-            attribute_ids,
+            PreferenceCreate(
+                preference_id=preference_id,
+                attribute_ids=attribute_ids,
+            )
         )
 
         system_preference_definitions = self.find_list()
@@ -81,9 +84,8 @@ class SystemPreferenceDefinitionsService:
         preference_definition = self.get_by_id(definition_id)
 
         self._preference_definitions_service.update(
-            preference_definition.definition.preference_id,
-            definition_id,
-            attribute_ids,
+            preference_definition.definition_id,
+            PreferenceUpdate(attribute_ids=attribute_ids),
         )
 
         return self.get_by_id(definition_id)

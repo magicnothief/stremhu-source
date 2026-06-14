@@ -108,11 +108,11 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
         for row in torrent_rows:
             cat_node = row.css_first('a[href*="browse.php?cat="]')
             category_href = cat_node.attributes.get("href") if cat_node else ""
-            category_href.replace("browse.php?cat=", "")
+            category_id = (category_href or "").replace("browse.php?cat=", "")
 
             id_node = row.css_first('.torrentmain a[href*="details.php?id="]')
             torrent_id_href = id_node.attributes.get("href") if id_node else ""
-            torrent_id = torrent_id_href.replace("details.php?id=", "")
+            torrent_id = (torrent_id_href or "").replace("details.php?id=", "")
 
             dl_node = row.css_first(
                 f'.downloadlink a[href*="https://newinsane.info/download.php/{torrent_id}/"]'
@@ -121,7 +121,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
             imdb_node = row.css_first('a[href*="www.imdb.com/title/"]')
             imdb_url = imdb_node.attributes.get("href") if imdb_node else ""
-            imdb_parts = imdb_url.rstrip("/").split("/")
+            imdb_parts = (imdb_url or "").rstrip("/").split("/")
             imdb_id_val = imdb_parts[-2] if len(imdb_parts) >= 2 else imdb_id
 
             seed_node = row.css_first(".data .leftborder")
@@ -153,7 +153,7 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
 
         imdb_node = tree.css_first('a[href*="www.imdb.com/title/"]')
         imdb_url = imdb_node.attributes.get("href") if imdb_node else ""
-        imdb_parts = imdb_url.rstrip("/").split("/")
+        imdb_parts = (imdb_url or "").rstrip("/").split("/")
         imdb_id = imdb_parts[-2] if len(imdb_parts) >= 2 else None
 
         if not download_path:
