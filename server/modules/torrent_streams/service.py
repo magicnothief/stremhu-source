@@ -93,11 +93,21 @@ class TorrentStreamsService:
         torrent_streams: list[TorrentStream],
         user: UserModel,
     ) -> list[TorrentStream]:
+        excluded_attribute_ids = {
+            exclusion.attribute_id for exclusion in user.attribute_exclusions
+        }
+
         filtered_torrent_streams: list[TorrentStream] = []
         for torrent_stream in torrent_streams:
             if user.torrent_seed is not None and (
                 torrent_stream.seeders is None
                 or torrent_stream.seeders <= user.torrent_seed
+            ):
+                continue
+
+            if any(
+                attribute.id in excluded_attribute_ids
+                for attribute in torrent_stream.attributes
             ):
                 continue
 

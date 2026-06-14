@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import content_types
+from common.database import get_db
 from common.schemas.internal import ImdbInfo
 from fastapi import (
     APIRouter,
@@ -23,6 +24,7 @@ from modules.stream.dependencies import get_parsed_stream_token, get_stream_serv
 from modules.stream.schemas import StreamToken
 from modules.stream.service import StreamService
 from modules.users.models import UserModel
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/{api_key}/stream",
@@ -48,6 +50,7 @@ async def stream(
     ),
     playbacks_service: PlaybacksService = Depends(get_playbacks_service),
     user: UserModel = Depends(ApiKeyGuard()),
+    db: Session = Depends(get_db),
 ) -> Response:
     client_info = PlaybackHistoryClientInfo(
         user_agent=request.headers.get("user-agent"),
@@ -86,6 +89,8 @@ async def stream(
             file_name=file.name,
         )
     )
+
+    db.commit()
 
     content_type = content_types.get_content_type(file.name)
     media_type = content_type or "application/octet-stream"

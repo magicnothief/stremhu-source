@@ -212,7 +212,16 @@ class StremioStream(BaseModel):
             )
         )
 
-        name = " | ".join(compact([readable_resolutions, readable_video_qualities]))
+        readable_is_persisted: str | None = None
+
+        if torrent_stream.is_persisted_torrent:
+            readable_is_persisted = "⭐"
+
+        name = " | ".join(
+            compact(
+                [readable_is_persisted, readable_resolutions, readable_video_qualities]
+            )
+        )
         description = "\n".join(
             [description_first_line, description_second_line, description_third_line]
         )

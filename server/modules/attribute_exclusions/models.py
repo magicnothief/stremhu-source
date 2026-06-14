@@ -1,9 +1,13 @@
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import sqlalchemy as sa
 from common.database import Base
 from modules.media_attributes.models import MediaAttributeModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from modules.users.models import UserModel
 
 
 class AttributeExclusionModel(Base):
@@ -39,6 +43,12 @@ class AttributeExclusionModel(Base):
     user_id: Mapped[str | None] = mapped_column(
         sa.ForeignKey("users.id", ondelete="CASCADE"),
         index=True,
+    )
+
+    user: Mapped["UserModel | None"] = relationship(
+        "UserModel",
+        back_populates="attribute_exclusions",
+        init=False,
     )
 
     id: Mapped[str] = mapped_column(

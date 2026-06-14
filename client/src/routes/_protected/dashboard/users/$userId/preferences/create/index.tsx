@@ -1,5 +1,10 @@
-import { useQueries } from '@tanstack/react-query'
-import { createFileRoute, useNavigate, useParams } from '@tanstack/react-router'
+import { useSuspenseQueries } from '@tanstack/react-query'
+import {
+  Navigate,
+  createFileRoute,
+  useNavigate,
+  useParams,
+} from '@tanstack/react-router'
 import type { SubmitEventHandler } from 'react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
@@ -7,11 +12,11 @@ import { toast } from 'sonner'
 import { CreatePreference } from '@/features/create-preference/create-preference'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type { PreferenceCreateRequest } from '@/shared/lib/source/source-client'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { getPreferences } from '@/shared/queries/preferences'
+import { parseApiError } from '@/shared/lib/utils'
 import {
+  getUserPreferenceDefinitions,
   getUserPreferences,
-  useCreateUserPreference,
+  useCreateUserPreferenceDefinition,
 } from '@/shared/queries/users'
 
 export const Route = createFileRoute(
@@ -26,32 +31,37 @@ function RouteComponent() {
     from: '/_protected/dashboard/users/$userId/preferences/create/',
   })
 
-  const [{ data: preferences }, { data: userPreferences }] = useQueries({
-    queries: [getPreferences, getUserPreferences(userId)],
-  })
-  assertExists(preferences)
-  assertExists(userPreferences)
+  const [{ data: preferences }, { data: preferencesDefinitions }] =
+    useSuspenseQueries({
+      queries: [
+        getUserPreferences(userId),
+        getUserPreferenceDefinitions(userId),
+      ],
+    })
 
-  const availablePrefs = useMemo(() => {
-    const currentPrefs = userPreferences.map(
-      (userPreference) => userPreference.id,
+  const availablePreferences = useMemo(() => {
+    const currentPreferenceDefinitions = preferencesDefinitions.map(
+      (preferenceDefinition) => preferenceDefinition.id,
     )
     const prefs = preferences.filter(
-      (preference) => !currentPrefs.includes(preference.id),
+      (preference) => !currentPreferenceDefinitions.includes(preference.id),
     )
 
     return prefs
-  }, [preferences, preferences])
+  }, [preferences, preferencesDefinitions])
 
-  if (availablePrefs.length === 0) {
-    return navigate({ to: '/settings/preferences' })
+  if (availablePreferences.length === 0) {
+    return (
+      <Navigate to="/dashboard/users/$userId/preferences" params={{ userId }} />
+    )
   }
 
-  const { mutateAsync: createUserPreference } = useCreateUserPreference(userId)
+  const { mutateAsync: createUserPreference } =
+    useCreateUserPreferenceDefinition(userId)
 
   const form = useAppForm({
     defaultValues: {
-      preferenceId: availablePrefs[0].id,
+      preferenceId: availablePreferences[0].id,
       attributeIds: [],
     } as PreferenceCreateRequest,
     onSubmit: async ({ value }) => {
@@ -79,7 +89,7 @@ function RouteComponent() {
       <form onSubmit={onSubmit}>
         <CreatePreference
           form={form}
-          preferences={availablePrefs}
+          preferences={availablePreferences}
           toBackLink={{
             to: '/dashboard/users/$userId/preferences',
             params: { userId },

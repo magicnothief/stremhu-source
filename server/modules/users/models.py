@@ -3,6 +3,7 @@ from datetime import datetime
 
 import sqlalchemy as sa
 from common.database import Base, UTCDateTime
+from modules.attribute_exclusions.models import AttributeExclusionModel
 from modules.roles.constants import UserRoleKey
 from modules.roles.models import RoleModel
 from modules.user_preference_definitions.models import UserPreferenceDefinitionModel
@@ -19,6 +20,13 @@ class UserModel(Base):
             cascade="all, delete-orphan",
             init=False,
         )
+    )
+
+    attribute_exclusions: Mapped[list["AttributeExclusionModel"]] = relationship(
+        "AttributeExclusionModel",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        init=False,
     )
 
     username: Mapped[str] = mapped_column(

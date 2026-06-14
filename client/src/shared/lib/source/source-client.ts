@@ -799,6 +799,20 @@ export const usersGetPreferences = (
 }
 
 /**
+ * @summary Get Preference
+ */
+export const usersGetPreference = (
+  userId: string,
+  preferenceId: string,
+  options?: SecondParameter<typeof sourceClientInstance<PreferenceResponse>>,
+) => {
+  return sourceClientInstance<PreferenceResponse>(
+    { url: `/api/users/${userId}/preferences/${preferenceId}`, method: 'GET' },
+    options,
+  )
+}
+
+/**
  * @summary Get Preference Definitions
  */
 export const usersGetPreferenceDefinitions = (
@@ -1709,6 +1723,9 @@ export type UsersRegenerateApiKeyResult = NonNullable<
 >
 export type UsersGetPreferencesResult = NonNullable<
   Awaited<ReturnType<typeof usersGetPreferences>>
+>
+export type UsersGetPreferenceResult = NonNullable<
+  Awaited<ReturnType<typeof usersGetPreference>>
 >
 export type UsersGetPreferenceDefinitionsResult = NonNullable<
   Awaited<ReturnType<typeof usersGetPreferenceDefinitions>>

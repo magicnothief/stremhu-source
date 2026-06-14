@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query'
 
 import type {
+  AttributeExclusionCreateRequest,
   PreferenceCreateRequest,
   PreferenceUpdateRequest,
   PreferencesReorderRequest,
@@ -13,13 +14,19 @@ import type {
 } from '@/shared/lib/source/source-client'
 import {
   usersCreate,
+  usersCreateAttributeExclusion,
   usersCreatePreferenceDefinition,
   usersDelete,
+  usersDeleteAttributeExclusion,
   usersDeletePreferenceDefinition,
   usersGet,
+  usersGetAttributeExclusions,
+  usersGetAttributes,
   usersGetList,
+  usersGetPreference,
   usersGetPreferenceDefinition,
   usersGetPreferenceDefinitions,
+  usersGetPreferences,
   usersRegenerateApiKey,
   usersReorderPreferenceDefinitions,
   usersUpdate,
@@ -110,16 +117,97 @@ export function useUserUpdate() {
   })
 }
 
+// User Attributes
+
+export function getUserAttributes(userId: string) {
+  return queryOptions({
+    queryKey: ['users', userId, 'attributes'],
+    queryFn: async () => {
+      const response = await usersGetAttributes(userId)
+      return response
+    },
+  })
+}
+
+// Me Attribute Exclusions
+
+export const getUserAttributeExclusions = (userId: string) =>
+  queryOptions({
+    queryKey: ['users', userId, 'attributes', 'exclusions'],
+    queryFn: async () => {
+      const response = await usersGetAttributeExclusions(userId)
+      return response
+    },
+  })
+
+export function useUserAddAttributeToExclusion(userId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: AttributeExclusionCreateRequest) => {
+      await usersCreateAttributeExclusion(userId, payload)
+    },
+    onSuccess: async () => {
+      await Promise.all(
+        [
+          ['users', userId, 'attributes'],
+          ['users', userId, 'preferences'],
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
+    },
+  })
+}
+
+export function useUserRemoveAttributeFromExclusion(userId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (attributeId: string) => {
+      await usersDeleteAttributeExclusion(userId, attributeId)
+    },
+    onSuccess: async () => {
+      await Promise.all(
+        [
+          ['users', userId, 'attributes'],
+          ['users', userId, 'preferences'],
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
+    },
+  })
+}
+
+// User Preferences
+
 export const getUserPreferences = (userId: string) =>
   queryOptions({
     queryKey: ['users', userId, 'preferences'],
+    queryFn: async () => {
+      const response = await usersGetPreferences(userId)
+      return response
+    },
+  })
+
+export const getUserPreference = (userId: string, preferenceId: string) =>
+  queryOptions({
+    queryKey: ['users', userId, 'preferences', preferenceId],
+    queryFn: async () => {
+      const response = await usersGetPreference(userId, preferenceId)
+      return response
+    },
+  })
+
+// User Preference Definitions
+
+export const getUserPreferenceDefinitions = (userId: string) =>
+  queryOptions({
+    queryKey: ['users', userId, 'preferences', 'definitions'],
     queryFn: async () => {
       const response = await usersGetPreferenceDefinitions(userId)
       return response
     },
   })
 
-export function useCreateUserPreference(userId: string) {
+export function useCreateUserPreferenceDefinition(userId: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -128,15 +216,18 @@ export function useCreateUserPreference(userId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['users', userId, 'preferences'],
+        queryKey: ['users', userId, 'preferences', 'definitions'],
       })
     },
   })
 }
 
-export const getUserPreference = (userId: string, preference_id: string) =>
+export const getUserPreferenceDefinition = (
+  userId: string,
+  preference_id: string,
+) =>
   queryOptions({
-    queryKey: ['users', userId, 'preferences', preference_id],
+    queryKey: ['users', userId, 'preferences', 'definitions', preference_id],
     queryFn: async () => {
       const response = await usersGetPreferenceDefinition(userId, preference_id)
       return response

@@ -20,9 +20,9 @@ import { Separator } from '@/shared/components/ui/separator'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type { PreferenceCreateRequest } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import { getPreference } from '@/shared/queries/preferences'
 import {
   getUserPreference,
+  getUserPreferenceDefinition,
   useUpdateUserPreference,
 } from '@/shared/queries/users'
 
@@ -38,12 +38,13 @@ function RouteComponent() {
     from: '/_protected/dashboard/users/$userId/preferences/$preferenceId/',
   })
 
-  const [{ data: preference }, { data: userPreference }] = useSuspenseQueries({
-    queries: [
-      getPreference(preferenceId),
-      getUserPreference(userId, preferenceId),
-    ],
-  })
+  const [{ data: preferenceDefinition }, { data: userPreference }] =
+    useSuspenseQueries({
+      queries: [
+        getUserPreferenceDefinition(userId, preferenceId),
+        getUserPreference(userId, preferenceId),
+      ],
+    })
 
   const { mutateAsync: updateUserPreference } = useUpdateUserPreference(
     userId,
@@ -52,8 +53,10 @@ function RouteComponent() {
 
   const form = useAppForm({
     defaultValues: {
-      preferenceId: userPreference.id,
-      attributeIds: userPreference.attributes.map((attribute) => attribute.id),
+      preferenceId: preferenceDefinition.id,
+      attributeIds: preferenceDefinition.attributes.map(
+        (attribute) => attribute.id,
+      ),
     } as PreferenceCreateRequest,
     onSubmit: async ({ value }) => {
       try {
@@ -87,7 +90,7 @@ function RouteComponent() {
           </CardHeader>
           <Separator />
           <CardContent className="grid gap-4">
-            <PreferenceForm form={form} preference={preference} />
+            <PreferenceForm form={form} preference={userPreference} />
           </CardContent>
           <CardFooter className="gap-4 justify-end">
             <form.SubscribeButton asChild variant="outline">

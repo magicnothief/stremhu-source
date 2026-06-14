@@ -1,13 +1,13 @@
-import { FilePlayIcon, PlayIcon, UserIcon } from 'lucide-react'
+import { LinkIcon, PlayIcon, UserIcon } from 'lucide-react'
 
 import { Badge } from '@/shared/components/ui/badge'
-import { Item, ItemContent, ItemTitle } from '@/shared/components/ui/item'
-import { Progress } from '@/shared/components/ui/progress'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/shared/components/ui/tooltip'
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from '@/shared/components/ui/item'
+import { Progress } from '@/shared/components/ui/progress'
 import type {
   PlaybackHistoryResponse,
   PlaybackResponse,
@@ -26,13 +26,22 @@ export function PlaybackItem(props: PlaybackItemProps) {
       {'progress' in playback ? <Progress value={playback.progress} /> : null}
       <Item className="p-0">
         <ItemContent>
-          <ItemTitle>
-            [{playback.indexerDefinition.name}] {playback.torrentName}
+          <ItemTitle className="line-clamp-2 break-all">
+            {playback.torrentName}
           </ItemTitle>
+          <ItemDescription>{playback.fileName}</ItemDescription>
         </ItemContent>
       </Item>
       <div className="grid gap-2 text-muted-foreground text-sm font-normal">
-        <div className="mt-1 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Badge
+            variant="secondary"
+            title={`Forrás: ${playback.indexerDefinition.name}`}
+          >
+            <LinkIcon />
+            {playback.indexerDefinition.name}
+          </Badge>
+
           <Badge
             variant="secondary"
             title={`Felhasználó: ${playback.user.username}`}
@@ -40,15 +49,6 @@ export function PlaybackItem(props: PlaybackItemProps) {
             <UserIcon />
             {playback.user.username}
           </Badge>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="secondary">
-                <FilePlayIcon />
-                Fájl
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent>{playback.fileName}</TooltipContent>
-          </Tooltip>
 
           <Badge
             variant="secondary"

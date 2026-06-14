@@ -102,6 +102,9 @@ def regenerate_api_key(
     return users_service.regenerate_api_key(user_id)
 
 
+# --- USER PREFERENCES ---
+
+
 @router.get(
     "/{user_id}/preferences/",
     response_model=list[PreferenceResponse],
@@ -113,6 +116,23 @@ def get_preferences(
 ):
     models = preferences_service.get_list(user_id=user_id)
     return models
+
+
+@router.get(
+    "/{user_id}/preferences/{preference_id}",
+    response_model=PreferenceResponse,
+)
+def get_preference(
+    user_id: str,
+    preference_id: str,
+    preferences_service: PreferencesService = Depends(get_preferences_service),
+    _: UserModel = Depends(SessionGuard([UserRoleKey.ADMIN])),
+):
+    model = preferences_service.get_by_id(
+        id=preference_id,
+        user_id=user_id,
+    )
+    return model
 
 
 # --- USER PREFERENCE DEFINITIONS ---
