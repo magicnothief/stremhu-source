@@ -2,8 +2,10 @@ import asyncio
 from collections.abc import Awaitable
 from typing import overload
 
+from common.logger import logger
 from modules.indexers.schemas.internal import DownloadedTorrentFile, IndexerTorrent
 from modules.indexers.service import IndexersService
+from modules.torrent_files.exceptions import InvalidTorrentFileException
 from modules.torrent_files.models import TorrentFileModel
 from modules.torrent_files.schemas import TorrentFileIdentifier, TorrentFilesFilter
 from modules.torrent_files.service import TorrentFilesService
@@ -123,13 +125,19 @@ class TorrentSourceProviderService:
             if isinstance(downloaded_torrent_file, BaseException):
                 continue
 
-            torrent_file = await asyncio.to_thread(
-                self._torrent_files_service.create,
-                indexer_id=downloaded_torrent_file.indexer_account.indexer_id,
-                torrent_id=downloaded_torrent_file.torrent_id,
-                torrent_bytes=downloaded_torrent_file.torrent_bytes,
-            )
-            created_torrent_files.append(torrent_file)
+            try:
+                torrent_file = await asyncio.to_thread(
+                    self._torrent_files_service.create,
+                    indexer_id=downloaded_torrent_file.indexer_account.indexer_id,
+                    torrent_id=downloaded_torrent_file.torrent_id,
+                    torrent_bytes=downloaded_torrent_file.torrent_bytes,
+                )
+                created_torrent_files.append(torrent_file)
+            except InvalidTorrentFileException:
+                logger.warning(
+                    f"Érvénytelen torrent fájl átugorva: indexer={downloaded_torrent_file.indexer_account.indexer_id}, torrent_id={downloaded_torrent_file.torrent_id}"
+                )
+                continue
 
         torrent_files = current_torrent_files + created_torrent_files
 

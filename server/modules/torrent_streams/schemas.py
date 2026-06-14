@@ -8,6 +8,7 @@ from modules.media_attributes.parser import parse_torrent_name
 from modules.stream.schemas import StreamToken
 from modules.stream.utils.stream_token import generate_stream_token
 from modules.torrent_files.models import TorrentFileModel
+from modules.torrent_streams.utils.resolver_helpers import is_sample_or_trash
 from modules.torrent_streams.utils.stream_file_resolver import StreamFileResolver
 from modules.users.models import UserModel
 from pydantic import BaseModel, ConfigDict
@@ -46,6 +47,9 @@ class TorrentStream(BaseModel):
 
         for file in torrent_file.info.files:
             if not file.is_video:
+                continue
+
+            if is_sample_or_trash(file.name):
                 continue
 
             stream_token = generate_stream_token(

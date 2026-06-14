@@ -79,7 +79,10 @@ def get_preference(
     preferences_service: PreferencesService = Depends(get_preferences_service),
     current_user: UserModel = Depends(SessionGuard()),
 ):
-    model = preferences_service.get_by_id(id=preference_id, user_id=current_user.id)
+    model = preferences_service.get_by_id(
+        id=preference_id,
+        user_id=current_user.id,
+    )
     return model
 
 

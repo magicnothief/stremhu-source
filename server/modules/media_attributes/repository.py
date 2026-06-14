@@ -47,7 +47,7 @@ class MediaAttributesRepository:
                         ~MediaAttributeModel.id.in_(pref_attr_subquery)
                     )
 
-        return query.all()
+        return query.order_by(MediaAttributeModel.order.asc()).all()
 
     def delete_excluding_ids(self, ids: set[str]) -> int:
         to_delete = (

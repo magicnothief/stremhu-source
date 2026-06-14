@@ -3,6 +3,7 @@ from modules.attribute_exclusions.schemas.internal import (
     AttributeExclusionCreate,
     AttributeExclusionFilter,
 )
+from modules.media_attributes.models import MediaAttributeModel
 from sqlalchemy.orm import Session
 
 
@@ -25,15 +26,19 @@ class AttributeExclusionsRepository:
         self,
         filter: AttributeExclusionFilter | None = None,
     ) -> list[AttributeExclusionModel]:
-        query = self.db.query(AttributeExclusionModel)
+        query = self.db.query(AttributeExclusionModel).join(
+            AttributeExclusionModel.attribute
+        )
 
         if filter:
             if filter.attribute_id:
-                query = query.filter_by(attribute_id=filter.attribute_id)
+                query = query.filter(
+                    AttributeExclusionModel.attribute_id == filter.attribute_id
+                )
             if filter.user_id:
-                query = query.filter_by(user_id=filter.user_id)
+                query = query.filter(AttributeExclusionModel.user_id == filter.user_id)
 
-        return query.all()
+        return query.order_by(MediaAttributeModel.order.asc()).all()
 
     def find_by_id(
         self,

@@ -213,11 +213,9 @@ class BaseIndexerDefinition(ABC):
     async def find_torrents_by_imdb_id(
         self, imdb_id: str
     ) -> list[IndexerDefinitionTorrent]:
-        """A NestJS find() megfelelője – összegyűjti az összes találatot lapozással."""
         return await self._find_all(imdb_id, None, [])
 
     async def find_torrent_by_id(self, torrent_id: str) -> IndexerDefinitionTorrent:
-        """A NestJS findOne() megfelelője – lekéri egy torrent adatait."""
         try:
             return await self._fetch_torrent(torrent_id)
         except Exception as e:
@@ -226,7 +224,7 @@ class BaseIndexerDefinition(ABC):
             raise TrackerException(error_msg) from e
 
     async def download_torrent(self, download_url: str) -> bytes:
-        """A NestJS download() megfelelője - letölti a .torrent fájlt."""
+
         try:
             response = await self._client.get(download_url)
             response.raise_for_status()
@@ -239,7 +237,6 @@ class BaseIndexerDefinition(ABC):
             raise
 
     async def find_hit_and_run_ids(self) -> list[str]:
-        """A NestJS seedRequirement() megfelelője – lekéri a Hit 'n' Run listát."""
         try:
             return await self._fetch_hit_and_run_ids()
         except Exception as e:

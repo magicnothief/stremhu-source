@@ -1,11 +1,14 @@
+from typing import cast
+
 import pydash
 import sqlalchemy as sa
 from common.logger import logger
+from modules.attribute_exclusions.models import AttributeExclusionModel
 from modules.attributes.models import AttributeModel
 from modules.indexer_accounts.models import IndexerAccountModel
 from modules.preferences.models import PreferenceModel
 from modules.preferences.seeds import DEFAULT_PREFERENCES
-from sqlalchemy.orm import Session, contains_eager
+from sqlalchemy.orm import Session, contains_eager, with_polymorphic
 
 
 class PreferencesRepository:
@@ -13,76 +16,62 @@ class PreferencesRepository:
         self.db = db
 
     def find_list(self, user_id: str | None = None) -> list[PreferenceModel]:
+        attr_poly = cast(type[AttributeModel], with_polymorphic(AttributeModel, "*"))
+
         join_conditions = [
-            PreferenceModel.id == AttributeModel.preference_id,
+            PreferenceModel.id == attr_poly.preference_id,
             sa.or_(
-                AttributeModel.type != "indexer_definition",
-                self.db.query(IndexerAccountModel.indexer_id)
-                .filter(IndexerAccountModel.indexer_id == AttributeModel.id)
-                .exists(),
+                attr_poly.type != "indexer_definition",
+                attr_poly.id.in_(sa.select(IndexerAccountModel.indexer_id)),
             ),
         ]
 
         if user_id:
-            from modules.attribute_exclusions.models import AttributeExclusionModel
-
-            join_conditions.append(
-                ~self.db.query(AttributeExclusionModel.id)
-                .filter(
-                    AttributeExclusionModel.attribute_id == AttributeModel.id,
-                    AttributeExclusionModel.user_id == user_id,
-                )
-                .exists()
+            user_exclusions = sa.select(AttributeExclusionModel.attribute_id).where(
+                AttributeExclusionModel.user_id == user_id
             )
+            join_conditions.append(attr_poly.id.notin_(user_exclusions))
 
-        return (
-            self.db.query(PreferenceModel)
-            .join(
-                AttributeModel,
-                sa.and_(*join_conditions),
+        stmt = (
+            sa.select(PreferenceModel)
+            .join(attr_poly, sa.and_(*join_conditions))
+            .options(contains_eager(PreferenceModel.attributes.of_type(attr_poly)))
+            .order_by(
+                PreferenceModel.order.asc(),
+                attr_poly.order.asc(),
             )
-            .options(contains_eager(PreferenceModel.attributes))
-            .order_by(PreferenceModel.order.asc())
-            .all()
         )
+        return list(self.db.execute(stmt).unique().scalars().all())
 
     def find_by_id(
         self,
         id: str,
         user_id: str | None = None,
     ) -> PreferenceModel | None:
+        attr_poly = cast(type[AttributeModel], with_polymorphic(AttributeModel, "*"))
+
         join_conditions = [
-            PreferenceModel.id == AttributeModel.preference_id,
+            PreferenceModel.id == attr_poly.preference_id,
             sa.or_(
-                AttributeModel.type != "indexer_definition",
-                self.db.query(IndexerAccountModel.indexer_id)
-                .filter(IndexerAccountModel.indexer_id == AttributeModel.id)
-                .exists(),
+                attr_poly.type != "indexer_definition",
+                attr_poly.id.in_(sa.select(IndexerAccountModel.indexer_id)),
             ),
         ]
 
         if user_id:
-            from modules.attribute_exclusions.models import AttributeExclusionModel
-
-            join_conditions.append(
-                ~self.db.query(AttributeExclusionModel.id)
-                .filter(
-                    AttributeExclusionModel.attribute_id == AttributeModel.id,
-                    AttributeExclusionModel.user_id == user_id,
-                )
-                .exists()
+            user_exclusions = sa.select(AttributeExclusionModel.attribute_id).where(
+                AttributeExclusionModel.user_id == user_id
             )
+            join_conditions.append(attr_poly.id.notin_(user_exclusions))
 
-        return (
-            self.db.query(PreferenceModel)
-            .join(
-                AttributeModel,
-                sa.and_(*join_conditions),
-            )
+        stmt = (
+            sa.select(PreferenceModel)
+            .join(attr_poly, sa.and_(*join_conditions))
             .filter(PreferenceModel.id == id)
-            .options(contains_eager(PreferenceModel.attributes))
-            .first()
+            .options(contains_eager(PreferenceModel.attributes.of_type(attr_poly)))
+            .order_by(attr_poly.order.asc())
         )
+        return self.db.execute(stmt).unique().scalars().first()
 
     def sync_to_db(self):
         """Szinkronizálja a kódbázisban definiált preferenciákat az adatbázissal.

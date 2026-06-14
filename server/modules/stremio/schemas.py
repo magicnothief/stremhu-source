@@ -147,7 +147,20 @@ class StremioStream(BaseModel):
     behavior_hints: BehaviorHints
 
     @classmethod
-    def from_torrent_stream(
+    def from_id_torrent_stream(cls, torrent_stream: TorrentStream) -> StremioStream:
+        file_size = f"💾 {humanize.naturalsize(torrent_stream.file_size, binary=True, format='%.2f')}"
+
+        return cls(
+            name=file_size,
+            description=f"📁 {torrent_stream.file_name}",
+            url=torrent_stream.play_url,
+            behavior_hints=BehaviorHints(
+                filename=torrent_stream.file_name,
+            ),
+        )
+
+    @classmethod
+    def from_imdb_torrent_stream(
         cls,
         torrent_stream: TorrentStream,
     ) -> StremioStream:

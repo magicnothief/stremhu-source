@@ -5,13 +5,16 @@ import {
 } from '@tanstack/react-query'
 
 import type {
+  AttributeExclusionCreateRequest,
   MeUpdateRequest,
   PreferenceCreateRequest,
   PreferenceUpdateRequest,
   PreferencesReorderRequest,
 } from '../lib/source/source-client'
 import {
+  meCreateAttributeExclusion,
   meCreatePreferenceDefinition,
+  meDeleteAttributeExclusion,
   meDeletePreferenceDefinition,
   meGet,
   meGetAttributeExclusions,
@@ -85,6 +88,42 @@ export function getMeAttributeExclusions() {
     queryFn: async () => {
       const response = await meGetAttributeExclusions()
       return response
+    },
+  })
+}
+
+export function useAddAttributeToExclusion() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (payload: AttributeExclusionCreateRequest) => {
+      await meCreateAttributeExclusion(payload)
+    },
+    onSuccess: async () => {
+      await Promise.all(
+        [
+          ['me', 'attributes'],
+          ['me', 'preferences'],
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
+    },
+  })
+}
+
+export function useRemoveAttributeFromExclusion() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (attributeId: string) => {
+      await meDeleteAttributeExclusion(attributeId)
+    },
+    onSuccess: async () => {
+      await Promise.all(
+        [
+          ['me', 'attributes'],
+          ['me', 'preferences'],
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      )
     },
   })
 }

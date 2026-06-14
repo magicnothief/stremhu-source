@@ -1,9 +1,10 @@
 import { useSuspenseQueries } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { PlusIcon } from 'lucide-react'
+import { Link, createFileRoute } from '@tanstack/react-router'
+import { BanIcon, EditIcon } from 'lucide-react'
 
 import { Preference } from '@/features/preferences/preference'
 import { PreferencesSection } from '@/features/preferences/preferences-section'
+import { Alert, AlertTitle } from '@/shared/components/ui/alert'
 import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import {
@@ -66,8 +67,10 @@ function RouteComponent() {
             megjelenni a listában.
           </CardDescription>
           <CardAction>
-            <Button size="icon-sm" className="rounded-full">
-              <PlusIcon />
+            <Button asChild size="icon-sm" className="rounded-full">
+              <Link to="/settings/preferences/attributes">
+                <EditIcon />
+              </Link>
             </Button>
           </CardAction>
         </CardHeader>
@@ -78,6 +81,12 @@ function RouteComponent() {
               {meAttributeExclusion.name}
             </Badge>
           ))}
+          {meAttributeExclusions.length === 0 && (
+            <Alert>
+              <BanIcon />
+              <AlertTitle>Nincs kizárt tulajdonság.</AlertTitle>
+            </Alert>
+          )}
         </CardContent>
       </Card>
       <Separator />

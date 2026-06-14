@@ -8,13 +8,14 @@ class AttributesRepository:
 
     def find_all(self) -> list[AttributeModel]:
         """Fetches all attributes from the database."""
-        return self.db.query(AttributeModel).all()
+        return self.db.query(AttributeModel).order_by(AttributeModel.order.asc()).all()
 
     def find_by_preference(self, preference_id: str) -> list[AttributeModel]:
         """Fetches all attributes belonging to a specific preference category."""
         return (
             self.db.query(AttributeModel)
             .filter(AttributeModel.preference_id == preference_id)
+            .order_by(AttributeModel.order.asc())
             .all()
         )
 

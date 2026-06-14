@@ -89,7 +89,7 @@ class StremioService:
             )
 
             return [
-                StremioStream.from_torrent_stream(torrent_stream=torrent_stream)
+                StremioStream.from_id_torrent_stream(torrent_stream=torrent_stream)
                 for torrent_stream in torrent_streams
             ]
 
@@ -101,7 +101,7 @@ class StremioService:
         )
 
         stremio_streams = [
-            StremioStream.from_torrent_stream(torrent_stream=torrent_stream)
+            StremioStream.from_imdb_torrent_stream(torrent_stream=torrent_stream)
             for torrent_stream in torrent_streams
         ]
 

@@ -19,8 +19,11 @@ import { Separator } from '@/shared/components/ui/separator'
 import { useAppForm } from '@/shared/contexts/form-context'
 import type { PreferenceCreateRequest } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import { getMePreference, useUpdateMePreference } from '@/shared/queries/me'
-import { getPreference } from '@/shared/queries/preferences'
+import {
+  getMePreference,
+  getMePreferenceDefinition,
+  useUpdateMePreference,
+} from '@/shared/queries/me'
 
 import { PreferenceForm } from '../../../../../features/preference-form/preference-form'
 
@@ -37,7 +40,10 @@ function RouteComponent() {
   })
 
   const [{ data: preference }, { data: mePreference }] = useSuspenseQueries({
-    queries: [getPreference(preferenceId), getMePreference(preferenceId)],
+    queries: [
+      getMePreference(preferenceId),
+      getMePreferenceDefinition(preferenceId),
+    ],
   })
 
   const { mutateAsync: updateMePreference } = useUpdateMePreference(
