@@ -134,6 +134,10 @@ class InsaneIndexerDefinition(BaseIndexerDefinition):
                         download_url=download_url,
                         seeders=int(seeders_text) if seeders_text.isdigit() else 0,
                         imdb_id=imdb_id_val or None,
+                        attribute_ids=[
+                            self._resolve_language(category_id),
+                            self._resolve_resolution(category_id),
+                        ],
                     )
                 )
 
