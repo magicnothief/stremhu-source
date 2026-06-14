@@ -9,13 +9,6 @@ import { getNetworkSettings, useNetworkConfig } from '@/shared/queries/network'
 import type { NetworkAccessFormValues } from './network-access.schema'
 import { networkAccessSchema } from './network-access.schema'
 
-export const NETWORK_ACCESS_FORM_ID = 'network-access-form'
-export const NETWORK_ACCESS_HEADER = {
-  TITLE: 'Elérés beállítása',
-  DESCRIPTION:
-    'A kliensek elvárják a biztonságos domain alapú SSL tanúsítvánnyal rendelkező elérést.',
-}
-
 export function useNetworkAccessForm() {
   const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
   const { mutateAsync: configNetwork } = useNetworkConfig()

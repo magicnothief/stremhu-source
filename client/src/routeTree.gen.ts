@@ -29,7 +29,6 @@ import { Route as ProtectedRelaySettingsRouteRouteImport } from './routes/_prote
 import { Route as ProtectedDashboardUsersRouteRouteImport } from './routes/_protected/dashboard/users/route'
 import { Route as ProtectedDashboardSystemRouteRouteImport } from './routes/_protected/dashboard/system/route'
 import { Route as ProtectedDashboardPlaybacksRouteRouteImport } from './routes/_protected/dashboard/playbacks/route'
-import { Route as ProtectedSetupAddressIndexRouteImport } from './routes/_protected/setup/address/index'
 import { Route as ProtectedSettingsPreferencesIndexRouteImport } from './routes/_protected/settings/preferences/index'
 import { Route as ProtectedSettingsAccountIndexRouteImport } from './routes/_protected/settings/account/index'
 import { Route as ProtectedRelayTorrentsIndexRouteImport } from './routes/_protected/relay/torrents/index'
@@ -158,12 +157,6 @@ const ProtectedDashboardPlaybacksRouteRoute =
     id: '/playbacks',
     path: '/playbacks',
     getParentRoute: () => ProtectedDashboardRouteRoute,
-  } as any)
-const ProtectedSetupAddressIndexRoute =
-  ProtectedSetupAddressIndexRouteImport.update({
-    id: '/setup/address/',
-    path: '/setup/address/',
-    getParentRoute: () => ProtectedRoute,
   } as any)
 const ProtectedSettingsPreferencesIndexRoute =
   ProtectedSettingsPreferencesIndexRouteImport.update({
@@ -331,7 +324,6 @@ export interface FileRoutesByFullPath {
   '/relay/torrents/': typeof ProtectedRelayTorrentsIndexRoute
   '/settings/account/': typeof ProtectedSettingsAccountIndexRoute
   '/settings/preferences/': typeof ProtectedSettingsPreferencesIndexRoute
-  '/setup/address/': typeof ProtectedSetupAddressIndexRoute
   '/dashboard/users/$userId/preferences': typeof ProtectedDashboardUsersUserIdPreferencesRouteRouteWithChildren
   '/dashboard/users/$userId/': typeof ProtectedDashboardUsersUserIdIndexRoute
   '/settings/preferences/$preferenceId/': typeof ProtectedSettingsPreferencesPreferenceIdIndexRoute
@@ -361,7 +353,6 @@ export interface FileRoutesByTo {
   '/relay/torrents': typeof ProtectedRelayTorrentsIndexRoute
   '/settings/account': typeof ProtectedSettingsAccountIndexRoute
   '/settings/preferences': typeof ProtectedSettingsPreferencesIndexRoute
-  '/setup/address': typeof ProtectedSetupAddressIndexRoute
   '/dashboard/users/$userId': typeof ProtectedDashboardUsersUserIdIndexRoute
   '/settings/preferences/$preferenceId': typeof ProtectedSettingsPreferencesPreferenceIdIndexRoute
   '/settings/preferences/attributes': typeof ProtectedSettingsPreferencesAttributesIndexRoute
@@ -404,7 +395,6 @@ export interface FileRoutesById {
   '/_protected/relay/torrents/': typeof ProtectedRelayTorrentsIndexRoute
   '/_protected/settings/account/': typeof ProtectedSettingsAccountIndexRoute
   '/_protected/settings/preferences/': typeof ProtectedSettingsPreferencesIndexRoute
-  '/_protected/setup/address/': typeof ProtectedSetupAddressIndexRoute
   '/_protected/dashboard/users/$userId/preferences': typeof ProtectedDashboardUsersUserIdPreferencesRouteRouteWithChildren
   '/_protected/dashboard/users/$userId/': typeof ProtectedDashboardUsersUserIdIndexRoute
   '/_protected/settings/preferences/$preferenceId/': typeof ProtectedSettingsPreferencesPreferenceIdIndexRoute
@@ -450,7 +440,6 @@ export interface FileRouteTypes {
     | '/relay/torrents/'
     | '/settings/account/'
     | '/settings/preferences/'
-    | '/setup/address/'
     | '/dashboard/users/$userId/preferences'
     | '/dashboard/users/$userId/'
     | '/settings/preferences/$preferenceId/'
@@ -480,7 +469,6 @@ export interface FileRouteTypes {
     | '/relay/torrents'
     | '/settings/account'
     | '/settings/preferences'
-    | '/setup/address'
     | '/dashboard/users/$userId'
     | '/settings/preferences/$preferenceId'
     | '/settings/preferences/attributes'
@@ -522,7 +510,6 @@ export interface FileRouteTypes {
     | '/_protected/relay/torrents/'
     | '/_protected/settings/account/'
     | '/_protected/settings/preferences/'
-    | '/_protected/setup/address/'
     | '/_protected/dashboard/users/$userId/preferences'
     | '/_protected/dashboard/users/$userId/'
     | '/_protected/settings/preferences/$preferenceId/'
@@ -685,13 +672,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/playbacks'
       preLoaderRoute: typeof ProtectedDashboardPlaybacksRouteRouteImport
       parentRoute: typeof ProtectedDashboardRouteRoute
-    }
-    '/_protected/setup/address/': {
-      id: '/_protected/setup/address/'
-      path: '/setup/address'
-      fullPath: '/setup/address/'
-      preLoaderRoute: typeof ProtectedSetupAddressIndexRouteImport
-      parentRoute: typeof ProtectedRoute
     }
     '/_protected/settings/preferences/': {
       id: '/_protected/settings/preferences/'
@@ -1145,7 +1125,6 @@ interface ProtectedRouteChildren {
   ProtectedSettingsRouteRoute: typeof ProtectedSettingsRouteRouteWithChildren
   ProtectedIndexRoute: typeof ProtectedIndexRoute
   ProtectedActivateIndexRoute: typeof ProtectedActivateIndexRoute
-  ProtectedSetupAddressIndexRoute: typeof ProtectedSetupAddressIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
@@ -1154,7 +1133,6 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedSettingsRouteRoute: ProtectedSettingsRouteRouteWithChildren,
   ProtectedIndexRoute: ProtectedIndexRoute,
   ProtectedActivateIndexRoute: ProtectedActivateIndexRoute,
-  ProtectedSetupAddressIndexRoute: ProtectedSetupAddressIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

@@ -12,14 +12,10 @@ import {
   DialogTitle,
 } from '@/shared/components/ui/dialog'
 
-import {
-  NETWORK_ACCESS_FORM_ID,
-  NETWORK_ACCESS_HEADER,
-  useNetworkAccessForm,
-} from './network-access-form'
 import type { NetworkAccessDialog } from './network-access.types'
 import { NetworkSelector } from './network-selector'
 import { UrlConfiguration } from './url-configuration'
+import { useNetworkAccessForm } from './use-network-access-form'
 
 export function NetworkAccessDialog(
   dialog: OpenedDialog & NetworkAccessDialog,
@@ -47,15 +43,12 @@ export function NetworkAccessDialog(
         onEscapeKeyDown={() => dialogsStore.closeDialog(dialog.id)}
       >
         <form.AppForm>
-          <form
-            id={NETWORK_ACCESS_FORM_ID}
-            className="grid gap-4"
-            onSubmit={handleSubmit}
-          >
+          <form className="grid gap-4" onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>{NETWORK_ACCESS_HEADER.TITLE}</DialogTitle>
+              <DialogTitle>Elérés beállítása</DialogTitle>
               <DialogDescription>
-                {NETWORK_ACCESS_HEADER.DESCRIPTION}
+                A kliensek elvárják a biztonságos domain alapú SSL
+                tanúsítvánnyal rendelkező elérést.
               </DialogDescription>
             </DialogHeader>
             <NetworkSelector form={form} />

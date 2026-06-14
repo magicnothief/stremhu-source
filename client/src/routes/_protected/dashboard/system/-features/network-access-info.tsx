@@ -17,16 +17,14 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { getNetworkSettings } from '@/shared/queries/network'
 import { getSystemStatus } from '@/shared/queries/system'
 
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const [{ data: systemStatus }, { data: networkSettings }] =
-    useSuspenseQueries({
-      queries: [getSystemStatus, getNetworkSettings],
-    })
+  const [{ data: systemStatus }] = useSuspenseQueries({
+    queries: [getSystemStatus],
+  })
 
   return (
     <Card>

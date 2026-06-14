@@ -1,7 +1,6 @@
 from urllib.parse import urljoin
 
 import httpx
-from modules.media_attributes.constants import MediaAttributeKey
 from modules.indexer_definitions.base_indexer_definition import BaseIndexerDefinition
 from modules.indexer_definitions.enums import AuthenticationErrorEnum
 from modules.indexer_definitions.schemas.internal import (
@@ -9,6 +8,7 @@ from modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionLogin,
     IndexerDefinitionTorrent,
 )
+from modules.media_attributes.constants import MediaAttributeKey
 from selectolax.parser import HTMLParser
 
 _CATEGORY_MAP: dict[str, str] = {
