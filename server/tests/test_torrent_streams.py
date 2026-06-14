@@ -11,6 +11,7 @@ TEST_STREAMS = {
         "files": [
             TorrentFileInfo(
                 name="fulcrum-superman.2025.2160p.web.ma.mkv",
+                path="fulcrum-superman.2025.2160p.web.ma.mkv",
                 size=25168000000,
                 index=0,
                 offset=0,
@@ -20,6 +21,7 @@ TEST_STREAMS = {
             ),
             TorrentFileInfo(
                 name="fulcrum-superman.2025.2160p.web.ma.nfo",
+                path="fulcrum-superman.2025.2160p.web.ma.nfo",
                 size=12000,
                 index=1,
                 offset=0,
@@ -29,6 +31,7 @@ TEST_STREAMS = {
             ),
             TorrentFileInfo(
                 name="fulcrum-superman.2025.2160p.web.ma.sfv",
+                path="fulcrum-superman.2025.2160p.web.ma.sfv",
                 size=49,
                 index=2,
                 offset=0,
@@ -37,7 +40,8 @@ TEST_STREAMS = {
                 is_video=False,
             ),
             TorrentFileInfo(
-                name="Sample/fulcrum-superman.2025.2160p.web.ma-sample.mkv",
+                name="fulcrum-superman.2025.2160p.web.ma-sample.mkv",
+                path="Sample/fulcrum-superman.2025.2160p.web.ma-sample.mkv",
                 size=200000000,
                 index=3,
                 offset=0,
@@ -52,6 +56,7 @@ TEST_STREAMS = {
         "files": [
             TorrentFileInfo(
                 name="hsf-bndcks-201.avi",
+                path="hsf-bndcks-201.avi",
                 size=183245000,
                 index=0,
                 offset=0,
@@ -61,6 +66,7 @@ TEST_STREAMS = {
             ),
             TorrentFileInfo(
                 name="hsf-bndcks-202.avi",
+                path="hsf-bndcks-202.avi",
                 size=186245000,
                 index=1,
                 offset=0,
@@ -70,6 +76,7 @@ TEST_STREAMS = {
             ),
             TorrentFileInfo(
                 name="hsf-bndcks-203.avi",
+                path="hsf-bndcks-203.avi",
                 size=183234000,
                 index=2,
                 offset=0,

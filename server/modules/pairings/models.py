@@ -1,13 +1,10 @@
 import datetime
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from common.database import Base
+from modules.users.models import UserModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-if TYPE_CHECKING:
-    from modules.users.models import UserModel
 
 
 class PairingModel(Base):

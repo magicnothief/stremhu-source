@@ -3,9 +3,10 @@ from common.torrent_info import TorrentFileInfo, TorrentInfo
 from modules.torrent_streams.utils.stream_file_resolver import StreamFileResolver
 
 
-def create_file(name: str, size: int, is_video: bool = True) -> TorrentFileInfo:
+def create_file(path: str, size: int, is_video: bool = True) -> TorrentFileInfo:
     return TorrentFileInfo(
-        name=name,
+        name=path.split("/")[-1],
+        path=path,
         index=0,
         size=size,
         offset=0,
@@ -101,7 +102,7 @@ def test_resolve_series_multi_season_pack():
     series = SeriesInfo(season=2, episode=4)
     result = StreamFileResolver.resolve_file(torrent_info, series)
     assert result is not None
-    assert result.name == "S02/The.Show.S02E04.mkv"
+    assert result.path == "S02/The.Show.S02E04.mkv"
 
 
 def test_resolve_series_complete_pack_without_season_in_torrent_name():
