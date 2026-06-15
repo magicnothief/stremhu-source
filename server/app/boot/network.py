@@ -1,6 +1,4 @@
 import asyncio
-import os
-import socket
 from pathlib import Path
 
 from app.boot.schemas import BootNetworkConfig
@@ -55,36 +53,8 @@ def _ensure_db_network_settings(host_ip: str) -> NetworkSettings:
         return local_settings
 
 
-def _check_host_ip(host_ip: str) -> str:
-    try:
-        test_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        test_sock.connect((host_ip, 9))
-        test_sock.close()
-    except Exception as e:
-        raise ValueError(
-            f"🚨 Hiba: A megadott HOST_IP ({host_ip}) hálózati szinten nem érhető el a konténerből! Részletek: {e}"
-        )
-
-    # 4. Helyi IP-cím tulajdonjog ellenőrzése (csak ha nem Docker konténerben futunk)
-    is_in_docker = os.path.exists("/.dockerenv") or os.path.exists("/run/.containerenv")
-    if not is_in_docker:
-        try:
-            bind_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            bind_sock.bind((host_ip, 0))
-            bind_sock.close()
-        except Exception:
-            raise ValueError(
-                f"🚨 Hiba: A megadott HOST_IP ({host_ip}) nem ehhez a számítógéphez tartozik! "
-                "Kérlek a saját géped valódi helyi IP-címét add meg!"
-            )
-
-    return host_ip
-
-
 def ensure_network_settings() -> BootNetworkConfig:
-    host_ip = _check_host_ip(config.host_ip)
-
-    network_settings = _ensure_db_network_settings(host_ip)
+    network_settings = _ensure_db_network_settings(config.host_ip)
 
     cert_path_str: str | None = None
     key_path_str: str | None = None

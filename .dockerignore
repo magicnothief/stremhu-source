@@ -1,8 +1,52 @@
-**/.cache/**
-**/data/**
-**/dist/**
-**/node_modules/**
-.tanstack
-.github
-.vscode
+# Git repository metadata
+.git
+.gitignore
+.gitattributes
+
+# OS and Editor configs
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Node.js dependencies and builds
+**/node_modules/
+**/dist/
+.tanstack/
+
+# Python cache & temporary files
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+
+# Python Virtual Environments
+**/.conda/
+**/.venv/
+**/venv/
+**/env/
+
+# Environment files and secrets
 **/.env
+**/.env.*
+!**/.env.example
+
+# Local databases and application data
+**/data/
+**/downloads/
+**/*.db
+**/*.sqlite
+
+# Tests
+**/tests/
+
+# CI/CD and docs
+.github/
+docs/
