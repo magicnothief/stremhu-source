@@ -29,8 +29,6 @@ order-by-type = true
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
-venvPath = "."
-venv = ".conda"
 exclude = [
     "**/.conda",
     "**/__pycache__",

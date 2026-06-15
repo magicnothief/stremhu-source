@@ -36,7 +36,7 @@ jobs:
 
       - name: Basedpyright Typecheck
         if: github.event_name == 'pull_request'
-        run: basedpyright --pythonpath python
+        run: basedpyright
 
       - name: Test
         run: pytest
