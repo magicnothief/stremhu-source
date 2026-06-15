@@ -66,7 +66,7 @@ class StremioService:
 
         return Manifest(
             id=addon_id,
-            version=config.version,
+            version=version,
             name=name,
             description=config.description,
             resources=[
