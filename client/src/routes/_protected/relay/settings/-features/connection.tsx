@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -13,7 +13,7 @@ import {
 } from '@/shared/components/ui/card'
 import { Field, FieldError, FieldLabel } from '@/shared/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/shared/components/ui/input-group'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
+import { parseApiError } from '@/shared/lib/utils'
 import { getRelaySettings, useUpdateRelaySetting } from '@/shared/queries/relay'
 
 const schema = z.object({
@@ -22,17 +22,14 @@ const schema = z.object({
 })
 
 export function Connection() {
-  const queryClient = useQueryClient()
-
-  const relay = queryClient.getQueryData(getRelaySettings.queryKey)
-  assertExists(relay)
+  const { data: relaySettings } = useSuspenseQuery(getRelaySettings)
 
   const setting = useMemo(() => {
     return {
-      connectionsLimit: relay.connectionsLimit.toString(),
-      torrentConnectionsLimit: relay.torrentConnectionsLimit.toString(),
+      connectionsLimit: relaySettings.connectionsLimit.toString(),
+      torrentConnectionsLimit: relaySettings.torrentConnectionsLimit.toString(),
     }
-  }, [relay])
+  }, [relaySettings])
 
   const { mutateAsync: updateSetting } = useUpdateRelaySetting()
 

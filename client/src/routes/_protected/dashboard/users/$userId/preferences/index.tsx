@@ -1,18 +1,31 @@
-import { useQueries } from '@tanstack/react-query'
-import { createFileRoute, useParams } from '@tanstack/react-router'
+import { useSuspenseQueries } from '@tanstack/react-query'
+import { Link, createFileRoute, useParams } from '@tanstack/react-router'
+import { BanIcon, EditIcon } from 'lucide-react'
 
 import { Preference } from '@/features/preferences/preference'
 import { PreferencesSection } from '@/features/preferences/preferences-section'
+import { Alert, AlertTitle } from '@/shared/components/ui/alert'
+import { Badge } from '@/shared/components/ui/badge'
+import { Button } from '@/shared/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/shared/components/ui/card'
 import { Separator } from '@/shared/components/ui/separator'
-import type { PreferenceEnum } from '@/shared/lib/source/source-client'
+import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { assertExists } from '@/shared/lib/utils'
 import {
+  getUser,
+  getUserAttributeExclusions,
+  getUserPreferenceDefinitions,
   getUserPreferences,
   useDeleteUserPreference,
   useReorderUserPreference,
-} from '@/shared/queries/user-preferences'
-import { getUser } from '@/shared/queries/users'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
+} from '@/shared/queries/users'
 
 import { OnlyBestTorrent } from '../-features/only-best-torrent'
 import { TorrentSeeders } from '../-features/torrent-seeders'
@@ -27,37 +40,81 @@ function RouteComponent() {
   const { userId } = useParams({
     from: '/_protected/dashboard/users/$userId/preferences/',
   })
-  const [{ data: user }, { data: userPreferences }] = useQueries({
-    queries: [getUser(userId), getUserPreferences(userId)],
+  const [
+    { data: user },
+    { data: userPreferences },
+    { data: userPreferenceDefinitions },
+    { data: userAttributeExclusions },
+  ] = useSuspenseQueries({
+    queries: [
+      getUser(userId),
+      getUserPreferences(userId),
+      getUserPreferenceDefinitions(userId),
+      getUserAttributeExclusions(userId),
+    ],
   })
   assertExists(user)
-  assertExists(userPreferences)
 
   const { mutateAsync: reorderUserPreference } =
     useReorderUserPreference(userId)
   const { mutateAsync: deleteUserPreference } = useDeleteUserPreference(userId)
 
-  const handleReorder = async (preferences: PreferenceEnum[]) => {
+  const handleReorder = async (preferenceIds: string[]) => {
     await reorderUserPreference({
-      preferences,
+      preferenceIds,
     })
   }
 
-  const handleDelete = async (preference: PreferenceDto) => {
-    await deleteUserPreference(preference.preference)
+  const handleDelete = async (preference: PreferenceResponse) => {
+    await deleteUserPreference(preference.id)
   }
 
   return (
     <div className="grid gap-8">
+      <Card className="break-inside-avoid mb-4">
+        <CardHeader>
+          <CardTitle>Kizárt tulajdonságok</CardTitle>
+          <CardDescription>
+            Amennyiben a torrent tartalmazza a kizárt tulajdonságot, az nem fog
+            megjelenni a listában.
+          </CardDescription>
+          <CardAction>
+            <Button asChild size="icon-sm" className="rounded-full">
+              <Link
+                to="/dashboard/users/$userId/preferences/attributes"
+                params={{ userId }}
+              >
+                <EditIcon />
+              </Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <Separator />
+        <CardContent className="flex flex-wrap gap-2">
+          {userAttributeExclusions.map((userAttributeExclusion) => (
+            <Badge variant="destructive" key={userAttributeExclusion.id}>
+              {userAttributeExclusion.name}
+            </Badge>
+          ))}
+          {userAttributeExclusions.length === 0 && (
+            <Alert>
+              <BanIcon />
+              <AlertTitle>Nincs kizárt tulajdonság.</AlertTitle>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+      <Separator />
       <PreferencesSection
         toCreateLink={{ to: '/dashboard/users/$userId/preferences/create' }}
         preferences={userPreferences}
+        currentPreferences={userPreferenceDefinitions}
         renderPreference={(preference) => (
           <Preference
             preference={preference}
             toEditLink={{
-              to: '/dashboard/users/$userId/preferences/$preference',
-              params: { preference: preference.preference },
+              to: '/dashboard/users/$userId/preferences/$preferenceId',
+              params: { preferenceId: preference.id },
             }}
             onDelete={handleDelete}
           />

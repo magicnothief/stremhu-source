@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { isEmpty } from 'lodash'
 import { toast } from 'sonner'
 import * as z from 'zod'
@@ -14,7 +14,7 @@ import { Field, FieldError, FieldLabel } from '@/shared/components/ui/field'
 import { InputGroup, InputGroupInput } from '@/shared/components/ui/input-group'
 import { Label } from '@/shared/components/ui/label'
 import { Switch } from '@/shared/components/ui/switch'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
+import { parseApiError } from '@/shared/lib/utils'
 import { getRelaySettings, useUpdateRelaySetting } from '@/shared/queries/relay'
 
 const schema = z.object({
@@ -23,17 +23,14 @@ const schema = z.object({
 })
 
 export function Port() {
-  const queryClient = useQueryClient()
-
-  const relay = queryClient.getQueryData(getRelaySettings.queryKey)
-  assertExists(relay)
+  const { data: relaySettings } = useSuspenseQuery(getRelaySettings)
 
   const { mutateAsync: updateSetting } = useUpdateRelaySetting()
 
   const form = useForm({
     defaultValues: {
-      port: relay.port.toString(),
-      enableUpnpAndNatpmp: relay.enableUpnpAndNatpmp,
+      port: relaySettings.port.toString(),
+      enableUpnpAndNatpmp: relaySettings.enableUpnpAndNatpmp,
     },
     validators: {
       onChange: schema,
@@ -72,7 +69,6 @@ export function Port() {
               <FieldLabel>Port a bejövő kapcsolatokhoz</FieldLabel>
               <InputGroup>
                 <InputGroupInput
-                  disabled
                   placeholder="Nincs limitálva"
                   inputMode="numeric"
                   id={field.name}

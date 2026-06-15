@@ -1,7 +1,7 @@
-import type { UserDto } from '@/shared/lib/source/source-client'
+import type { UserResponse } from '@/shared/lib/source/source-client'
 
 export type ChangePasswordOptions = {
-  user?: UserDto
+  user?: UserResponse
 }
 
 export type ChangePasswordDialog = {

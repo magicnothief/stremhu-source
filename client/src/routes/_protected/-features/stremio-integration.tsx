@@ -29,11 +29,11 @@ import { assertExists } from '@/shared/lib/utils'
 import { getMe } from '@/shared/queries/me'
 
 export function StremioIntegration() {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
   assertExists(me)
 
   const { stremio } = useIntegrationDomain({
-    token: me.token,
+    apiKey: me.apiKey,
   })
 
   const { handleCopy } = useCopy()

@@ -6,6 +6,7 @@ import type { MouseEventHandler } from 'react'
 import { toast } from 'sonner'
 
 import { useConfirmDialog } from '@/features/confirm/use-confirm-dialog'
+import { Badge } from '@/shared/components/ui/badge'
 import { Button } from '@/shared/components/ui/button'
 import {
   Item,
@@ -13,26 +14,19 @@ import {
   ItemContent,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { useMetadata } from '@/shared/hooks/use-metadata'
+import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
-
-import { BadgesSection } from './badges-section'
 
 interface PreferenceProps {
-  preference: PreferenceDto
+  preference: PreferenceResponse
   toEditLink: LinkProps
-  onDelete: (preference: PreferenceDto) => Promise<void>
+  onDelete: (preference: PreferenceResponse) => Promise<void>
 }
 
 export function Preference(props: PreferenceProps) {
   const { preference, toEditLink, onDelete } = props
 
-  const { getPreference, getPreferenceItem } = useMetadata()
-
   const confirmDialog = useConfirmDialog()
-
-  const preferenceName = getPreference(preference.preference).label
 
   const handleDelete: MouseEventHandler<HTMLButtonElement> = async (e) => {
     e.stopPropagation()
@@ -43,7 +37,7 @@ export function Preference(props: PreferenceProps) {
         <>
           A(z){' '}
           <span className="font-bold break-all capitalize">
-            {preferenceName}
+            {preference.name}
           </span>{' '}
           törlésével az adatok is törlésre kerülnek.
         </>
@@ -66,7 +60,7 @@ export function Preference(props: PreferenceProps) {
       <Item className="p-0">
         <ItemContent>
           <ItemTitle className="line-clamp-2 break-all">
-            {upperFirst(preferenceName)} konfigurációja
+            {upperFirst(preference.name)} konfigurációja
           </ItemTitle>
         </ItemContent>
         <ItemActions>
@@ -86,38 +80,12 @@ export function Preference(props: PreferenceProps) {
           </Button>
         </ItemActions>
       </Item>
-      <div className="grid gap-3">
-        {preference.preferred.length !== 0 && (
-          <BadgesSection
-            title="Preferált tulajdonságok"
-            items={preference.preferred.map((item) => {
-              const preferenceItem = getPreferenceItem(
-                preference.preference,
-                item,
-              )
-              return {
-                label: preferenceItem.label,
-                value: preferenceItem.value,
-              }
-            })}
-          />
-        )}
-        {preference.blocked.length !== 0 && (
-          <BadgesSection
-            title="Kizárt tulajdonságok"
-            items={preference.blocked.map((item) => {
-              const preferenceItem = getPreferenceItem(
-                preference.preference,
-                item,
-              )
-              return {
-                label: preferenceItem.label,
-                value: preferenceItem.value,
-                variant: 'destructive',
-              }
-            })}
-          />
-        )}
+      <div className=" flex flex-wrap gap-2">
+        {preference.attributes.map((attribute) => (
+          <Badge key={attribute.id} variant="default">
+            {attribute.name}
+          </Badge>
+        ))}
       </div>
     </div>
   )

@@ -2,17 +2,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "node",
+      "type": "debugpy",
       "request": "launch",
-      "name": "Server (Nest.js)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:debug", "--", "--inspect-brk"],
+      "name": "Server (FastApi)",
+      "program": "${workspaceFolder}/server/app/run.py",
       "cwd": "${workspaceFolder}/server",
-      "autoAttachChildProcesses": true,
-      "restart": true,
-      "sourceMaps": true,
-      "stopOnEntry": false,
-      "console": "integratedTerminal"
+      "subProcess": true,
+      "jinja": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/server"
+      }
     },
     {
       "type": "node",
@@ -26,28 +25,6 @@
         "pattern": "Local:\\s+(https?://\\S+)",
         "uriFormat": "%s",
         "action": "openExternally"
-      }
-    },
-    {
-      "type": "debugpy",
-      "request": "launch",
-      "name": "Relay (FastApi)",
-      "module": "uvicorn",
-      "args": [
-        "main:app",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        "4300",
-        "--reload",
-        "--log-config",
-        "../logging.ini"
-      ],
-      "cwd": "${workspaceFolder}/relay/src",
-      "subProcess": true,
-      "jinja": true,
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}/relay/src"
       }
     }
   ]

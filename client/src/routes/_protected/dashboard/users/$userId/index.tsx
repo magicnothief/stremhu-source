@@ -16,6 +16,7 @@ import { useIntegrationDomain } from '@/shared/hooks/use-integration-domain'
 import { assertExists } from '@/shared/lib/utils'
 import { getUser, useRegenerateUserToken } from '@/shared/queries/users'
 
+import { MaxConcurrentStreams } from './-features/max-concurrent-streams'
 import { UserProfile } from './-features/user-profile'
 
 export const Route = createFileRoute('/_protected/dashboard/users/$userId/')({
@@ -31,7 +32,7 @@ function UserRoute() {
   assertExists(user)
 
   const { stremio, nuvioUrl } = useIntegrationDomain({
-    token: user.token,
+    apiKey: user.apiKey,
   })
 
   const { handleCopy } = useCopy()
@@ -50,6 +51,9 @@ function UserRoute() {
         </div>
         <div className="break-inside-avoid mb-4">
           <TokenRegenerate onSubmit={handleRegenerateToken} />
+        </div>
+        <div className="break-inside-avoid mb-4">
+          <MaxConcurrentStreams user={user} />
         </div>
       </div>
       <Separator />

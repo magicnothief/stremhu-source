@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { Edit2Icon } from 'lucide-react'
+import { useQuery, useSuspenseQueries } from '@tanstack/react-query'
+import { SettingsIcon } from 'lucide-react'
 
 import { useDialogs } from '@/routes/-features/dialogs/dialogs-store'
 import { Button } from '@/shared/components/ui/button'
@@ -17,9 +17,11 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
-import { assertExists } from '@/shared/lib/utils'
+import { Separator } from '@/shared/components/ui/separator'
+import { formatDateTime } from '@/shared/lib/utils'
 import { getHealth } from '@/shared/queries/app'
-import { getMetadata } from '@/shared/queries/metadata'
+import { getNetworkSettings } from '@/shared/queries/network'
+import { getSystemStatus } from '@/shared/queries/system'
 
 const networkCheckMap = {
   idle: {
@@ -39,26 +41,59 @@ const networkCheckMap = {
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const { data: metadata } = useQuery(getMetadata)
-  assertExists(metadata)
+  const [{ data: systemStatus }, { data: networkSettings }] =
+    useSuspenseQueries({
+      queries: [getSystemStatus, getNetworkSettings],
+    })
 
-  const { status: healthStatus } = useQuery(getHealth(metadata.endpoint))
+  const { status: healthStatus } = useQuery(getHealth(systemStatus.appUrl))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Elérési adatok</CardTitle>
+        <CardTitle>Elérési beállítások</CardTitle>
         <CardDescription>
-          Itt láthatod, milyen címen éri el a Stremio a StremHU Source-ot, és
-          hogy a kapcsolat rendben van-e.
+          A kliensek elvárják a biztonságos domain alapú SSL tanúsítvánnyal
+          rendelkező elérést.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="grid gap-4">
+        <div className="grid gap-2">
+          <Item variant="default" className="p-0">
+            <ItemContent>
+              <ItemTitle>{networkCheckMap[healthStatus].title}</ItemTitle>
+              <ItemDescription className="font-bold font-mono break-all">
+                {systemStatus.appUrl}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+          {networkSettings.mode === 'auto' && (
+            <>
+              <Item variant="default" className="p-0">
+                <ItemContent>
+                  <ItemTitle>Tanúsítvány lejárata / frissítése</ItemTitle>
+                  <ItemDescription className="font-bold font-mono break-all">
+                    {formatDateTime(networkSettings.expiresAt)}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+              <Item variant="default" className="p-0">
+                <ItemContent>
+                  <ItemTitle>Utolsó IP szinkronizáció</ItemTitle>
+                  <ItemDescription className="font-bold font-mono break-all">
+                    {formatDateTime(networkSettings.lastIpSyncAt)}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+            </>
+          )}
+        </div>
+        <Separator />
         <Item variant="default" className="p-0">
           <ItemContent>
-            <ItemTitle>{networkCheckMap[healthStatus].title}</ItemTitle>
-            <ItemDescription className="font-bold font-mono break-all">
-              {metadata.endpoint}
+            <ItemTitle>Konfiguráció</ItemTitle>
+            <ItemDescription>
+              Elérési beállítások módosítása, konfigurálása.
             </ItemDescription>
           </ItemContent>
           <ItemActions>
@@ -67,7 +102,7 @@ export function NetworkAccessInfo() {
               className="rounded-full"
               onClick={() => dialogs.openDialog({ type: 'NETWORK_ACCESS' })}
             >
-              <Edit2Icon />
+              <SettingsIcon />
             </Button>
           </ItemActions>
         </Item>

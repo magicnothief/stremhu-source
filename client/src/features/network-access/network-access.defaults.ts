@@ -1,6 +1,5 @@
-import type { NetworkAccessDefaultValues } from './network-access.types'
+import type { NetworkAccessFormValues } from './network-access.schema'
 
-export const networkAccessDefaultValues: NetworkAccessDefaultValues = {
-  enebledlocalIp: false,
-  address: '',
+export const networkAccessDefaultValues: NetworkAccessFormValues = {
+  mode: 'none',
 }

@@ -1,4 +1,4 @@
-import { useQueries } from '@tanstack/react-query'
+import { useSuspenseQueries } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 import {
@@ -9,8 +9,6 @@ import {
   CardTitle,
 } from '@/shared/components/ui/card'
 import { Separator } from '@/shared/components/ui/separator'
-import { assertExists } from '@/shared/lib/utils'
-import { getRelaySettings } from '@/shared/queries/relay'
 import { getTorrents } from '@/shared/queries/torrents'
 
 import { Torrents } from './-features/torrents'
@@ -21,11 +19,9 @@ export const Route = createFileRoute('/_protected/relay/torrents/')({
 })
 
 function RouteComponent() {
-  const [{ data: relay }, { data: torrents }] = useQueries({
-    queries: [getRelaySettings, getTorrents],
+  const [{ data: torrents }] = useSuspenseQueries({
+    queries: [getTorrents],
   })
-  assertExists(relay)
-  assertExists(torrents)
 
   return (
     <Card>

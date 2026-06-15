@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { CircleCheckBigIcon, InfoIcon } from 'lucide-react'
 
 import {
@@ -6,14 +6,12 @@ import {
   AlertDescription,
   AlertTitle,
 } from '@/shared/components/ui/alert'
-import { assertExists } from '@/shared/lib/utils'
 import { getTorrents } from '@/shared/queries/torrents'
 
 import { Torrent } from '../-components/torrent'
 
 export function Torrents() {
-  const { data: torrents } = useQuery(getTorrents)
-  assertExists(torrents)
+  const { data: torrents } = useSuspenseQuery(getTorrents)
 
   if (torrents.length === 0) {
     return (

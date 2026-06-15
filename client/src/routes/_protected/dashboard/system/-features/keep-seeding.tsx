@@ -1,9 +1,13 @@
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import { BrushCleaningIcon } from 'lucide-react'
+import type { MouseEventHandler } from 'react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { useConfirmDialog } from '@/features/confirm/use-confirm-dialog'
+import { Button } from '@/shared/components/ui/button'
 import {
   Card,
   CardContent,
@@ -18,10 +22,22 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/shared/components/ui/input-group'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from '@/shared/components/ui/item'
 import { Label } from '@/shared/components/ui/label'
+import { Separator } from '@/shared/components/ui/separator'
 import { Switch } from '@/shared/components/ui/switch'
-import { assertExists, parseApiError } from '@/shared/lib/utils'
-import { getSettings, useUpdateSetting } from '@/shared/queries/settings'
+import { parseApiError } from '@/shared/lib/utils'
+import {
+  getSystemSettings,
+  useSystemIndexersCleanup,
+  useSystemSettingsUpdate,
+} from '@/shared/queries/system'
 
 const schema = z.object({
   hitAndRun: z.boolean(),
@@ -32,23 +48,25 @@ const schema = z.object({
 })
 
 export function KeepSeeding() {
-  const { data: setting } = useQuery(getSettings)
-  assertExists(setting)
+  const { data: systemSetting } = useSuspenseQuery(getSystemSettings)
 
-  const { mutateAsync: updateSetting } = useUpdateSetting()
+  const confirmDialog = useConfirmDialog()
+
+  const { mutateAsync: updateSetting } = useSystemSettingsUpdate()
+  const { mutateAsync: cleanupIndexers } = useSystemIndexersCleanup()
 
   const keepSeedDays = useMemo(() => {
-    if (setting.keepSeedSeconds > 0) {
-      const days = setting.keepSeedSeconds / (24 * 60 * 60)
+    if (systemSetting.keepSeedSeconds > 0) {
+      const days = systemSetting.keepSeedSeconds / (24 * 60 * 60)
       return `${days}`
     }
 
     return null
-  }, [setting.keepSeedSeconds])
+  }, [systemSetting.keepSeedSeconds])
 
   const form = useForm({
     defaultValues: {
-      hitAndRun: setting.hitAndRun,
+      hitAndRun: systemSetting.hitAndRun,
       keepSeed: keepSeedDays,
     },
     validators: {
@@ -82,6 +100,27 @@ export function KeepSeeding() {
       }
     },
   })
+
+  const handleCleanup: MouseEventHandler<HTMLButtonElement> = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    await confirmDialog.confirm({
+      title: 'Biztos letuttatod a manuális ellenőrzést?',
+      description:
+        'A futtatás ellenére a hajnalban időzített futtatás is le fog futni.',
+      onConfirm: async () => {
+        try {
+          await cleanupIndexers()
+          toast.success('A manuális ellenőrzés sikeresen lefutott.')
+        } catch (error) {
+          const message = parseApiError(error)
+          toast.error(message)
+          throw error
+        }
+      },
+    })
+  }
 
   return (
     <Card>
@@ -165,6 +204,25 @@ export function KeepSeeding() {
             )}
           </form.Field>
         </div>
+        <Separator />
+        <Item variant="default" className="p-0">
+          <ItemContent>
+            <ItemTitle>Torrentek ellenőrzése</ItemTitle>
+            <ItemDescription>
+              Torrentek ellenőrzésének indítása!
+            </ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Button
+              size="icon-sm"
+              variant="destructive"
+              className="rounded-full"
+              onClick={handleCleanup}
+            >
+              <BrushCleaningIcon />
+            </Button>
+          </ItemActions>
+        </Item>
       </CardContent>
     </Card>
   )

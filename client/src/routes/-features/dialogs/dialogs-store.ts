@@ -2,14 +2,13 @@ import { v4 as uuidv4 } from 'uuid'
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
 
-import type { AddTrackerDialog } from '@/features/add-tracker/add-tracker.types'
+import type { AddIndexerDialog } from '@/features/add-indexer/add-indexer.types'
 import type { AddUserDialog } from '@/features/add-user/add-user.types'
 import type { ChangePasswordDialog } from '@/features/change-password/change-password.types'
 import type { ChangeUsernameDialog } from '@/features/change-username/change-username.types'
 import type { ConfirmDialog } from '@/features/confirm/confirm.types'
-import type { EditTrackerDialog } from '@/features/edit-tracker/edit-tracker.type'
+import type { EditIndexerDialog } from '@/features/edit-indexer/edit-indexer.type'
 import type { NetworkAccessDialog } from '@/features/network-access/network-access.types'
-import type { StremhuCatalogDialog } from '@/features/stremhu-catalog/types'
 
 type BaseOpenDialog = {
   onClose?: () => void
@@ -18,13 +17,12 @@ type BaseOpenDialog = {
 export type OpenDialog = BaseOpenDialog &
   (
     | ConfirmDialog
-    | AddTrackerDialog
+    | AddIndexerDialog
     | ChangeUsernameDialog
     | ChangePasswordDialog
     | AddUserDialog
     | NetworkAccessDialog
-    | StremhuCatalogDialog
-    | EditTrackerDialog
+    | EditIndexerDialog
   )
 
 type BaseDialogContent = {

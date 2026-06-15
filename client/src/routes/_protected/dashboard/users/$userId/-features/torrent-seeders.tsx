@@ -12,23 +12,23 @@ import {
 import { Label } from '@/shared/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group'
 import { SEED_OPTIONS } from '@/shared/constants'
-import type { UserDto } from '@/shared/lib/source/source-client'
+import type { UserResponse } from '@/shared/lib/source/source-client'
 import { parseApiError } from '@/shared/lib/utils'
-import { useUpdateUser } from '@/shared/queries/users'
+import { useUserUpdate } from '@/shared/queries/users'
 import { torrentSeedSchema } from '@/shared/schemas'
 
 const validatorSchema = z.object({
   torrentSeed: torrentSeedSchema,
 })
 
-type TorrentSeeders = {
-  user: UserDto
+type TorrentSeedersProps = {
+  user: UserResponse
 }
 
-export function TorrentSeeders(props: TorrentSeeders) {
+export function TorrentSeeders(props: TorrentSeedersProps) {
   const { user } = props
 
-  const { mutateAsync: updateUser } = useUpdateUser()
+  const { mutateAsync: updateUser } = useUserUpdate()
 
   const form = useForm({
     defaultValues: {

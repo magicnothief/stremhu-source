@@ -16,10 +16,12 @@ import {
   InputGroupInput,
 } from '@/shared/components/ui/input-group'
 import { useCopy } from '@/shared/hooks/use-copy'
-import { getMetadata } from '@/shared/queries/metadata'
+import { getSystemStatus } from '@/shared/queries/system'
 
 export function KodiIntegration() {
-  const [{ data: metadata }] = useSuspenseQueries({ queries: [getMetadata] })
+  const [{ data: systemStatus }] = useSuspenseQueries({
+    queries: [getSystemStatus],
+  })
 
   const { handleCopy } = useCopy()
 
@@ -40,12 +42,12 @@ export function KodiIntegration() {
         </p>
         <Field className="max-w-sm">
           <InputGroup>
-            <InputGroupInput value={metadata.endpoint} />
+            <InputGroupInput value={systemStatus.appUrl} />
             <InputGroupAddon align="inline-start">
               <LinkIcon />
             </InputGroupAddon>
             <InputGroupAddon align="inline-end">
-              <InputGroupButton onClick={() => handleCopy(metadata.endpoint)}>
+              <InputGroupButton onClick={() => handleCopy(systemStatus.appUrl)}>
                 <CopyIcon />
               </InputGroupButton>
             </InputGroupAddon>

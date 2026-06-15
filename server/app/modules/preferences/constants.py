@@ -1,0 +1,11 @@
+class PreferenceKey:
+    SITE = "site"
+    LANGUAGE = "language"
+    RESOLUTION = "resolution"
+    VIDEO_QUALITY = "video-quality"
+    VIDEO_CODEC = "video-codec"
+    SOURCE = "source"
+    AUDIO_QUALITY = "audio-quality"
+    AUDIO_CHANNELS = "audio-channels"
+    AUDIO_SPATIAL = "audio-spatial"
+    EDITION = "edition"

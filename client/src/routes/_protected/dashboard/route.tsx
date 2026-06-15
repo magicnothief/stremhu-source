@@ -6,6 +6,7 @@ import { assertExists } from '@/shared/lib/utils'
 import { getMe } from '@/shared/queries/me'
 
 import { RouteBreadcrumb } from './-components/route-breadcrumb'
+import { DASHBOARD_PLAYBACKS_NAME } from './playbacks/route'
 import { DASHBOARD_SYSTEM_NAME } from './system/route'
 import { DASHBOARD_USERS_NAME } from './users/route'
 
@@ -17,7 +18,7 @@ export const Route = createFileRoute('/_protected/dashboard')({
 })
 
 function SettingsLayout() {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
   assertExists(me)
 
   return (
@@ -39,6 +40,14 @@ function SettingsLayout() {
               activeProps={{ className: 'bg-background' }}
             >
               {DASHBOARD_USERS_NAME}
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link
+              to="/dashboard/playbacks"
+              activeProps={{ className: 'bg-background' }}
+            >
+              {DASHBOARD_PLAYBACKS_NAME}
             </Link>
           </Button>
         </div>

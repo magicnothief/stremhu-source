@@ -20,7 +20,7 @@ export const Route = createFileRoute('/login/')({
   beforeLoad: async ({ context }) => {
     const queryClient = context.queryClient
 
-    const me = await queryClient.ensureQueryData(getMe)
+    const me = await queryClient.ensureQueryData(getMe())
 
     if (me !== null) {
       throw redirect({ to: '/' })

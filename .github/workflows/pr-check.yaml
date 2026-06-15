@@ -2,24 +2,23 @@ name: PR Check
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
       - "client/**"
       - "server/**"
-      - "relay/**"
       - ".github/workflows/**"
 
 jobs:
   server:
     name: Server
-    uses: ./.github/workflows/reusable-test-and-build.yaml
+    uses: ./.github/workflows/reusable-server-test-build.yaml
     with:
       working-directory: ./server
     secrets: inherit
 
   client:
     name: Client
-    uses: ./.github/workflows/reusable-test-and-build.yaml
+    uses: ./.github/workflows/reusable-client-test-build.yaml
     with:
       working-directory: ./client
     secrets: inherit

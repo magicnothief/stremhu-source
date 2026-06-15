@@ -9,10 +9,8 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { useQuery } from '@tanstack/react-query'
 import type { LinkProps } from '@tanstack/react-router'
 import { Link } from '@tanstack/react-router'
-import { sortBy } from 'lodash'
 import { GrabIcon, PlusIcon, SearchIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
@@ -29,71 +27,49 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/components/ui/card'
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from '@/shared/components/ui/item'
+import { ItemMedia } from '@/shared/components/ui/item'
 import { Separator } from '@/shared/components/ui/separator'
-import type { PreferenceEnum } from '@/shared/lib/source/source-client'
-import { getMetadata } from '@/shared/queries/metadata'
-import type { PreferenceDto } from '@/shared/type/preference.dto'
+import type { PreferenceResponse } from '@/shared/lib/source/source-client'
 
 type PreferencesSectionProps = {
-  preferences: PreferenceDto[]
+  preferences: PreferenceResponse[]
+  currentPreferences: PreferenceResponse[]
   toCreateLink: LinkProps
-  renderPreference: (preference: PreferenceDto) => ReactNode
-  onReorder: (preferences: PreferenceEnum[]) => Promise<void>
+  renderPreference: (preference: PreferenceResponse) => ReactNode
+  onReorder: (preferenceIds: string[]) => Promise<void>
 }
 
 export function PreferencesSection(props: PreferencesSectionProps) {
-  const { data: metadata } = useQuery(getMetadata)
-  if (!metadata) throw new Error(`Nincs "metadata" a cache-ben`)
-
-  const { preferences, toCreateLink, renderPreference, onReorder } = props
+  const {
+    preferences,
+    currentPreferences,
+    toCreateLink,
+    renderPreference,
+    onReorder,
+  } = props
 
   const disableCreatePreference = useMemo(() => {
-    return metadata.preferences.length === preferences.length
-  }, [metadata.preferences, preferences])
+    return currentPreferences.length === preferences.length
+  }, [currentPreferences.length, preferences.length])
 
-  const preferredPreferences = useMemo(
-    () =>
-      sortBy(
-        preferences.filter((preference) => preference.preferred.length > 0),
-        'order',
-      ),
-    [preferences],
-  )
-  const blockedPreferences = useMemo(
-    () =>
-      preferences.filter(
-        (preference) =>
-          preference.blocked.length !== 0 && preference.preferred.length === 0,
-      ),
-    [preferences],
-  )
-
-  const [items, setItems] = useState(preferredPreferences)
+  const [items, setItems] = useState(currentPreferences)
 
   useEffect(() => {
-    setItems(preferredPreferences)
-  }, [preferredPreferences])
+    setItems(currentPreferences)
+  }, [currentPreferences])
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { over, active } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = items.findIndex((item) => item.preference === active.id)
-    const newIndex = items.findIndex((item) => item.preference === over.id)
+    const oldIndex = items.findIndex((item) => item.id === active.id)
+    const newIndex = items.findIndex((item) => item.id === over.id)
     if (oldIndex === -1 || newIndex === -1) return
 
     const reordered = arrayMove(items, oldIndex, newIndex)
     setItems(reordered)
 
-    await onReorder(reordered.map((item) => item.preference))
+    await onReorder(reordered.map((item) => item.id))
   }
 
   return (
@@ -101,56 +77,40 @@ export function PreferencesSection(props: PreferencesSectionProps) {
       <CardHeader>
         <CardTitle>{SETTINGS_PREFERENCES_NAME}</CardTitle>
         <CardDescription>
-          Testreszabhatod, milyen torrentek kerüljenek előre a listában, és mit
-          szeretnél kizárni. A preferált tulajdonságok a sorrendet javítják, a
-          kizárások pedig kiszűrik a nem kívánt találatokat.
+          Testreszabhatod, milyen torrentek kerüljenek előre a listában. A
+          preferált tulajdonságok befolyásolják a sorrendet.
         </CardDescription>
-        {!disableCreatePreference && (
-          <CardAction>
+        <CardAction className="flex items-center gap-2">
+          <ItemMedia variant="icon" className="rounded-full">
+            <GrabIcon />
+          </ItemMedia>
+          {!disableCreatePreference && (
             <Button asChild size="icon-sm" className="rounded-full">
               <Link {...toCreateLink}>
                 <PlusIcon />
               </Link>
             </Button>
-          </CardAction>
-        )}
+          )}
+        </CardAction>
       </CardHeader>
       <Separator />
       <CardContent className="grid gap-8">
-        <div className="grid gap-4">
-          <Item className="p-0">
-            <ItemContent>
-              <ItemTitle>Preferencia sorrend</ItemTitle>
-              <ItemDescription>
-                Preferált tulajdonsággal rendelkező szabályok esetén módosítható
-                azok súlyozása a sorrend módosításával.
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <ItemMedia variant="icon" className="rounded-full">
-                <GrabIcon />
-              </ItemMedia>
-            </ItemActions>
-          </Item>
-        </div>
         <DndContext
           onDragEnd={handleDragEnd}
           modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
         >
           <div className="grid gap-3">
             <SortableContext
-              items={items.map(
-                (preferredPreference) => preferredPreference.preference,
-              )}
+              items={items.map((preferredPreference) => preferredPreference.id)}
               strategy={verticalListSortingStrategy}
             >
               {items.map((preference) => (
                 <SortableWrapper
-                  key={preference.preference}
+                  key={preference.id}
                   item={preference}
-                  resolveId={(i) => i.preference}
+                  resolveId={(i) => i.id}
                 >
-                  <Fragment key={preference.preference}>
+                  <Fragment key={preference.id}>
                     {renderPreference(preference)}
                   </Fragment>
                 </SortableWrapper>
@@ -166,32 +126,6 @@ export function PreferencesSection(props: PreferencesSectionProps) {
             )}
           </div>
         </DndContext>
-        <Separator />
-        <div className="grid gap-4">
-          <Item className="p-0">
-            <ItemContent>
-              <ItemTitle>Csak kizárásra használt szabályok</ItemTitle>
-              <ItemDescription>
-                Itt olyan beállítások vannak, ahol nincs preferált érték - csak
-                azt mondod meg, mit ne mutasson. Emiatt nem részei a preferencia
-                sorrendnek.
-              </ItemDescription>
-            </ItemContent>
-          </Item>
-          <div className="grid gap-3">
-            {blockedPreferences.map((preference) => (
-              <Fragment key={preference.preference}>
-                {renderPreference(preference)}
-              </Fragment>
-            ))}
-            {blockedPreferences.length === 0 && (
-              <Alert>
-                <SearchIcon />
-                <AlertTitle>Nincs kitiltásra használt szabály.</AlertTitle>
-              </Alert>
-            )}
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

@@ -21,7 +21,7 @@ import { useIsAdmin } from '@/shared/hooks/use-is-admin'
 import { getMe } from '@/shared/queries/me'
 
 export function UserNavigation() {
-  const { data: me } = useQuery(getMe)
+  const { data: me } = useQuery(getMe())
 
   const { isAdmin } = useIsAdmin()
 
