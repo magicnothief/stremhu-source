@@ -21,28 +21,21 @@ RUN apt-get update && apt-get upgrade -y && \
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt ./
+COPY server/requirements.txt ./
 
 RUN python -m venv /opt/venv && \
   /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
 
-# Copy client build to server/client so that SPAStaticFiles can find it
-COPY --from=node-build /app/client/dist ./server/client
+COPY --from=node-build /app/client/dist ./client
 
-# Copy server code
-COPY server ./server
-
-# Environment setup
-ENV NODE_ENV=production
+COPY server ./
+ENV NODE_ENV=prod
 ENV VERSION=${APP_VERSION}
 ENV PATH="/opt/venv/bin:${PATH}"
 ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_DIR=/etc/ssl/certs
 
-WORKDIR /app/server
-
 EXPOSE 7070/tcp
 EXPOSE 6881/tcp 6881/udp
 
-CMD ["python", "run.py"]
+CMD ["python", "-m", "app.run"]
