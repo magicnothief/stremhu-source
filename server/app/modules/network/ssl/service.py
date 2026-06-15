@@ -188,17 +188,23 @@ class SslService:
         )
 
         # Regisztráció / Bejelentkezés
+        new_registration = messages.NewRegistration.from_data(
+            email=payload.email,
+            terms_of_service_agreed=True,
+        )
         try:
-            acme_client.new_account(
-                messages.NewRegistration.from_data(
-                    email=payload.email,
-                    terms_of_service_agreed=True,
+            registration = acme_client.new_account(new_registration)
+        except acme_errors.ConflictError as e:
+            registration = acme_client.query_registration(
+                messages.RegistrationResource(
+                    uri=e.location,
+                    body=messages.Registration(),
                 )
             )
-        except acme_errors.ConflictError:
-            pass
         except Exception as e:
             raise ValueError(f"Hiba történt az ACME fiók igénylése során: {e}") from e
+
+        acme_client.net.account = registration
 
         # CSR (Certificate Signing Request) generálása a host-hoz
         cert_private_key = rsa.generate_private_key(

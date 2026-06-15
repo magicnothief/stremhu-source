@@ -30,6 +30,7 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
+import { Separator } from '@/shared/components/ui/separator'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
 import {
   getSystemSettings,
@@ -127,7 +128,7 @@ export function TorrentFilesCache() {
           Add meg, mennyi idő után törlődjenek a nem használt torrent fájlok
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="grid gap-6">
         <form.Field name="cacheRetention">
           {(field) => (
             <Field>
@@ -159,6 +160,7 @@ export function TorrentFilesCache() {
             </Field>
           )}
         </form.Field>
+        <Separator />
         <Item variant="default" className="p-0">
           <ItemContent>
             <ItemTitle>Cache ürítése</ItemTitle>

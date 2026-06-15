@@ -9,4 +9,7 @@ class DDNSProviderResponse(BaseModel):
     )
 
     id: str
+
     name: str
+
+    website_url: str

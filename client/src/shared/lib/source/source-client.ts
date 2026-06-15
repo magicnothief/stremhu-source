@@ -35,6 +35,7 @@ export const ContentType = {
 export interface DDNSProviderResponse {
   id: string
   name: string
+  websiteUrl: string
 }
 
 export type ExtraName = (typeof ExtraName)[keyof typeof ExtraName]

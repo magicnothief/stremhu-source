@@ -33,6 +33,10 @@ _CATEGORY_URL_PREFIX = "/torrents/?action=search&categories[]="
 
 class MajomparadeIndexerDefinition(BaseIndexerDefinition):
     @property
+    def disabled(self) -> bool:
+        return True
+
+    @property
     def id(self) -> str:
         return "majomparade"
 

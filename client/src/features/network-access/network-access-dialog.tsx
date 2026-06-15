@@ -22,7 +22,11 @@ export function NetworkAccessDialog(
 ) {
   const dialogsStore = useDialogsStore()
 
-  const form = useNetworkAccessForm()
+  const form = useNetworkAccessForm({
+    onSuccess: () => {
+      dialogsStore.closeDialog(dialog.id)
+    },
+  })
 
   const handleSubmit: SubmitEventHandler<HTMLFormElement> = async (e) => {
     e.preventDefault()
@@ -57,11 +61,20 @@ export function NetworkAccessDialog(
               <form.SubscribeButton variant="outline" onClick={handleClose}>
                 Mégsem
               </form.SubscribeButton>
-              <form.Subscribe selector={(state) => [state.values.mode]}>
-                {([mode]) => {
+              <form.Subscribe
+                selector={(state) => ({
+                  mode: state.values.mode,
+                  isSubmitting: state.isSubmitting,
+                })}
+              >
+                {({ mode, isSubmitting }) => {
                   if (mode === 'none') return null
 
-                  return <Button type="submit">Alkalmazás</Button>
+                  return (
+                    <Button type="submit" disabled={isSubmitting}>
+                      Alkalmazás
+                    </Button>
+                  )
                 }}
               </form.Subscribe>
             </DialogFooter>

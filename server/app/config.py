@@ -8,7 +8,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class NodeEnv(str, Enum):
     DEV = "dev"
-    BETA = "beta"
     PROD = "prod"
 
 
@@ -22,14 +21,12 @@ class Config(BaseSettings):
         extra="ignore",
     )
 
-    # General App Settings
     node_env: NodeEnv = NodeEnv.PROD
     version: str = "0.0.0"
-    description: str = "Torrentalapú streaming magyar trackeroldalakra építve."
+    description: str = "Torrentalapú streaming magyar torrentoldalakra építve."
     session_secret: str = "stremhu-source"
     host_ip: str = Field(default="", min_length=1)
 
-    # Server Ports
     port: int = 7070
 
     @property
@@ -37,12 +34,20 @@ class Config(BaseSettings):
         return 6881
 
     @property
-    def database_url(self) -> str:
-        return f"sqlite:///{self.system_dir}/stremhu.db"
+    def root_dir(self) -> Path:
+        return Path(__file__).resolve().parent.parent
 
     @property
     def base_data_dir(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "data"
+        return self.root_dir / "data"
+
+    @property
+    def openapi_dir(self) -> Path:
+        return self.root_dir / "openapi"
+
+    @property
+    def client_path(self) -> Path:
+        return self.root_dir / "client"
 
     @property
     def downloads_dir(self) -> Path:
@@ -53,18 +58,14 @@ class Config(BaseSettings):
         return self.base_data_dir / "system"
 
     @property
+    def database_url(self) -> str:
+        return f"sqlite:///{self.system_dir}/database/app.db"
+
+    @property
     def certificates_dir(self) -> Path:
         return self.system_dir / "certificates"
 
     acme_directory_url: str = "https://acme-v02.api.letsencrypt.org/directory"
-
-    @property
-    def openapi_dir(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "openapi"
-
-    @property
-    def client_path(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "client"
 
     @field_validator("host_ip")
     @classmethod

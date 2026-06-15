@@ -32,12 +32,12 @@ _CATEGORY_MAP: dict[str, str] = {
 
 class FilelistIndexerDefinition(BaseIndexerDefinition):
     @property
-    def id(self) -> str:
-        return "filelist"
-
-    @property
     def disabled(self) -> bool:
         return True
+
+    @property
+    def id(self) -> str:
+        return "filelist"
 
     @property
     def name(self) -> str:

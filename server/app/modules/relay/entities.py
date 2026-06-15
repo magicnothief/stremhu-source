@@ -4,7 +4,6 @@ import asyncio
 import math
 from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Annotated
 from uuid import uuid4
 
 import content_types
@@ -45,13 +44,10 @@ class Torrent:
         self._active_deadlines: list[int] = []
 
         for file_info in torrent_info.files:
-            Annotated[
-                self.files[file_info.index],
-                File(
-                    file_info=file_info,
-                    torrent=self,
-                ),
-            ]
+            self.files[file_info.index] = File(
+                file_info=file_info,
+                torrent=self,
+            )
 
     def priority_manager(self):
         try:

@@ -32,6 +32,10 @@ class BithumenIndexerDefinition(BaseIndexerDefinition):
         self._cached_user_id: str | None = None
 
     @property
+    def disabled(self) -> bool:
+        return True
+
+    @property
     def id(self) -> str:
         return "bithumen"
 

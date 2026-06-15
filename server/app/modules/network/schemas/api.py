@@ -44,4 +44,5 @@ class NetworkSetupResponse(BaseModel):
     )
 
     app_url: str
+
     message: str

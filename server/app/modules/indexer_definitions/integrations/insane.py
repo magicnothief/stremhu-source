@@ -37,6 +37,10 @@ _CATEGORY_MAP: dict[str, str] = {
 
 class InsaneIndexerDefinition(BaseIndexerDefinition):
     @property
+    def disabled(self) -> bool:
+        return True
+
+    @property
     def id(self) -> str:
         return "insane"
 

@@ -9,7 +9,13 @@ import { getNetworkSettings, useNetworkConfig } from '@/shared/queries/network'
 import type { NetworkAccessFormValues } from './network-access.schema'
 import { networkAccessSchema } from './network-access.schema'
 
-export function useNetworkAccessForm() {
+type UseNetworkAccessFormProps = {
+  onSuccess?: () => void
+}
+
+export function useNetworkAccessForm(props: UseNetworkAccessFormProps = {}) {
+  const { onSuccess } = props
+
   const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
   const { mutateAsync: configNetwork } = useNetworkConfig()
 
@@ -56,6 +62,8 @@ export function useNetworkAccessForm() {
             duration: Infinity,
           },
         )
+
+        onSuccess?.()
       } catch (error) {
         const message = parseApiError(error)
         toast.error(message)

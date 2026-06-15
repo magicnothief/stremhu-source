@@ -1,3 +1,5 @@
+import re
+
 from app.config import NodeEnv, config
 from app.modules.settings.service import SettingsService
 from app.modules.stremio.constants import (
@@ -36,8 +38,15 @@ class StremioService:
 
         addon_id = "hu.stremhu-source.addon"
         name = "StremHU Source"
+        version = config.version
+
+        if not re.match(r"^\d+\.\d+\.\d+(?:-[a-zA-Z0-9.]+)?$", version):
+            version = "0.0.0"
+            addon_id = f"{addon_id}.beta"
+            name = f"{name} (Beta)"
 
         if config.node_env != NodeEnv.PROD:
+            version = "0.0.0"
             addon_id = f"{addon_id}.dev"
             name = f"{name} (DEV)"
 

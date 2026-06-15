@@ -1,4 +1,4 @@
-import { useSuspenseQueries } from '@tanstack/react-query'
+import { useQuery, useSuspenseQueries } from '@tanstack/react-query'
 import { SettingsIcon } from 'lucide-react'
 
 import { useDialogs } from '@/routes/-features/dialogs/dialogs-store'
@@ -17,14 +17,36 @@ import {
   ItemDescription,
   ItemTitle,
 } from '@/shared/components/ui/item'
+import { Separator } from '@/shared/components/ui/separator'
+import { formatDateTime } from '@/shared/lib/utils'
+import { getHealth } from '@/shared/queries/app'
+import { getNetworkSettings } from '@/shared/queries/network'
 import { getSystemStatus } from '@/shared/queries/system'
+
+const networkCheckMap = {
+  idle: {
+    title: '🔎 Elérés ellenőrzése...',
+  },
+  pending: {
+    title: '🔎 Elérés ellenőrzése...',
+  },
+  success: {
+    title: '🟢 Elérés rendben',
+  },
+  error: {
+    title: '🔴 Nem érhető el a megadott címen',
+  },
+}
 
 export function NetworkAccessInfo() {
   const dialogs = useDialogs()
 
-  const [{ data: systemStatus }] = useSuspenseQueries({
-    queries: [getSystemStatus],
-  })
+  const [{ data: systemStatus }, { data: networkSettings }] =
+    useSuspenseQueries({
+      queries: [getSystemStatus, getNetworkSettings],
+    })
+
+  const { status: healthStatus } = useQuery(getHealth(systemStatus.appUrl))
 
   return (
     <Card>
@@ -35,15 +57,38 @@ export function NetworkAccessInfo() {
           rendelkező elérést.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6">
-        <Item variant="default" className="p-0">
-          <ItemContent>
-            <ItemTitle>Konfigurált domain</ItemTitle>
-            <ItemDescription className="font-bold font-mono break-all">
-              {systemStatus.appUrl}
-            </ItemDescription>
-          </ItemContent>
-        </Item>
+      <CardContent className="grid gap-4">
+        <div className="grid gap-2">
+          <Item variant="default" className="p-0">
+            <ItemContent>
+              <ItemTitle>{networkCheckMap[healthStatus].title}</ItemTitle>
+              <ItemDescription className="font-bold font-mono break-all">
+                {systemStatus.appUrl}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+          {networkSettings.mode === 'auto' && (
+            <>
+              <Item variant="default" className="p-0">
+                <ItemContent>
+                  <ItemTitle>Tanúsítvány lejárata / frissítése</ItemTitle>
+                  <ItemDescription className="font-bold font-mono break-all">
+                    {formatDateTime(networkSettings.expiresAt)}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+              <Item variant="default" className="p-0">
+                <ItemContent>
+                  <ItemTitle>Utolsó IP szinkronizáció</ItemTitle>
+                  <ItemDescription className="font-bold font-mono break-all">
+                    {formatDateTime(networkSettings.lastIpSyncAt)}
+                  </ItemDescription>
+                </ItemContent>
+              </Item>
+            </>
+          )}
+        </div>
+        <Separator />
         <Item variant="default" className="p-0">
           <ItemContent>
             <ItemTitle>Konfiguráció</ItemTitle>

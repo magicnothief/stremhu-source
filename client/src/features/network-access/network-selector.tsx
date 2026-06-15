@@ -80,7 +80,7 @@ export const NetworkSelector = withForm({
           mode: 'auto',
           providerId: provider.id,
           name: provider.name,
-          description: provider.name,
+          description: `Látogass el a ${provider.websiteUrl} oldalra és használd a ${provider.name}-t regisztrációt követően.`,
         }
       })
 

@@ -1,9 +1,11 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
+import { BrushCleaningIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { Button } from '@/shared/components/ui/button'
 import {
   Card,
   CardContent,
@@ -18,7 +20,15 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/shared/components/ui/input-group'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from '@/shared/components/ui/item'
 import { Label } from '@/shared/components/ui/label'
+import { Separator } from '@/shared/components/ui/separator'
 import { Switch } from '@/shared/components/ui/switch'
 import { assertExists, parseApiError } from '@/shared/lib/utils'
 import {
@@ -168,6 +178,25 @@ export function KeepSeeding() {
             )}
           </form.Field>
         </div>
+        <Separator />
+        <Item variant="default" className="p-0">
+          <ItemContent>
+            <ItemTitle>Torrentek ellenőrzése</ItemTitle>
+            <ItemDescription>
+              Torrentek ellenőrzésének indítása!
+            </ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            <Button
+              size="icon-sm"
+              variant="destructive"
+              className="rounded-full"
+              onClick={() => {}}
+            >
+              <BrushCleaningIcon />
+            </Button>
+          </ItemActions>
+        </Item>
       </CardContent>
     </Card>
   )
