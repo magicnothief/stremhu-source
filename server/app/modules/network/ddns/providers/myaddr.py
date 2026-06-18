@@ -18,6 +18,10 @@ class MyAddrProvider(BaseDDNSProvider):
     def website_url(self) -> str:
         return "https://myaddr.tools"
 
+    @property
+    def domain_regex(self) -> str:
+        return r"^[a-zA-Z0-9-]+\.myaddr\.(tools|dev|io)$"
+
     async def update(self, payload: DDNSIpUpdate | DDNSTxtUpdate) -> None:
         params = {"key": payload.provider_token}
 
