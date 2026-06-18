@@ -13,3 +13,5 @@ class DDNSProviderResponse(BaseModel):
     name: str
 
     website_url: str
+
+    domain_regex: str

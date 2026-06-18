@@ -18,6 +18,10 @@ class DuckDnsProvider(BaseDDNSProvider):
     def website_url(self) -> str:
         return "https://www.duckdns.org"
 
+    @property
+    def domain_regex(self) -> str:
+        return r"^[a-zA-Z0-9-]+\.duckdns\.org$"
+
     async def update(self, payload: DDNSIpUpdate | DDNSTxtUpdate) -> None:
         params = {
             "domains": payload.host,

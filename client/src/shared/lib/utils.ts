@@ -14,7 +14,7 @@ export function parseApiError(error: unknown): string {
   const errorMessage: string | string[] = get(error, [
     'response',
     'data',
-    'message',
+    'detail',
   ])
 
   if (errorMessage) {

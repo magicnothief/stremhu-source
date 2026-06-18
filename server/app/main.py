@@ -13,6 +13,7 @@ from app.api import api_router
 from app.common.logger import logger
 from app.common.spa_static_files import SPAStaticFiles
 from app.config import NodeEnv, config
+from app.exceptions import setup_exception_handlers
 from app.modules.indexer_definitions.dependencies import get_indexer_definitions_service
 from app.modules.relay.background_tasks import alert_loop, resume_save_loop
 from app.modules.relay.dependencies import get_relay_service
@@ -28,16 +29,18 @@ setproctitle("stremhu-source")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if config.node_env == NodeEnv.PROD:
+    is_dev = config.node_env == NodeEnv.DEV
+
+    if is_dev:
+        config.openapi_dir.mkdir(parents=True, exist_ok=True)
+        with (config.openapi_dir / "openapi.json").open("w", encoding="utf-8") as f:
+            json.dump(app.openapi(), f, indent=2, ensure_ascii=False)
+    else:
         for route in app.routes:
             if isinstance(route, APIRoute):
                 is_external = pydash.get(route, "openapi_extra.x-external") is True
                 if not is_external:
                     route.include_in_schema = False
-
-    out_dir = config.openapi_dir
-    with (out_dir / "openapi.json").open("w", encoding="utf-8") as f:
-        json.dump(app.openapi(), f, indent=2, ensure_ascii=False)
 
     sync_database_and_settings(app)
 
@@ -96,6 +99,8 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     generate_unique_id_function=custom_generate_unique_id,
 )
+
+setup_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,

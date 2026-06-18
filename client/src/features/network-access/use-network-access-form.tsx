@@ -4,10 +4,14 @@ import { toast } from 'sonner'
 
 import { useAppForm } from '@/shared/contexts/form-context'
 import { parseApiError } from '@/shared/lib/utils'
-import { getNetworkSettings, useNetworkConfig } from '@/shared/queries/network'
+import {
+  getNetworkProviders,
+  getNetworkSettings,
+  useNetworkConfig,
+} from '@/shared/queries/network'
 
 import type { NetworkAccessFormValues } from './network-access.schema'
-import { networkAccessSchema } from './network-access.schema'
+import { createNetworkAccessSchema } from './network-access.schema'
 
 type UseNetworkAccessFormProps = {
   onSuccess?: () => void
@@ -17,6 +21,7 @@ export function useNetworkAccessForm(props: UseNetworkAccessFormProps = {}) {
   const { onSuccess } = props
 
   const { data: networkSettings } = useSuspenseQuery(getNetworkSettings)
+  const { data: providers } = useSuspenseQuery(getNetworkProviders)
   const { mutateAsync: configNetwork } = useNetworkConfig()
 
   const defaultValues = useMemo((): NetworkAccessFormValues => {
@@ -29,10 +34,15 @@ export function useNetworkAccessForm(props: UseNetworkAccessFormProps = {}) {
     return networkSettings
   }, [networkSettings])
 
+  const schema = useMemo(
+    () => createNetworkAccessSchema(providers),
+    [providers],
+  )
+
   const form = useAppForm({
     defaultValues,
     validators: {
-      onChange: networkAccessSchema,
+      onChange: schema,
     },
 
     onSubmit: async ({ value }) => {
