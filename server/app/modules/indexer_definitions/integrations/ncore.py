@@ -18,6 +18,8 @@ from app.modules.indexer_definitions.schemas.internal import (
     IndexerDefinitionTorrent,
 )
 from app.modules.media_attributes.constants import MediaAttributeKey
+from app.modules.media_attributes.parser import parse_torrent_name
+from app.modules.media_attributes.utils import resolve_attribute_ids
 
 
 class NcoreIndexerDefinition(BaseIndexerDefinition):
@@ -99,16 +101,14 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
         for torrent in data.get("results", []):
             category = torrent.get("category", "")
+            release_name = torrent.get("release_name", "")
             torrents.append(
                 IndexerDefinitionTorrent(
                     imdb_id=torrent.get("imdb_id"),
                     torrent_id=str(torrent["torrent_id"]),
                     seeders=int(torrent.get("seeders", 0)),
                     download_url=torrent["download_url"],
-                    attribute_ids=[
-                        self._resolve_language(category),
-                        self._resolve_resolution(category),
-                    ],
+                    attribute_ids=self._resolve_attribute_ids(category, release_name),
                 )
             )
 
@@ -178,12 +178,46 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
 
         return ids
 
-    def _resolve_resolution(self, category: str) -> str:
+    def _resolve_attribute_ids(self, category: str, release_name: str) -> list[str]:
+        """
+        Meghatározza egy nCore találat attribútum-azonosítóit (felbontás, nyelv, stb).
+
+        A parse_torrent_name() a tényleges release névből (pl. "...S05.1080p...")
+        pontosan kinyeri a felbontást és a nyelv(ek)et is, szemben a régi
+        megoldással, ami a nCore kategória-tagből (pl. "hdser_hun") csak egy
+        durva "hd" vs. "sd" megkülönböztetést tudott tenni - emiatt minden HD
+        kategóriájú találat 720p-nek látszott, még akkor is, ha valójában
+        1080p vagy akár 2160p volt.
+
+        A kategória-alapú heurisztikát csak tartalék (external_fallbacks)
+        megoldásként adjuk át a parse_torrent_name()-nek: azt csak akkor
+        használja fel egy adott kategóriához (pl. felbontás), ha a release
+        névben egyáltalán nem talál hozzá egyezést (pl. "Katicabogár...S04" -
+        itt a nCore kategória "_hun" végződése az egyetlen nyelvi jelzés).
+
+        Megjegyzés: csak external_fallbacks paramétert használunk (nem
+        use_fallbacks-ot), mivel az előbbi mind a GitHub main branch, mind a
+        publikált Docker image parse_torrent_name() függvényében elérhető -
+        a kettő implementációja @s4pp1/stremhu-source:latest-ben eltér a
+        GitHub main branch-től, és nem támogatja a use_fallbacks kwargot.
+        """
+        category_fallback_ids = [
+            self._resolve_resolution_from_category(category),
+            self._resolve_language_from_category(category),
+        ]
+        external_fallbacks = resolve_attribute_ids(category_fallback_ids)
+
+        parsed_attributes = parse_torrent_name(
+            release_name, external_fallbacks=external_fallbacks
+        )
+        return [attribute.id for attribute in parsed_attributes]
+
+    def _resolve_resolution_from_category(self, category: str) -> str:
         if "hd" in category:
             return MediaAttributeKey.R720P
         return MediaAttributeKey.R480P
 
-    def _resolve_language(self, category: str) -> str:
+    def _resolve_language_from_category(self, category: str) -> str:
         if "hun" in category:
             return MediaAttributeKey.HUN
         return MediaAttributeKey.ENG
