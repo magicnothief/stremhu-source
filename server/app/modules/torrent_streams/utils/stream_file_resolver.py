@@ -43,7 +43,15 @@ class StreamFileResolver:
         # Case 3: Search inside the files (Season pack & Multi-season pack)
         best_match: TorrentFileInfo | None = None
         for file in valid_files:
-            file_name_cleaned = clean_torrent_name(file.name)
+            # file.path (not file.name) is used here on purpose: file.name has
+            # its directory component stripped (see torrent_info.py), but many
+            # season packs are organized as per-season subfolders where the
+            # season number only appears in the folder (e.g. "S01/EP01.mkv"),
+            # never in the filename itself. parse_season_episode is already
+            # designed to receive a full path - it explicitly only strips the
+            # parent folder for the risky "lone digit as episode" fallback,
+            # while deliberately keeping it for season detection.
+            file_name_cleaned = clean_torrent_name(file.path)
             file_seasons, file_episodes = parse_season_episode(file_name_cleaned)
 
             if not file_episodes or series.episode not in file_episodes:

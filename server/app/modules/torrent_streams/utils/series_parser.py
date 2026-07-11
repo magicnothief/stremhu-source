@@ -57,18 +57,22 @@ def _parse_season_list(s: str) -> list[int]:
         token = token.strip().lower()
         if not token:
             continue
-        # Strip optional "s" or "season" prefix in token (e.g. "s10" -> "10")
-        token = re.sub(r"^(?:seasons?|s)", "", token)
 
-        # Check if it is a range (e.g. "1-10")
-        range_match = re.match(r"^(\d{1,2})-(\d{1,2})$", token)
+        # Check if it is a range (e.g. "1-10", "01-04", "s01-s04", "01-s04").
+        # Both bounds may carry their own optional "s"/"season" prefix, since
+        # patterns like "S01-S04" or "Season 1 to S28" are common release
+        # naming conventions and each side is captured independently.
+        range_match = re.match(
+            r"^(?:seasons?|s)?(\d{1,2})-(?:seasons?|s)?(\d{1,2})$", token
+        )
         if range_match:
             seasons.extend(_expand_range(range_match.group(1), range_match.group(2)))
-        else:
-            # Single number
-            num_match = re.match(r"^(\d{1,2})$", token)
-            if num_match:
-                seasons.append(int(num_match.group(1)))
+            continue
+
+        # Single number, optionally prefixed with "s"/"season" (e.g. "s10" -> 10)
+        num_match = re.match(r"^(?:seasons?|s)?(\d{1,2})$", token)
+        if num_match:
+            seasons.append(int(num_match.group(1)))
     return sorted(list(set(seasons)))
 
 
