@@ -33,7 +33,31 @@ class SeriesParser:
     )
     PATTERN_ALONE_EPISODE = re.compile(r"\b(\d{1,4})\b")
 
+    # Anime-stílusú évad + epizód ("[SubsPlease] Show S2 - 10", "Show 4th Season - 17").
+    # A clean_torrent_name() a " - " elválasztót szóközre cseréli, ezért itt már
+    # csak "s2 10" / "4th season 17" alakban látjuk őket.
+    #
+    # A lezáró (?![\d-]) őrszem kötelező: enélkül az évadcsomagok epizód-
+    # tartománya ("Show S01 001-100") egyetlen epizódnak látszana, és a
+    # StreamFileResolver a csomag legnagyobb fájlját adná vissza minden
+    # epizód-kérésre. Az epizódszám ezért is maximum 3 jegyű.
+    PATTERN_ORDINAL_SEASON_EPISODE = re.compile(
+        r"\b(\d{1,2})(?:st|nd|rd|th)\s+seasons?\s+(\d{1,3})(?![\d-])",
+        re.IGNORECASE,
+    )
+    PATTERN_SEASON_EPISODE_PAIR = re.compile(
+        r"\bs(?:eason)?\s*(\d{1,2})\s+(\d{1,3})(?![\d-])",
+        re.IGNORECASE,
+    )
+
     # 2. FOLDER-LEVEL PATTERNS (Looking only for Seasons)
+    # Sorszámozott évad epizód nélkül ("Show 4th Season [Batch]"). Az általános
+    # PATTERN_SEASON_LIST előtt kell futnia, mert az a "4th Season 17" szövegből
+    # a "season 17" részt illesztené, azaz a 17. epizódot 17. évadnak olvasná.
+    PATTERN_ORDINAL_SEASON = re.compile(
+        r"\b(\d{1,2})(?:st|nd|rd|th)\s+seasons?\b",
+        re.IGNORECASE,
+    )
     PATTERN_MULTI_SEASON = re.compile(
         r"\b(?:s\d{1,2}[ ._+]+)+s\d{1,2}\b", re.IGNORECASE
     )
@@ -119,21 +143,45 @@ class SeriesParser:
                 season = int(match.group(1))
                 episodes = self._expand_range(match.group(2), match.group(3))
                 return [season], episodes
+
+        # Anime-stílusú évad + epizód (tartomány nélkül, egyetlen epizód).
+        for pattern in (
+            self.PATTERN_ORDINAL_SEASON_EPISODE,
+            self.PATTERN_SEASON_EPISODE_PAIR,
+        ):
+            match = pattern.search(self.name_lower)
+            if match:
+                return [int(match.group(1))], [int(match.group(2))]
+
         return [], []
 
     def _extract_seasons(self, text: str) -> tuple[list[int], str]:
         seasons: list[int] = []
+
+        # A sorszámozott évadokat előre kiszedjük a szövegből, különben az
+        # általános évad-minta a mögöttük álló számot évadként értelmezné.
+        ordinal_matches = list(self.PATTERN_ORDINAL_SEASON.finditer(text))
+        if ordinal_matches:
+            seasons = sorted({int(match.group(1)) for match in ordinal_matches})
+            text = self.PATTERN_ORDINAL_SEASON.sub(" ", text)
+
         multi_s_match = self.PATTERN_MULTI_SEASON.search(text)
 
         if multi_s_match:
-            seasons = [
-                int(s) for s in re.findall(r"s(\d{1,2})", multi_s_match.group(0))
-            ]
+            seasons = sorted(
+                {
+                    *seasons,
+                    *(
+                        int(s)
+                        for s in re.findall(r"s(\d{1,2})", multi_s_match.group(0))
+                    ),
+                }
+            )
             text = self.PATTERN_MULTI_SEASON.sub(" ", text)
         else:
             s_matches = list(self.PATTERN_SEASON_LIST.finditer(text))
             if s_matches:
-                seasons_set = set()
+                seasons_set = set(seasons)
                 for s_match in s_matches:
                     val = s_match.group(1) or s_match.group(2)
                     if val:

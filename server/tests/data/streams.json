@@ -368,5 +368,132 @@
       }
     ],
     "external_fallbacks": ["hun", "480p"]
+  },
+  "anime_subsplease_episode": {
+    "torrent": {
+      "name": "[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi - 02 (1080p) [AABCF281].mkv",
+      "files": [
+        {
+          "path": "[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi - 02 (1080p) [AABCF281].mkv",
+          "size": 1600,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 1,
+          "episode": 2
+        },
+        "expected_file": "[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi - 02 (1080p) [AABCF281].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
+  },
+  "anime_erai_raws_episode_with_hyphens_in_title": {
+    "torrent": {
+      "name": "[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv",
+      "files": [
+        {
+          "path": "[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv",
+          "size": 1600,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 1,
+          "episode": 4
+        },
+        "expected_file": "[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
+  },
+  "anime_subsplease_season_marker_episode": {
+    "torrent": {
+      "name": "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv",
+      "files": [
+        {
+          "path": "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv",
+          "size": 1600,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 2,
+          "episode": 10
+        },
+        "expected_file": "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
+  },
+  "anime_erai_raws_ordinal_season_episode": {
+    "torrent": {
+      "name": "[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p CR WEB-DL AVC AAC][MultiSub][B74AD365]",
+      "files": [
+        {
+          "path": "[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p CR WEB-DL AVC AAC][MultiSub][B74AD365].mkv",
+          "size": 1600,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 4,
+          "episode": 17
+        },
+        "expected_file": "[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p CR WEB-DL AVC AAC][MultiSub][B74AD365].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
+  },
+  "anime_subsplease_season_batch": {
+    "torrent": {
+      "name": "[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]",
+      "files": [
+        {
+          "path": "[SubsPlease] Sousou no Frieren S2 - 01v2 (1080p) [4149A222].mkv",
+          "size": 1600,
+          "is_video": true
+        },
+        {
+          "path": "[SubsPlease] Sousou no Frieren S2 - 03v2 (1080p) [85A6F4E1].mkv",
+          "size": 1600,
+          "is_video": true
+        },
+        {
+          "path": "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv",
+          "size": 1600,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 2,
+          "episode": 1
+        },
+        "expected_file": "[SubsPlease] Sousou no Frieren S2 - 01v2 (1080p) [4149A222].mkv"
+      },
+      {
+        "series": {
+          "season": 2,
+          "episode": 10
+        },
+        "expected_file": "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
   }
 }

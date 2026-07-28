@@ -1,4 +1,34 @@
 # serializer version: 1
+# name: test_clean_torrent_name[anime_erai_raws_episode_with_hyphens_in_title]
+  dict({
+    'cleaned_name': '[Erai-raws] Mushoku Tensei III Isekai Ittara Honki Dasu 04 [ CR ][MultiSub][63594405] mkv',
+    'original_name': '[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv',
+  })
+# ---
+# name: test_clean_torrent_name[anime_erai_raws_ordinal_season_episode]
+  dict({
+    'cleaned_name': '[Erai-raws] Mairimashita Iruma-kun 4th Season 17 [ CR ][MultiSub][B74AD365]',
+    'original_name': '[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p CR WEB-DL AVC AAC][MultiSub][B74AD365]',
+  })
+# ---
+# name: test_clean_torrent_name[anime_subsplease_episode]
+  dict({
+    'cleaned_name': '[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi 02 [AABCF281] mkv',
+    'original_name': '[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi - 02 (1080p) [AABCF281].mkv',
+  })
+# ---
+# name: test_clean_torrent_name[anime_subsplease_season_batch]
+  dict({
+    'cleaned_name': '[SubsPlease] Sousou no Frieren S2 (01-10) [Batch]',
+    'original_name': '[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]',
+  })
+# ---
+# name: test_clean_torrent_name[anime_subsplease_season_marker_episode]
+  dict({
+    'cleaned_name': '[SubsPlease] Sousou no Frieren S2 10 [7D35515E] mkv',
+    'original_name': '[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv',
+  })
+# ---
 # name: test_clean_torrent_name[complete_series_sub_folder_season]
   dict({
     'cleaned_name': 'Duck Dodgers Complete Series TvRip DivX XviD KF',

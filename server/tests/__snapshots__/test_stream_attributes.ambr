@@ -1,4 +1,66 @@
 # serializer version: 1
+# name: test_stream_attributes_resolution[anime_erai_raws_episode_with_hyphens_in_title_[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_erai_raws_ordinal_season_episode_[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p CR WEB-DL AVC AAC][MultiSub][B74AD365].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_subsplease_episode_[SubsPlease] Saikyou Degarashi Ouji no Anyaku Teii Arasoi - 02 (1080p) [AABCF281].mkv]
+  list([
+    '1080p',
+    'eng',
+    'sdr',
+    'theatrical',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_subsplease_season_batch_[SubsPlease] Sousou no Frieren S2 - 01v2 (1080p) [4149A222].mkv]
+  list([
+    '1080p',
+    'eng',
+    'sdr',
+    'theatrical',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_subsplease_season_batch_[SubsPlease] Sousou no Frieren S2 - 03v2 (1080p) [85A6F4E1].mkv]
+  list([
+    '1080p',
+    'eng',
+    'sdr',
+    'theatrical',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_subsplease_season_batch_[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv]
+  list([
+    '1080p',
+    'eng',
+    'sdr',
+    'theatrical',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_subsplease_season_marker_episode_[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [7D35515E].mkv]
+  list([
+    '1080p',
+    'eng',
+    'sdr',
+    'theatrical',
+  ])
+# ---
 # name: test_stream_attributes_resolution[complete_series_sub_folder_season_Duck.Dodgers.S01E05.Part.A.I'm.Going.To.Get.You.Fat.Sucka.TvRip.XviD.HUN.ENG-KF.avi]
   list([
     '480p',
