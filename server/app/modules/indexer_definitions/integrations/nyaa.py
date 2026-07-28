@@ -88,6 +88,14 @@ _MAX_CACHE_ENTRIES = 512
 # .torrent fájlt is - ezért érdemes a legfrissebb kiadásokra korlátozni.
 _MAX_TORRENTS = 75
 
+# Ennyi seeder alatt a torrentet elhagyjuk (a 0 seederes nem játszható le).
+_MIN_SEEDERS = 1
+
+# A .torrent letöltés újrapróbálása, ha a Nyaa 429-cel válaszol.
+_DOWNLOAD_ATTEMPTS = 3
+_RETRY_BACKOFF_SECONDS = 1.5
+_MAX_RETRY_DELAY_SECONDS = 10.0
+
 # Kereséskor maximum ennyi különböző címváltozattal próbálkozunk kiadónként.
 _MAX_SEARCH_QUERIES = 3
 
@@ -311,7 +319,21 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
     @property
     def max_concurrent(self) -> int:
-        return 3
+        """
+        Ez a korlát nem csak a keresésre vonatkozik.
+
+        A TorrentSourceProvider minden visszaadott torrenthez letölti a .torrent
+        fájlt, és mindegyik ezen a szemaforon megy át - egy addig ismeretlen
+        animénél ez több tucat letöltés egyszerre. Alacsony értéknél ezek
+        sorbaállnak, és a lejátszási lista csak percek múlva jelenik meg.
+
+        A Nyaa viszont 429-cel válaszol, ha túl sok kérés fut egyszerre, ezért
+        nem érdemes tovább emelni: mérésben a 3 -> 10 emelés gyorsított
+        (25 mp -> 7 mp), de sokkal több letöltés futott rate limitre. A 6 a
+        kettő közötti kompromisszum, a maradék 429-eket pedig a
+        download_torrent() újrapróbálja.
+        """
+        return 6
 
     @property
     def supports_hit_and_run(self) -> bool:
@@ -342,6 +364,45 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
     async def _fetch_hit_and_run_ids(self) -> list[str]:
         return []
+
+    async def download_torrent(self, download_url: str) -> bytes:
+        """
+        Újrapróbálja a letöltést, ha a Nyaa rate limitre futott.
+
+        Egy addig ismeretlen animénél egyszerre több tucat .torrent letöltés
+        indul, és a Nyaa ilyenkor 429-cel válaszol. Enélkül a hibára futó
+        letöltésekhez tartozó kiadások egyszerűen hiányoznának a lejátszási
+        listából, ráadásul némán - a hívó csak kihagyja őket.
+        """
+        for attempt in range(1, _DOWNLOAD_ATTEMPTS + 1):
+            try:
+                return await super().download_torrent(download_url)
+            except httpx.HTTPStatusError as error:
+                is_last_attempt = attempt == _DOWNLOAD_ATTEMPTS
+                if (
+                    error.response.status_code != httpx.codes.TOO_MANY_REQUESTS
+                    or is_last_attempt
+                ):
+                    raise
+
+                delay = self._retry_delay_seconds(error.response, attempt)
+                self.logger.info(
+                    "⏳ A Nyaa rate limitre futott, újrapróbálás %.1f mp múlva.",
+                    delay,
+                )
+                await asyncio.sleep(delay)
+
+        raise RuntimeError("Elérhetetlen ág.")
+
+    @staticmethod
+    def _retry_delay_seconds(response: httpx.Response, attempt: int) -> float:
+        """A Retry-After fejlécet követi, ha van; egyébként növekvő várakozás."""
+        retry_after = response.headers.get("Retry-After", "")
+
+        if retry_after.isdigit():
+            return min(float(retry_after), _MAX_RETRY_DELAY_SECONDS)
+
+        return min(_RETRY_BACKOFF_SECONDS * attempt, _MAX_RETRY_DELAY_SECONDS)
 
     # --- Keresés ---
 
@@ -474,6 +535,12 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                         "A(z) '%s' kiadás nem illeszkedik a keresett animére.",
                         release_name,
                     )
+                    continue
+
+                # A seeder nélküli torrentek úgysem játszhatók le, a stream
+                # szűrő később amúgy is eldobja őket - viszont addigra már
+                # letöltöttük hozzájuk a .torrent fájlt.
+                if torrent.seeders < _MIN_SEEDERS:
                     continue
 
                 torrents.append(torrent)
