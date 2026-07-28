@@ -315,6 +315,14 @@ class IndexersService:
             if indexer_account.hit_and_run is not None:
                 enabled_hit_and_run = indexer_account.hit_and_run
 
+            # Publikus trackereken (pl. Nyaa) nincs Hit'n'Run szabály: az ilyen
+            # indexer definíciók üres listát adnának vissza, amit a
+            # find_for_cleanup() "nincs megtartandó torrent"-ként értelmez, és
+            # időkorlát nélkül minden torrentet törölne. Ezeknél kizárólag a
+            # seedelési időzítő (keep_seed_seconds) dönt a törlésről.
+            if not indexer_definition.supports_hit_and_run:
+                enabled_hit_and_run = False
+
             not_completed_torrent_ids: list[str] | None = None
             if enabled_hit_and_run:
                 # Meghívjuk az adapter hit and run listáját

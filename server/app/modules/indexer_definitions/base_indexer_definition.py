@@ -148,6 +148,19 @@ class BaseIndexerDefinition(ABC):
         """Letiltott-e az indexer integráció (pl. törött működés miatt)."""
         return False
 
+    @property
+    def supports_hit_and_run(self) -> bool:
+        """
+        Van-e az oldalnak Hit'n'Run szabálya.
+
+        Publikus trackereknél (pl. Nyaa) nincs, ilyenkor a _fetch_hit_and_run_ids()
+        üres listát adna vissza - amit a takarítás "nincs megtartandó torrent"-ként
+        értelmezne, és időkorlát nélkül mindent törölne. False esetén a takarítás
+        át is ugorja a Hit'n'Run listát, és csak a seedelési időzítő
+        (keep_seed_seconds) dönt a törlésről.
+        """
+        return True
+
     # --- Absztrakt üzleti metódusok ---
 
     @abstractmethod
