@@ -50,12 +50,20 @@ _CINEMETA_URL = "https://v3-cinemeta.strem.io/meta/{media_type}/{imdb_id}.json"
 # Anime - English-translated
 _ENGLISH_TRANSLATED_CATEGORY = "1_2"
 
+# A Cinemeta tartalék forrásnál ezekkel döntjük el, hogy anime-e a találat.
+_ANIMATION_GENRE = "Animation"
+_ANIME_COUNTRY = "Japan"
+
 # A Nyaa "u=" (feltöltő) szűrője pontosan ezekre a kiadókra szűkíti a találatokat.
 _RELEASE_GROUPS = ("SubsPlease", "Erai-raws")
 
 _ANIME_LIST_TTL_SECONDS = 7 * 24 * 60 * 60
 _TITLES_TTL_SECONDS = 7 * 24 * 60 * 60
 _SEARCH_TTL_SECONDS = 10 * 60
+
+# Memóriában tartott gyorsítótár-bejegyzések felső korlátja (IMDb azonosítónként
+# egy bejegyzés), hogy hosszú futásidő alatt se nőjön korlátlanul.
+_MAX_CACHE_ENTRIES = 512
 
 # Egy kereséshez maximum ennyi torrentet adunk vissza. A Nyaa RSS oldalanként 75
 # elemet ad, és a TorrentSourceProvider minden visszaadott torrenthez letölti a
@@ -205,6 +213,19 @@ def _is_latin(value: str) -> bool:
     return len(normalized.replace(" ", "")) >= 3
 
 
+def _is_anime_meta(meta: dict[str, Any]) -> bool:
+    """
+    Anime-e a Cinemeta találat.
+
+    Az anime japán animációs tartalom, ezért mindkét feltételnek teljesülnie
+    kell - az önmagában vett "Animation" a nyugati rajzfilmeket is beengedné.
+    """
+    genres = meta.get("genres") or []
+    country = meta.get("country") or ""
+
+    return _ANIMATION_GENRE in genres and _ANIME_COUNTRY in country
+
+
 def _parse_release_title(release_name: str) -> str:
     """
     Kinyeri a kiadás nevéből a sorozat/film címét.
@@ -243,6 +264,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         self._anime_index_lock = asyncio.Lock()
 
         self._titles_cache: dict[str, _CacheEntry] = {}
+        self._titles_cache_loaded = False
         self._search_cache: dict[str, _CacheEntry] = {}
 
     @property
@@ -337,12 +359,18 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
             base_titles[:_MAX_SEARCH_QUERIES] or sorted(normalized_titles, key=len)[:1]
         )
 
-        tasks = [
-            self._search(query, release_group)
-            for release_group in _RELEASE_GROUPS
-            for query in queries
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(
+            *(
+                self._search_release_group(
+                    release_group,
+                    queries,
+                    normalized_titles,
+                    base_titles,
+                )
+                for release_group in _RELEASE_GROUPS
+            ),
+            return_exceptions=True,
+        )
 
         torrents: list[IndexerDefinitionTorrent] = []
         seen_torrent_ids: set[str] = set()
@@ -352,17 +380,8 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 self.logger.warning("⚠️ Nyaa keresési hiba: %s", result)
                 continue
 
-            for release_name, torrent in result:
+            for torrent in result:
                 if torrent.torrent_id in seen_torrent_ids:
-                    continue
-
-                release_title = _normalize(_parse_release_title(release_name))
-                if not self._matches(release_title, normalized_titles, base_titles):
-                    self.logger.debug(
-                        "A(z) '%s' kiadás nem illeszkedik a(z) '%s' animére.",
-                        release_name,
-                        imdb_id,
-                    )
                     continue
 
                 seen_torrent_ids.add(torrent.torrent_id)
@@ -380,7 +399,9 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         if not torrent_id.isdigit():
             return None
 
-        response = await self._client.get(f"/view/{torrent_id}")
+        # A letöltési link az azonosítóból képezhető, az adatlapból csak azt
+        # kell tudni, hogy létezik-e - ehhez elég a fejléc (HEAD).
+        response = await self._client.head(f"/view/{torrent_id}")
 
         if response.status_code != httpx.codes.OK:
             return None
@@ -397,6 +418,41 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         await self._metadata_client.aclose()
 
     # --- Nyaa RSS ---
+
+    async def _search_release_group(
+        self,
+        release_group: str,
+        queries: list[str],
+        normalized_titles: set[str],
+        base_titles: list[str],
+    ) -> list[IndexerDefinitionTorrent]:
+        """
+        Végigmegy a címváltozatokon, és az első találatot adó kérésnél megáll.
+
+        A címváltozatok ugyanarra az animére mutatnak, ezért ha az első
+        (leggyakrabban a romaji) cím már hozott találatot, a többi kérés csak
+        ugyanazokat a kiadásokat hozná vissza.
+        """
+        torrents: list[IndexerDefinitionTorrent] = []
+
+        for query in queries:
+            releases = await self._search(query, release_group)
+
+            for release_name, torrent in releases:
+                release_title = _normalize(_parse_release_title(release_name))
+                if not self._matches(release_title, normalized_titles, base_titles):
+                    self.logger.debug(
+                        "A(z) '%s' kiadás nem illeszkedik a keresett animére.",
+                        release_name,
+                    )
+                    continue
+
+                torrents.append(torrent)
+
+            if torrents:
+                break
+
+        return torrents
 
     async def _search(
         self, query: str, release_group: str
@@ -487,6 +543,12 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         if cached is not None:
             return cached
 
+        self._load_titles_cache_from_disk()
+
+        cached = self._get_cached(self._titles_cache, imdb_id)
+        if cached is not None:
+            return cached
+
         titles = _AnimeTitles(primary=[], alternative=[])
 
         try:
@@ -511,9 +573,83 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         if not titles:
             titles = await self._fetch_cinemeta_titles(imdb_id)
 
+            # A Cinemeta csak az angol címet ismeri, a kiadások viszont romaji
+            # néven futnak ("Attack on Titan" -> "Shingeki no Kyojin"), ezért a
+            # megerősítetten anime találatot még feloldjuk az AniList-en.
+            if titles.primary:
+                titles = await self._search_anilist_titles(titles.primary[0]) or titles
+
         self._set_cached(self._titles_cache, imdb_id, titles, _TITLES_TTL_SECONDS)
+        self._save_titles_cache_to_disk()
 
         return titles
+
+    @property
+    def _titles_cache_path(self) -> Path:
+        return config.base_data_dir / "cache" / "nyaa_titles.json"
+
+    def _load_titles_cache_from_disk(self) -> None:
+        """
+        Betölti a lemezre mentett cím-gyorsítótárat (indulás után egyszer).
+
+        Az üres találatokat is megtartjuk: így az élőszereplős tartalmakra
+        újraindítás után sem fut le újra a Cinemeta ellenőrzés.
+        """
+        if self._titles_cache_loaded:
+            return
+
+        self._titles_cache_loaded = True
+
+        try:
+            path = self._titles_cache_path
+            if not path.is_file():
+                return
+
+            with path.open(encoding="utf-8") as file:
+                stored = json.load(file)
+
+            now = time.time()
+            for imdb_id, entry in stored.items():
+                expires_at = entry.get("expires_at", 0)
+                if expires_at <= now:
+                    continue
+
+                self._titles_cache[imdb_id] = _CacheEntry(
+                    value=_AnimeTitles(
+                        primary=entry.get("primary", []),
+                        alternative=entry.get("alternative", []),
+                    ),
+                    expires_at=expires_at,
+                )
+        except Exception as error:
+            self.logger.warning(
+                "⚠️ A cím-gyorsítótár nem olvasható: %s",
+                error,
+            )
+
+    def _save_titles_cache_to_disk(self) -> None:
+        try:
+            path = self._titles_cache_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+            stored = {
+                imdb_id: {
+                    "primary": entry.value.primary,
+                    "alternative": entry.value.alternative,
+                    "expires_at": entry.expires_at,
+                }
+                for imdb_id, entry in self._titles_cache.items()
+            }
+
+            temporary_path = path.with_suffix(".tmp")
+            with temporary_path.open("w", encoding="utf-8") as file:
+                json.dump(stored, file)
+            temporary_path.replace(path)
+        except Exception as error:
+            self.logger.warning(
+                "⚠️ A cím-gyorsítótár mentése sikertelen: %s",
+                error,
+            )
 
     async def _get_anime_entries(self, imdb_id: str) -> list[_AnimeEntry]:
         index = await self._get_anime_index()
@@ -664,7 +800,79 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
             alternative=list(dict.fromkeys(alternative)),
         )
 
+    async def _search_anilist_titles(self, name: str) -> _AnimeTitles | None:
+        """
+        Név alapján keres az AniList-en, hogy meglegyen a romaji cím is.
+
+        A találatot csak akkor fogadjuk el, ha valamelyik címváltozata pontosan
+        egyezik a keresett névvel - az AniList kereső ugyanis hasonló, de más
+        animéket is visszaad.
+        """
+        query = """
+        query ($search: String) {
+          Page(page: 1, perPage: 5) {
+            media(search: $search, type: ANIME) {
+              title { romaji english }
+              synonyms
+            }
+          }
+        }
+        """
+
+        try:
+            response = await self._metadata_client.post(
+                _ANILIST_GRAPHQL_URL,
+                json={"query": query, "variables": {"search": name}},
+            )
+            response.raise_for_status()
+            payload = response.json()
+        except Exception as error:
+            self.logger.warning("⚠️ Az AniList keresés sikertelen: %s", error)
+            return None
+
+        media_list = (payload.get("data") or {}).get("Page", {}).get("media") or []
+        normalized_name = _normalize(name)
+
+        for media in media_list:
+            title = media.get("title") or {}
+            candidates = [
+                title.get("romaji"),
+                title.get("english"),
+                *(media.get("synonyms") or []),
+            ]
+
+            if not any(
+                candidate and _normalize(candidate) == normalized_name
+                for candidate in candidates
+            ):
+                continue
+
+            primary = [
+                value
+                for value in (title.get("romaji"), title.get("english"))
+                if value and _is_latin(value)
+            ]
+            alternative = [
+                synonym
+                for synonym in media.get("synonyms") or []
+                if synonym and len(synonym) >= 5 and _is_latin(synonym)
+            ]
+
+            return _AnimeTitles(
+                primary=list(dict.fromkeys(primary)),
+                alternative=list(dict.fromkeys(alternative)),
+            )
+
+        return None
+
     async def _fetch_cinemeta_titles(self, imdb_id: str) -> _AnimeTitles:
+        """
+        Tartalék címforrás azokhoz az animékhez, amik nincsenek a Fribb listában.
+
+        A Cinemeta minden filmet és sorozatot ismer, ezért a címet csak akkor
+        fogadjuk el, ha a találat tényleg anime (japán animációs) - különben
+        minden élőszereplős tartalomra is lefutna két felesleges Nyaa keresés.
+        """
         for media_type in ("series", "movie"):
             try:
                 response = await self._metadata_client.get(
@@ -677,8 +885,18 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 continue
 
             name = meta.get("name")
-            if name and _is_latin(name):
-                return _AnimeTitles(primary=[name], alternative=[])
+            if not name or not _is_latin(name):
+                continue
+
+            if not _is_anime_meta(meta):
+                self.logger.debug(
+                    "A(z) '%s' (%s) nem anime, a Nyaa keresés kimarad.",
+                    name,
+                    imdb_id,
+                )
+                return _AnimeTitles(primary=[], alternative=[])
+
+            return _AnimeTitles(primary=[name], alternative=[])
 
         return _AnimeTitles(primary=[], alternative=[])
 
@@ -704,3 +922,8 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         ttl_seconds: int,
     ) -> None:
         cache[key] = _CacheEntry(value=value, expires_at=time.time() + ttl_seconds)
+
+        # A gyorsítótár minden lekérdezett IMDb azonosítót megtartana, ezért a
+        # legrégebbi (beszúrási sorrendű) bejegyzéseket eldobjuk.
+        while len(cache) > _MAX_CACHE_ENTRIES:
+            cache.pop(next(iter(cache)))

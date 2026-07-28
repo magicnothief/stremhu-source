@@ -25,9 +25,37 @@ so the integration resolves the mapping itself:
 | Step | Source | Cached |
 | --- | --- | --- |
 | `tt…` → AniList IDs (per season, with TVDB season + episode offset) | [Fribb/anime-lists](https://github.com/Fribb/anime-lists) | `data/cache/nyaa_anime_index.json`, 7 days |
-| AniList ID → romaji / English title + synonyms | AniList GraphQL | in memory, 7 days |
-| fallback when the anime is not in the list | Cinemeta | in memory, 7 days |
+| AniList ID → romaji / English title + synonyms | AniList GraphQL | `data/cache/nyaa_titles.json`, 7 days |
+| not in the list → is it even anime? | Cinemeta (`Animation` + `Japan`) | same file, 7 days |
+| confirmed anime → romaji title | AniList search by name | same file, 7 days |
 | search results | nyaa RSS | in memory, 10 min |
+
+Only the first row applies to most anime. The Cinemeta step exists because
+Fribb's list covers ~8000 IMDb IDs and misses newer titles; it requires **both**
+`Animation` and `Japan`, since `Animation` alone would let every western cartoon
+through. Anything that fails the check resolves to "no titles" and never touches
+nyaa — which matters because the indexer is queried for *every* stream request,
+including all the live-action ones. Because Cinemeta only knows the English
+name and these groups publish under romaji, a confirmed anime is then looked up
+on AniList by name (accepted only on an exact title match), turning
+*Attack on Titan* into *Shingeki no Kyojin*.
+
+### Request budget
+
+Measured over three anime and three live-action IDs, per stream request:
+
+| | nyaa | AniList | Cinemeta | total |
+| --- | --- | --- | --- | --- |
+| before | 16 | 3 | 4 | 23 |
+| after | 6 | 3 | 4 | 13 |
+| after, once the title cache is warm | 6 | 0 | 0 | 6 |
+
+Live-action IDs cost **zero** requests once cached, and never reach nyaa even
+when cold. The per-group query loop stops at the first title variant that
+returns matches, so the usual cost is one nyaa request per release group
+instead of one per variant per group; hit counts are unchanged (75/28/75).
+Existence checks in `_fetch_torrent` use `HEAD`, since the download URL is
+derivable from the ID and only the status code matters.
 
 Queries are built from the **official titles only** (romaji and English). The
 subtitle after `:` and any season markers are stripped and the result is capped
