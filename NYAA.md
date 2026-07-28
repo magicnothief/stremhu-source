@@ -40,6 +40,24 @@ name and these groups publish under romaji, a confirmed anime is then looked up
 on AniList by name (accepted only on an exact title match), turning
 *Attack on Titan* into *Shingeki no Kyojin*.
 
+### Cache staleness
+
+Caching the *title mapping* is safe — an anime's romaji name does not change,
+and the torrent list itself is only held for 10 minutes, so a new episode shows
+up within 10 minutes of being posted and a dead torrent disappears just as
+fast. Negative answers are the risky part, and they get much shorter lifetimes:
+
+| Result | TTL | Why |
+| --- | --- | --- |
+| titles found | 7 days | stable metadata |
+| answered "not anime" | 6 hours | a just-announced anime may be missing from Fribb's list and have incomplete Cinemeta genres; it gets picked up the same day |
+| lookup failed (API down) | 5 minutes | an outage must not exclude an anime for a week |
+| search failed (nyaa down) | 60 seconds | instead of hiding results for the full 10 minutes |
+
+Without this split, a brand-new season — exactly the thing these two groups
+publish — could be cached as "not anime" for a week, and a single failed
+request could do the same.
+
 ### Request budget
 
 Measured over three anime and three live-action IDs, per stream request:

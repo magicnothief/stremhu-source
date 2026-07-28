@@ -54,12 +54,30 @@ _ENGLISH_TRANSLATED_CATEGORY = "1_2"
 _ANIMATION_GENRE = "Animation"
 _ANIME_COUNTRY = "Japan"
 
+# A Cinemeta-t sorozatként és filmként is megkérdezzük.
+_CINEMETA_MEDIA_TYPE_COUNT = 2
+
+
+class _MetadataUnavailableError(Exception):
+    """A metaadat-szolgáltató nem válaszolt (nem azonos a nemleges válasszal)."""
+
+
 # A Nyaa "u=" (feltöltő) szűrője pontosan ezekre a kiadókra szűkíti a találatokat.
 _RELEASE_GROUPS = ("SubsPlease", "Erai-raws")
 
 _ANIME_LIST_TTL_SECONDS = 7 * 24 * 60 * 60
 _TITLES_TTL_SECONDS = 7 * 24 * 60 * 60
 _SEARCH_TTL_SECONDS = 10 * 60
+
+# A "nem anime" válasz csak rövid ideig érvényes: egy éppen induló anime még
+# nincs benne a Fribb listában, és a Cinemeta műfajai is hiányosak lehetnek -
+# ilyenkor néhány óra múlva már megtalálnánk.
+_UNKNOWN_TITLES_TTL_SECONDS = 6 * 60 * 60
+
+# Ha a lekérés hibára futott, nem tudunk semmit: hamar próbálkozzunk újra,
+# nehogy egy percnyi kimaradás egy hétre kizárjon egy animét.
+_LOOKUP_RETRY_TTL_SECONDS = 5 * 60
+_SEARCH_RETRY_TTL_SECONDS = 60
 
 # Memóriában tartott gyorsítótár-bejegyzések felső korlátja (IMDb azonosítónként
 # egy bejegyzés), hogy hosszú futásidő alatt se nőjön korlátlanul.
@@ -374,10 +392,12 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
         torrents: list[IndexerDefinitionTorrent] = []
         seen_torrent_ids: set[str] = set()
+        search_failed = False
 
         for result in results:
             if isinstance(result, BaseException):
                 self.logger.warning("⚠️ Nyaa keresési hiba: %s", result)
+                search_failed = True
                 continue
 
             for torrent in result:
@@ -389,7 +409,16 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
         torrents = torrents[:_MAX_TORRENTS]
 
-        self._set_cached(self._search_cache, imdb_id, torrents, _SEARCH_TTL_SECONDS)
+        # Hibára futott keresés eredményét csak rövid ideig tartjuk meg,
+        # különben egy pillanatnyi Nyaa hiba percekre eltüntetné a találatokat.
+        self._set_cached(
+            self._search_cache,
+            imdb_id,
+            torrents,
+            _SEARCH_RETRY_TTL_SECONDS
+            if search_failed and not torrents
+            else _SEARCH_TTL_SECONDS,
+        )
 
         # A Nyaa RSS a legfrissebb kiadásokat adja vissza, lapozás nélkül
         # dolgozunk (lásd _MAX_TORRENTS).
@@ -550,6 +579,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
             return cached
 
         titles = _AnimeTitles(primary=[], alternative=[])
+        lookup_failed = False
 
         try:
             entries = await self._get_anime_entries(imdb_id)
@@ -559,6 +589,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 error,
             )
             entries = []
+            lookup_failed = True
 
         anilist_ids = [
             entry.anilist_id for entry in entries if entry.anilist_id is not None
@@ -569,20 +600,50 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 titles = await self._fetch_anilist_titles(anilist_ids)
             except Exception as error:
                 self.logger.warning("⚠️ Az AniList lekérés sikertelen: %s", error)
+                lookup_failed = True
 
         if not titles:
-            titles = await self._fetch_cinemeta_titles(imdb_id)
+            try:
+                titles = await self._fetch_cinemeta_titles(imdb_id)
 
-            # A Cinemeta csak az angol címet ismeri, a kiadások viszont romaji
-            # néven futnak ("Attack on Titan" -> "Shingeki no Kyojin"), ezért a
-            # megerősítetten anime találatot még feloldjuk az AniList-en.
-            if titles.primary:
-                titles = await self._search_anilist_titles(titles.primary[0]) or titles
+                # A Cinemeta csak az angol címet ismeri, a kiadások viszont
+                # romaji néven futnak ("Attack on Titan" -> "Shingeki no
+                # Kyojin"), ezért a megerősítetten anime találatot még
+                # feloldjuk az AniList-en.
+                if titles.primary:
+                    titles = (
+                        await self._search_anilist_titles(titles.primary[0]) or titles
+                    )
+            except _MetadataUnavailableError as error:
+                self.logger.warning("⚠️ A Cinemeta lekérés sikertelen: %s", error)
+                lookup_failed = True
 
-        self._set_cached(self._titles_cache, imdb_id, titles, _TITLES_TTL_SECONDS)
+        self._set_cached(
+            self._titles_cache,
+            imdb_id,
+            titles,
+            self._titles_ttl_seconds(titles, lookup_failed),
+        )
         self._save_titles_cache_to_disk()
 
         return titles
+
+    @staticmethod
+    def _titles_ttl_seconds(titles: _AnimeTitles, lookup_failed: bool) -> int:
+        """
+        Meddig érvényes a cím-feloldás eredménye.
+
+        A megtalált címek stabilak (egy anime romaji neve nem változik), a
+        nemleges válasz viszont csak ideiglenes: pár óra múlva a metaadat-
+        szolgáltatók már ismerhetik az új animét.
+        """
+        if titles:
+            return _TITLES_TTL_SECONDS
+
+        if lookup_failed:
+            return _LOOKUP_RETRY_TTL_SECONDS
+
+        return _UNKNOWN_TITLES_TTL_SECONDS
 
     @property
     def _titles_cache_path(self) -> Path:
@@ -873,6 +934,8 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         fogadjuk el, ha a találat tényleg anime (japán animációs) - különben
         minden élőszereplős tartalomra is lefutna két felesleges Nyaa keresés.
         """
+        failures = 0
+
         for media_type in ("series", "movie"):
             try:
                 response = await self._metadata_client.get(
@@ -882,6 +945,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 meta = response.json().get("meta") or {}
             except Exception as error:
                 self.logger.warning("⚠️ A Cinemeta lekérés sikertelen: %s", error)
+                failures += 1
                 continue
 
             name = meta.get("name")
@@ -897,6 +961,14 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 return _AnimeTitles(primary=[], alternative=[])
 
             return _AnimeTitles(primary=[name], alternative=[])
+
+        # Ha egyik kérés sem jutott el válaszig, akkor nem azt tudjuk meg, hogy
+        # nem anime - csak azt, hogy nem tudjuk. A hívó ilyenkor rövid ideig
+        # gyorsítótárazza az eredményt.
+        if failures == _CINEMETA_MEDIA_TYPE_COUNT:
+            raise _MetadataUnavailableError(
+                f"A Cinemeta nem érhető el (imdb: {imdb_id})."
+            )
 
         return _AnimeTitles(primary=[], alternative=[])
 
