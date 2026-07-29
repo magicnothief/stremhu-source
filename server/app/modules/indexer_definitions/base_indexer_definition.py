@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import httpx
 import pydash
 
+from app.common.schemas.internal import SeriesInfo
 from app.modules.indexer_definitions.exceptions import (
     AuthenticationException,
     AuthenticationOtherException,
@@ -180,10 +181,18 @@ class BaseIndexerDefinition(ABC):
 
     @abstractmethod
     async def _fetch_torrents(
-        self, imdb_id: str, page: int | None = None
+        self,
+        imdb_id: str,
+        page: int | None = None,
+        series: SeriesInfo | None = None,
     ) -> IndexerDefinitionFindTorrentsResult:
         """
         Keresést hajt végre a indexer-en és visszaadja a találatokat.
+
+        A `series` a kért évadot és epizódot tartalmazza, ha sorozatról van szó.
+        A legtöbb indexernek nincs rá szüksége (IMDb azonosítóval pontosan
+        keresnek), de ahol egy IMDb azonosítóhoz több önálló cím tartozik - pl.
+        anime évadok a Nyaa-n -, ott csak ebből derül ki, melyiket keressük.
 
         Visszatér:
         - torrents: a talált torrentek listája IndexerDefinitionTorrent-ként
@@ -241,9 +250,11 @@ class BaseIndexerDefinition(ABC):
                 )
 
     async def find_torrents_by_imdb_id(
-        self, imdb_id: str
+        self,
+        imdb_id: str,
+        series: SeriesInfo | None = None,
     ) -> list[IndexerDefinitionTorrent]:
-        return await self._find_all(imdb_id, None, [])
+        return await self._find_all(imdb_id, None, [], series)
 
     async def find_torrent_by_id(
         self, torrent_id: str
@@ -280,16 +291,19 @@ class BaseIndexerDefinition(ABC):
         imdb_id: str,
         page: int | None,
         accumulator: list[IndexerDefinitionTorrent],
+        series: SeriesInfo | None = None,
     ) -> list[IndexerDefinitionTorrent]:
         if len(accumulator) > _TORRENTS_LIMIT:
             return accumulator
 
         try:
-            result = await self._fetch_torrents(imdb_id, page)
+            result = await self._fetch_torrents(imdb_id, page, series)
             accumulator.extend(result.torrents)
 
             if result.next_page is not None:
-                return await self._find_all(imdb_id, result.next_page, accumulator)
+                return await self._find_all(
+                    imdb_id, result.next_page, accumulator, series
+                )
 
             return pydash.uniq_by(
                 (torrent for torrent in accumulator if torrent.imdb_id == imdb_id),

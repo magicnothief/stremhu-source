@@ -5,6 +5,7 @@ from typing import cast, overload
 from app.common.database import isolated_db_session
 from app.common.keyed_lock import KeyedLock
 from app.common.logger import logger
+from app.common.schemas.internal import SeriesInfo
 from app.modules.indexers.schemas.internal import IndexerTorrent
 from app.modules.indexers.service import IndexersService
 from app.modules.torrent_files.dependencies import create_torrent_files_service
@@ -35,13 +36,19 @@ class TorrentSourceProviderService:
     async def find_by_imdb_id(
         self,
         imdb_id: str,
+        series: SeriesInfo | None = None,
     ) -> tuple[list[TorrentSource], list[str]]:
+        # Az évad is része a kulcsnak: egyes indexerek évadonként más találatot
+        # adnak vissza, így a párhuzamos kérések nem keveredhetnek össze.
         task_key = f"imdb:{imdb_id}"
+        if series:
+            task_key = f"{task_key}:{series.season}:{series.episode}"
+
         if task_key in _ongoing_tasks:
             result = await _ongoing_tasks[task_key]
             return cast(tuple[list[TorrentSource], list[str]], result)
 
-        task = asyncio.create_task(self._find_by_imdb_id(imdb_id))
+        task = asyncio.create_task(self._find_by_imdb_id(imdb_id, series))
         _ongoing_tasks[task_key] = task
         try:
             return await task
@@ -51,11 +58,12 @@ class TorrentSourceProviderService:
     async def _find_by_imdb_id(
         self,
         imdb_id: str,
+        series: SeriesInfo | None = None,
     ) -> tuple[list[TorrentSource], list[str]]:
         (
             indexer_torrents,
             indexer_errors,
-        ) = await self._indexers_service.get_torrents_by_imdb_id(imdb_id)
+        ) = await self._indexers_service.get_torrents_by_imdb_id(imdb_id, series)
 
         torrent_files = await self._sync_torrent_files(indexer_torrents)
 

@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 import httpx
 from selectolax.parser import HTMLParser, Node
 
+from app.common.schemas.internal import SeriesInfo
 from app.modules.indexer_definitions.base_indexer_definition import (
     BaseIndexerDefinition,
 )
@@ -203,7 +204,9 @@ class HunTorrentIndexerDefinition(BaseIndexerDefinition):
         self,
         imdb_id: str,
         page: int | None = None,
+        series: SeriesInfo | None = None,
     ) -> IndexerDefinitionFindTorrentsResult:
+        _ = series
         current_page = page or 1
         response = await self._client.get(
             _BROWSE_PATH,

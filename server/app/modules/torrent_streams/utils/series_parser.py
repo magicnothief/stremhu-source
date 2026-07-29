@@ -21,6 +21,9 @@ class SeriesParser:
         r"\b(\d{1,2})\.?\s*(?:évad|evad).*?(\d{1,4})\.?\s*(?:rész|resz)?(?:[ ._-]?(?:-|to)[ ._-]?(\d{1,4})\.?\s*(?:rész|resz)?)?",
         re.IGNORECASE,
     )
+    # Batch kiadások epizód-tartománya: "01 ~ 12", "001-366", "(01-24)".
+    # Legfeljebb 3 jegyű számokra illesztünk, így az évszámok kimaradnak.
+    PATTERN_EPISODE_RANGE = re.compile(r"\b(\d{1,3})\s*[-~]\s*(\d{1,3})\b")
     PATTERN_FALLBACK_EPISODE = re.compile(
         r"\b(?:e|ep|episode[ ._-]?)(\d{1,4})(?:(?:[ ._-]?-?[ ._-]?e)(\d{1,4}))?\b|\b(\d{1,4})\.?\s*(?:rész|resz)(?:[ ._-]?-[ ._-]?(\d{1,4})\.?\s*(?:rész|resz)?)?\b",
         re.IGNORECASE,
@@ -194,6 +197,17 @@ class SeriesParser:
 
     def _extract_episodes(self, text: str) -> tuple[list[int], str]:
         episodes: list[int] = []
+
+        # Az epizód-tartományt előbb nézzük: a "001 ~ 366" magányos számként
+        # 1. epizódnak látszana, és a StreamFileResolver a teljes sorozat
+        # csomagjából a legnagyobb fájlt adná vissza az 1. rész helyett.
+        range_match = self.PATTERN_EPISODE_RANGE.search(text)
+        if range_match:
+            episodes = self._expand_range(range_match.group(1), range_match.group(2))
+            if len(episodes) > 1:
+                return episodes, self.PATTERN_EPISODE_RANGE.sub(" ", text)
+            episodes = []
+
         e_match = self.PATTERN_FALLBACK_EPISODE.search(text)
 
         if e_match:

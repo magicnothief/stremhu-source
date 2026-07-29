@@ -33,6 +33,16 @@
 # name: test_series_parser_torrent_name[anime_subsplease_season_batch]
   dict({
     'episodes': list([
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
     ]),
     'seasons': list([
       2,

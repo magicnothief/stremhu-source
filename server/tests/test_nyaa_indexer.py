@@ -5,7 +5,9 @@ import pytest
 
 from app.modules.indexer_definitions.integrations.nyaa import (
     NyaaIndexerDefinition,
+    _AnimeEntry,
     _is_anime_meta,
+    _normalize,
     _parse_release_title,
 )
 from app.modules.indexer_definitions.schemas.internal import IndexerDefinitionTorrent
@@ -120,6 +122,96 @@ def test_only_japanese_animation_counts_as_anime():
     # Élőszereplős japán sorozat
     assert not _is_anime_meta({"genres": ["Drama"], "country": "Japan"})
     assert not _is_anime_meta({})
+
+
+BLEACH_TITLES = {"bleach", "bleach sennen kessen hen"}
+BLEACH_TYBW_RELEASE = (
+    "[Erai-raws] Bleach: Sennen Kessen Hen - Soukoku Tan - 14 [1080p][MultiSub]"
+)
+
+
+def match_release(release_name: str, titles: set[str], strict: bool):
+    definition = NyaaIndexerDefinition()
+    release_title = _normalize(_parse_release_title(release_name))
+
+    return definition._matches(release_title, titles, sorted(titles), strict=strict)
+
+
+def test_sequel_is_not_served_for_the_original_series():
+    """
+    A Bleach és a Bleach: Sennen Kessen-hen egy IMDb azonosító alá tartozik.
+
+    Az évad ismeretében csak a kért sorozat kiadásait fogadjuk el, különben az
+    eredeti sorozat 14. epizódja helyett a folytatásét kapná a felhasználó.
+    """
+    assert not match_release(BLEACH_TYBW_RELEASE, {"bleach"}, strict=True)
+
+    # A folytatás saját évadánál viszont pont ez a kiadás kell
+    assert match_release(
+        BLEACH_TYBW_RELEASE,
+        {"bleach sennen kessen hen soukoku tan"},
+        strict=True,
+    )
+
+
+def test_season_marker_still_matches_in_strict_mode():
+    """Az évad-jelölő nem tehet különbséget: "Frieren S2" = "Frieren"."""
+    assert match_release(
+        "[SubsPlease] Sousou no Frieren S2 - 10 (1080p) [A].mkv",
+        {"sousou no frieren"},
+        strict=True,
+    )
+    assert match_release(
+        "[Erai-raws] Mairimashita Iruma-kun 4th Season - 17 [1080p][MultiSub]",
+        {"mairimashita iruma kun"},
+        strict=True,
+    )
+
+
+def test_without_season_the_looser_matching_is_kept():
+    """Évad nélkül (pl. film) marad a régi, megengedőbb illesztés."""
+    assert match_release(BLEACH_TYBW_RELEASE, BLEACH_TITLES, strict=False)
+
+
+def test_season_entries_are_selected_by_tvdb_season():
+    entries = [
+        _AnimeEntry(
+            anilist_id=269, entry_type="TV", tvdb_season=1, tvdb_episode_offset=None
+        ),
+        _AnimeEntry(
+            anilist_id=116674, entry_type="TV", tvdb_season=17, tvdb_episode_offset=None
+        ),
+    ]
+
+    selected = NyaaIndexerDefinition._select_season_entries(entries, 1)
+    assert [entry.anilist_id for entry in selected] == [269]
+
+    selected = NyaaIndexerDefinition._select_season_entries(entries, 17)
+    assert [entry.anilist_id for entry in selected] == [116674]
+
+    # Évad nélkül mindent visszaadunk
+    assert len(NyaaIndexerDefinition._select_season_entries(entries, None)) == 2
+
+
+def test_entries_without_season_data_are_used_as_fallback():
+    """
+    A Fribb listában az eredeti sorozatnál gyakran hiányzik az évad.
+
+    A Bleach alapsorozatának nincs évadszáma, a Sennen Kessen-hen évadai
+    viszont 17-esként szerepelnek - az 1. évadra így is az alapsorozat kell.
+    """
+    original = _AnimeEntry(
+        anilist_id=269, entry_type="TV", tvdb_season=None, tvdb_episode_offset=None
+    )
+    sequel = _AnimeEntry(
+        anilist_id=116674, entry_type="TV", tvdb_season=17, tvdb_episode_offset=None
+    )
+
+    selected = NyaaIndexerDefinition._select_season_entries([original, sequel], 1)
+    assert [entry.anilist_id for entry in selected] == [269]
+
+    selected = NyaaIndexerDefinition._select_season_entries([original, sequel], 17)
+    assert [entry.anilist_id for entry in selected] == [116674]
 
 
 def create_rate_limited_response(retry_after: str | None = None):

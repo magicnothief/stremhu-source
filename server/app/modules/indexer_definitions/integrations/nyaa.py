@@ -29,6 +29,7 @@ from typing import Any
 
 import httpx
 
+from app.common.schemas.internal import SeriesInfo
 from app.config import config
 from app.modules.indexer_definitions.base_indexer_definition import (
     BaseIndexerDefinition,
@@ -214,6 +215,26 @@ def _base_title(normalized_title: str) -> str:
                 return candidate
             break
     return normalized_title
+
+
+def _strip_season_markers(normalized_title: str) -> str:
+    """
+    Eltávolítja az évad-jelölő tokeneket a normalizált címről.
+
+    "sousou no frieren s2" -> "sousou no frieren"
+    "mairimashita iruma kun 4th season" -> "mairimashita iruma kun"
+
+    A cím eleji tokent sosem dobjuk el, és csak a végéről vágunk, hogy a
+    "bleach sennen kessen hen" ne csupaszodjon "bleach"-re.
+    """
+    tokens = normalized_title.split()
+
+    while len(tokens) > 1 and (
+        tokens[-1] in _SEASON_MARKER_TOKENS or tokens[-1].isdigit()
+    ):
+        tokens.pop()
+
+    return " ".join(tokens)
 
 
 def _search_base(title: str) -> str:
@@ -407,13 +428,21 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
     # --- Keresés ---
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: int | None = None
+        self,
+        imdb_id: str,
+        page: int | None = None,
+        series: SeriesInfo | None = None,
     ) -> IndexerDefinitionFindTorrentsResult:
-        cached = self._get_cached(self._search_cache, imdb_id)
+        # Egy IMDb azonosítóhoz több anime is tartozhat (pl. a Bleach alá a
+        # Sennen Kessen-hen is), ezért az évad a gyorsítótár kulcsának is része.
+        season = series.season if series else None
+        cache_key = imdb_id if season is None else f"{imdb_id}:{season}"
+
+        cached = self._get_cached(self._search_cache, cache_key)
         if cached is not None:
             return IndexerDefinitionFindTorrentsResult(torrents=cached)
 
-        titles = await self._resolve_titles(imdb_id)
+        titles = await self._resolve_titles(imdb_id, season)
 
         if not titles:
             self.logger.info(
@@ -421,7 +450,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                 "a Nyaa keresés kimarad.",
                 imdb_id,
             )
-            self._set_cached(self._search_cache, imdb_id, [], _SEARCH_TTL_SECONDS)
+            self._set_cached(self._search_cache, cache_key, [], _SEARCH_TTL_SECONDS)
             return IndexerDefinitionFindTorrentsResult(torrents=[])
 
         normalized_titles = {_normalize(title) for title in titles.all}
@@ -445,6 +474,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
                     queries,
                     normalized_titles,
                     base_titles,
+                    strict=season is not None,
                 )
                 for release_group in _RELEASE_GROUPS
             ),
@@ -474,7 +504,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         # különben egy pillanatnyi Nyaa hiba percekre eltüntetné a találatokat.
         self._set_cached(
             self._search_cache,
-            imdb_id,
+            cache_key,
             torrents,
             _SEARCH_RETRY_TTL_SECONDS
             if search_failed and not torrents
@@ -515,6 +545,7 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         queries: list[str],
         normalized_titles: set[str],
         base_titles: list[str],
+        strict: bool = False,
     ) -> list[IndexerDefinitionTorrent]:
         """
         Végigmegy a címváltozatokon, és az első találatot adó kérésnél megáll.
@@ -530,7 +561,9 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
             for release_name, torrent in releases:
                 release_title = _normalize(_parse_release_title(release_name))
-                if not self._matches(release_title, normalized_titles, base_titles):
+                if not self._matches(
+                    release_title, normalized_titles, base_titles, strict
+                ):
                     self.logger.debug(
                         "A(z) '%s' kiadás nem illeszkedik a keresett animére.",
                         release_name,
@@ -612,9 +645,27 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
         release_title: str,
         normalized_titles: set[str],
         base_titles: list[str],
+        strict: bool = False,
     ) -> bool:
+        """
+        Eldönti, hogy a kiadás a keresett animéhez tartozik-e.
+
+        Ha ismerjük a kért évadot (strict), akkor a címnek pontosan egyeznie
+        kell valamelyik ismert címmel - eltérés csak az évad-jelölőkben lehet
+        ("Sousou no Frieren S2" = "Sousou no Frieren"). Enélkül a "Bleach"
+        keresés a "Bleach: Sennen Kessen-hen" kiadásait is elfogadná, és a
+        felhasználó a folytatás epizódját kapná meg az eredeti sorozat helyett.
+        """
         if not release_title:
             return False
+
+        if strict:
+            release_base = _strip_season_markers(release_title)
+
+            return any(
+                release_title == title or release_base == _strip_season_markers(title)
+                for title in normalized_titles
+            )
 
         for title in normalized_titles:
             if release_title == title:
@@ -634,14 +685,20 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
     # --- Metaadatok: imdb_id -> anime címek ---
 
-    async def _resolve_titles(self, imdb_id: str) -> _AnimeTitles:
-        cached = self._get_cached(self._titles_cache, imdb_id)
+    async def _resolve_titles(
+        self,
+        imdb_id: str,
+        season: int | None = None,
+    ) -> _AnimeTitles:
+        cache_key = imdb_id if season is None else f"{imdb_id}:{season}"
+
+        cached = self._get_cached(self._titles_cache, cache_key)
         if cached is not None:
             return cached
 
         self._load_titles_cache_from_disk()
 
-        cached = self._get_cached(self._titles_cache, imdb_id)
+        cached = self._get_cached(self._titles_cache, cache_key)
         if cached is not None:
             return cached
 
@@ -657,6 +714,8 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
             )
             entries = []
             lookup_failed = True
+
+        entries = self._select_season_entries(entries, season)
 
         anilist_ids = [
             entry.anilist_id for entry in entries if entry.anilist_id is not None
@@ -687,13 +746,39 @@ class NyaaIndexerDefinition(BaseIndexerDefinition):
 
         self._set_cached(
             self._titles_cache,
-            imdb_id,
+            cache_key,
             titles,
             self._titles_ttl_seconds(titles, lookup_failed),
         )
         self._save_titles_cache_to_disk()
 
         return titles
+
+    @staticmethod
+    def _select_season_entries(
+        entries: list[_AnimeEntry],
+        season: int | None,
+    ) -> list[_AnimeEntry]:
+        """
+        A kért évadhoz tartozó anime bejegyzéseket adja vissza.
+
+        Egy IMDb azonosító alá több önálló anime is tartozhat (a Bleach alá
+        például a Sennen Kessen-hen évadai is). A Fribb lista évadonként tartja
+        nyilván őket, így a kért évad alapján kiválasztható a helyes cím -
+        e nélkül az eredeti sorozat kérésére a folytatás kiadásait adnánk.
+        """
+        if season is None or not entries:
+            return entries
+
+        matching = [entry for entry in entries if entry.tvdb_season == season]
+        if matching:
+            return matching
+
+        # Az évad-információ nem kötelező a Fribb listában, és jellemzően épp az
+        # eredeti sorozatnál hiányzik (a Bleach alapsorozata ilyen, miközben a
+        # Sennen Kessen-hen évadai 17-esként szerepelnek). Ezeket használjuk, ha
+        # pontos egyezés nincs.
+        return [entry for entry in entries if entry.tvdb_season is None]
 
     @staticmethod
     def _titles_ttl_seconds(titles: _AnimeTitles, lookup_failed: bool) -> int:

@@ -3,6 +3,7 @@ import asyncio
 from fastapi import HTTPException, status
 
 from app.common.logger import logger
+from app.common.schemas.internal import SeriesInfo
 from app.modules.indexer_accounts.models import IndexerAccountModel
 from app.modules.indexer_accounts.schemas import (
     IndexerAccountCreate,
@@ -225,6 +226,7 @@ class IndexersService:
     async def get_torrents_by_imdb_id(
         self,
         imdb_id: str,
+        series: SeriesInfo | None = None,
     ) -> tuple[list[IndexerTorrent], list[str]]:
         indexer_accounts = await asyncio.to_thread(
             self._indexer_accounts_service.find_list
@@ -238,7 +240,7 @@ class IndexersService:
                 indexer_account.indexer_id
             )
             indexer_definition_torrents = (
-                await indexer_definition.find_torrents_by_imdb_id(imdb_id)
+                await indexer_definition.find_torrents_by_imdb_id(imdb_id, series)
             )
             return [
                 IndexerTorrent(

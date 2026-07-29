@@ -42,7 +42,7 @@ class TorrentStreamsService:
         (
             torrent_sources,
             indexer_errors,
-        ) = await self._torrent_source_provider_service.find_by_imdb_id(imdb_id)
+        ) = await self._torrent_source_provider_service.find_by_imdb_id(imdb_id, series)
 
         app_url = await asyncio.to_thread(self._settings_service.get_app_url)
 

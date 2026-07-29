@@ -8,6 +8,7 @@ from urllib.parse import parse_qs, urljoin, urlparse
 import httpx
 from selectolax.parser import HTMLParser
 
+from app.common.schemas.internal import SeriesInfo
 from app.modules.indexer_definitions.base_indexer_definition import (
     BaseIndexerDefinition,
 )
@@ -76,8 +77,12 @@ class NcoreIndexerDefinition(BaseIndexerDefinition):
         )
 
     async def _fetch_torrents(
-        self, imdb_id: str, page: int | None = None
+        self,
+        imdb_id: str,
+        page: int | None = None,
+        series: SeriesInfo | None = None,
     ) -> IndexerDefinitionFindTorrentsResult:
+        _ = series
         current_page = page or 1
         response = await self._client.get(
             "/torrents.php",
