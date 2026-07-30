@@ -1,4 +1,10 @@
 # serializer version: 1
+# name: test_clean_torrent_name[anime_absolute_numbered_batch]
+  dict({
+    'cleaned_name': '[Erai-raws] Bleach 001 ~ 366 [ DSNP ][MultiSub] [BATCH]',
+    'original_name': '[Erai-raws] Bleach - 001 ~ 366 [1080p DSNP WEB-DL AVC AAC][MultiSub] [BATCH]',
+  })
+# ---
 # name: test_clean_torrent_name[anime_erai_raws_episode_with_hyphens_in_title]
   dict({
     'cleaned_name': '[Erai-raws] Mushoku Tensei III Isekai Ittara Honki Dasu 04 [ CR ][MultiSub][63594405] mkv',

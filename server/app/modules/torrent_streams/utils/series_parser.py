@@ -109,11 +109,17 @@ class SeriesParser:
         return sorted(list(set(seasons)))
 
     def parse(
-        self, context_seasons: list[int] | None = None
+        self,
+        context_seasons: list[int] | None = None,
+        absolute_numbering: bool = False,
     ) -> tuple[list[int], list[int]]:
         """
         Univerzális parser mappákhoz és fájlokhoz.
         Megpróbálja feloldani az évadokat és az epizódokat.
+
+        Az `absolute_numbering` akkor igaz, ha a torrent (vagy a mappa) neve
+        folyamatos epizód-számozású csomagot jelöl ("Bleach - 001 ~ 366").
+        Ilyenkor a benne lévő "101" a 101. epizód, nem S01E01.
         """
         # 1. Exact matches (S01E01)
         s, e = self._match_exact_sxx_exx()
@@ -131,7 +137,9 @@ class SeriesParser:
             return s, e
 
         # 4. Standalone fallback (tisztán számok, pl. "05")
-        return self._extract_standalone_episode(cleaned, context_seasons)
+        return self._extract_standalone_episode(
+            cleaned, context_seasons, absolute_numbering
+        )
 
     def _match_exact_sxx_exx(self) -> tuple[list[int], list[int]]:
         patterns = [
@@ -220,7 +228,10 @@ class SeriesParser:
         return episodes, text
 
     def _extract_standalone_episode(
-        self, text: str, current_seasons: list[int] | None
+        self,
+        text: str,
+        current_seasons: list[int] | None,
+        absolute_numbering: bool = False,
     ) -> tuple[list[int], list[int]]:
         episodes: list[int] = []
         seasons = list(current_seasons) if current_seasons is not None else []
@@ -245,7 +256,11 @@ class SeriesParser:
             if ep_num < 2000:
                 episodes = [ep_num]
 
-                if ep_num >= 100:
+                # A három jegyű szám általában SxxExx-et takar (105 -> S01E05),
+                # folyamatos számozású csomagban viszont valódi epizódszám:
+                # ott a "101" a 101. rész, és a szétbontása ütközne az 1.
+                # résszel - a resolver pedig a nagyobb fájlt választaná.
+                if ep_num >= 100 and not absolute_numbering:
                     s_part = ep_num // 100
                     e_part = ep_num % 100
                     episodes = [e_part]

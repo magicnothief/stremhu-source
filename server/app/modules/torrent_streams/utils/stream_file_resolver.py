@@ -77,6 +77,7 @@ class StreamFileResolver:
         self,
         node: FolderNode | FileNode,
         inherited_season: int | None,
+        absolute_numbering: bool = False,
     ) -> list[TorrentFileInfo]:
         if self.series is None:
             return []
@@ -84,7 +85,8 @@ class StreamFileResolver:
         if isinstance(node, FileNode):
             parser = SeriesParser(node.name)
             seasons, episodes = parser.parse(
-                context_seasons=[inherited_season] if inherited_season else None
+                context_seasons=[inherited_season] if inherited_season else None,
+                absolute_numbering=absolute_numbering,
             )
 
             file_season = inherited_season
@@ -126,11 +128,16 @@ class StreamFileResolver:
 
             matches: list[TorrentFileInfo] = []
 
+            # Ha a mappa neve epizód-tartományt jelöl ("Bleach - 001 ~ 366"),
+            # akkor a benne lévő fájlok folyamatos számozásúak.
+            folder_absolute = absolute_numbering or len(episodes) > 1
+
             for child in node.children.values():
                 matches.extend(
                     self._traverse_tree(
                         child,
                         folder_season,
+                        folder_absolute,
                     )
                 )
 
@@ -165,6 +172,10 @@ class StreamFileResolver:
         # A root node nevének (torrent_info.name) feldolgozása már megtörtént feljebb.
         inherited_season = torrent_seasons[0] if len(torrent_seasons) == 1 else None
 
+        # A torrent neve epizód-tartományt jelöl (pl. "Bleach - 001 ~ 366"),
+        # tehát a fájlok folyamatos számozásúak: a "101" a 101. rész.
+        absolute_numbering = len(torrent_episodes) > 1
+
         exact_matches: list[TorrentFileInfo] = []
 
         for child in root_node.children.values():
@@ -172,6 +183,7 @@ class StreamFileResolver:
                 self._traverse_tree(
                     child,
                     inherited_season,
+                    absolute_numbering,
                 )
             )
 

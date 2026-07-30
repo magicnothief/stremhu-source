@@ -457,6 +457,57 @@
     ],
     "external_fallbacks": ["eng"]
   },
+  "anime_absolute_numbered_batch": {
+    "torrent": {
+      "name": "[Erai-raws] Bleach - 001 ~ 366 [1080p DSNP WEB-DL AVC AAC][MultiSub] [BATCH]",
+      "files": [
+        {
+          "path": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 001 [1080p].mkv",
+          "size": 1000,
+          "is_video": true
+        },
+        {
+          "path": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 014 [1080p].mkv",
+          "size": 1100,
+          "is_video": true
+        },
+        {
+          "path": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 101 [1080p].mkv",
+          "size": 2000,
+          "is_video": true
+        },
+        {
+          "path": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 114 [1080p].mkv",
+          "size": 2100,
+          "is_video": true
+        }
+      ]
+    },
+    "queries": [
+      {
+        "series": {
+          "season": 1,
+          "episode": 1
+        },
+        "expected_file": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 001 [1080p].mkv"
+      },
+      {
+        "series": {
+          "season": 1,
+          "episode": 14
+        },
+        "expected_file": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 014 [1080p].mkv"
+      },
+      {
+        "series": {
+          "season": 1,
+          "episode": 101
+        },
+        "expected_file": "[Erai-raws] Bleach - 001 ~ 366/[Erai-raws] Bleach - 101 [1080p].mkv"
+      }
+    ],
+    "external_fallbacks": ["eng"]
+  },
   "anime_subsplease_season_batch": {
     "torrent": {
       "name": "[SubsPlease] Sousou no Frieren S2 (01-10) (1080p) [Batch]",

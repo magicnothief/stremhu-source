@@ -1,4 +1,48 @@
 # serializer version: 1
+# name: test_stream_attributes_resolution[anime_absolute_numbered_batch_[Erai-raws] Bleach - 001 [1080p].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_absolute_numbered_batch_[Erai-raws] Bleach - 014 [1080p].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_absolute_numbered_batch_[Erai-raws] Bleach - 101 [1080p].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
+# name: test_stream_attributes_resolution[anime_absolute_numbered_batch_[Erai-raws] Bleach - 114 [1080p].mkv]
+  list([
+    '1080p',
+    'aac',
+    'eng',
+    'sdr',
+    'theatrical',
+    'web-dl',
+    'x264',
+  ])
+# ---
 # name: test_stream_attributes_resolution[anime_erai_raws_episode_with_hyphens_in_title_[Erai-raws] Mushoku Tensei III - Isekai Ittara Honki Dasu - 04 [1080p CR WEB-DL AVC AAC][MultiSub][63594405].mkv]
   list([
     '1080p',
